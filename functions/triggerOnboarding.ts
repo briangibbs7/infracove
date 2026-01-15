@@ -37,19 +37,27 @@ Deno.serve(async (req) => {
     // Create onboarding tasks
     const tasks = [
       {
-        title: 'Create Employee Profile',
+        title: 'Generate Employee ID',
         task_type: 'create_profile',
-        description: `Create employee profile for ${contract.party_name} in the system`,
+        description: `Generate unique employee ID for ${contract.party_name}`,
         priority: 'urgent',
         order: 1,
+        due_date: getDueDate(-7) // 7 days before start
+      },
+      {
+        title: 'Create Employee Profile',
+        task_type: 'create_profile',
+        description: `Create employee profile for ${contract.party_name} in the system with generated employee ID`,
+        priority: 'urgent',
+        order: 2,
         due_date: getDueDate(-5) // 5 days before start
       },
       {
         title: 'Assign Equipment',
         task_type: 'assign_equipment',
-        description: `Order and assign laptop, phone, and other equipment for ${contract.party_name}`,
+        description: `Order and assign laptop, phone, and other equipment for ${contract.party_name}. Track in Asset Management system.`,
         priority: 'high',
-        order: 2,
+        order: 3,
         due_date: getDueDate(-3) // 3 days before start
       },
       {
@@ -57,23 +65,31 @@ Deno.serve(async (req) => {
         task_type: 'setup_accounts',
         description: `Create email, Slack, and system accounts for ${contract.party_name}`,
         priority: 'high',
-        order: 3,
+        order: 4,
+        due_date: getDueDate(-2) // 2 days before start
+      },
+      {
+        title: 'Prepare Welcome Packet',
+        task_type: 'send_welcome_materials',
+        description: `Prepare welcome packet with company handbook, benefits information, and IT policies for ${contract.party_name}`,
+        priority: 'medium',
+        order: 5,
         due_date: getDueDate(-2) // 2 days before start
       },
       {
         title: 'Send Welcome Materials',
         task_type: 'send_welcome_materials',
-        description: `Send employee handbook, company policies, and welcome package to ${contract.party_name}`,
+        description: `Send complete welcome packet to ${contract.party_name}`,
         priority: 'medium',
-        order: 4,
+        order: 6,
         due_date: getDueDate(-1) // 1 day before start
       },
       {
         title: 'Schedule Orientation',
         task_type: 'schedule_orientation',
-        description: `Schedule first day orientation and office tour for ${contract.party_name}`,
+        description: `Schedule first day orientation and office tour for ${contract.party_name}. Send calendar invites to employee and manager.`,
         priority: 'high',
-        order: 5,
+        order: 7,
         due_date: getDueDate(0) // Start date
       },
       {
@@ -81,7 +97,7 @@ Deno.serve(async (req) => {
         task_type: 'benefits_enrollment',
         description: `Guide ${contract.party_name} through benefits enrollment process`,
         priority: 'medium',
-        order: 6,
+        order: 8,
         due_date: getDueDate(3) // 3 days after start
       },
       {
@@ -89,7 +105,7 @@ Deno.serve(async (req) => {
         task_type: 'team_introduction',
         description: `Introduce ${contract.party_name} to team members and key stakeholders`,
         priority: 'medium',
-        order: 7,
+        order: 9,
         due_date: getDueDate(1) // 1 day after start
       }
     ];

@@ -10,6 +10,7 @@ import Support from './pages/Support';
 import TimeOff from './pages/TimeOff';
 import Vendors from './pages/Vendors';
 import Onboarding from './pages/Onboarding';
+import WelcomePackets from './pages/WelcomePackets';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "TimeOff": TimeOff,
     "Vendors": Vendors,
     "Onboarding": Onboarding,
+    "WelcomePackets": WelcomePackets,
 }
 
 export const pagesConfig = {

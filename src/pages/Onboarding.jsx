@@ -18,7 +18,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "../utils";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { 
@@ -54,6 +57,8 @@ export default function Onboarding() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduleData, setScheduleData] = useState({});
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -68,6 +73,16 @@ export default function Onboarding() {
   const { data: employees = [] } = useQuery({
     queryKey: ["employees"],
     queryFn: () => base44.entities.Employee.list(),
+  });
+
+  const { data: assets = [] } = useQuery({
+    queryKey: ["assets"],
+    queryFn: () => base44.entities.Asset.list(),
+  });
+
+  const { data: welcomePackets = [] } = useQuery({
+    queryKey: ["welcomePackets"],
+    queryFn: () => base44.entities.WelcomePacket.list(),
   });
 
   const updateMutation = useMutation({
@@ -101,6 +116,56 @@ export default function Onboarding() {
     }
 
     updateMutation.mutate({ id: selectedTask.id, data });
+  };
+
+  const handleGenerateEmployeeId = async (task) => {
+    try {
+      const response = await base44.functions.invoke('generateEmployeeId', {
+        employeeName: task.employee_name,
+        department: 'HR'
+      });
+      
+      alert(`Employee ID generated: ${response.data.employeeId}`);
+      updateMutation.mutate({ 
+        id: task.id, 
+        data: { 
+          status: 'completed',
+          notes: `Generated Employee ID: ${response.data.employeeId}`,
+          completed_date: new Date().toISOString().split('T')[0]
+        }
+      });
+    } catch (error) {
+      alert('Failed to generate employee ID');
+    }
+  };
+
+  const handleScheduleOrientation = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    try {
+      await base44.functions.invoke('scheduleOrientation', {
+        employeeName: scheduleData.employeeName,
+        employeeEmail: formData.get('employeeEmail'),
+        managerEmail: formData.get('managerEmail'),
+        date: formData.get('date'),
+        time: formData.get('time'),
+        location: formData.get('location')
+      });
+      
+      alert('Orientation scheduled and invites sent!');
+      updateMutation.mutate({ 
+        id: scheduleData.taskId, 
+        data: { 
+          status: 'completed',
+          notes: `Orientation scheduled for ${formData.get('date')} at ${formData.get('time')}`,
+          completed_date: new Date().toISOString().split('T')[0]
+        }
+      });
+      setShowScheduleDialog(false);
+    } catch (error) {
+      alert('Failed to schedule orientation');
+    }
   };
 
   // Filter tasks
@@ -287,8 +352,50 @@ export default function Onboarding() {
                               </div>
                             </div>
                             
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {getStatusIcon(task.status)}
+                              
+                              {task.task_type === 'create_profile' && task.title.includes('Generate') && task.status !== 'completed' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleGenerateEmployeeId(task)}
+                                  className="text-indigo-600"
+                                >
+                                  Generate ID
+                                </Button>
+                              )}
+                              
+                              {task.task_type === 'assign_equipment' && (
+                                <Link to={createPageUrl('Assets')}>
+                                  <Button size="sm" variant="outline">
+                                    View Assets
+                                  </Button>
+                                </Link>
+                              )}
+                              
+                              {task.task_type === 'schedule_orientation' && task.status !== 'completed' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setScheduleData({ taskId: task.id, employeeName: task.employee_name });
+                                    setShowScheduleDialog(true);
+                                  }}
+                                  className="text-indigo-600"
+                                >
+                                  Schedule
+                                </Button>
+                              )}
+                              
+                              {task.task_type === 'send_welcome_materials' && (
+                                <Link to={createPageUrl('WelcomePackets')}>
+                                  <Button size="sm" variant="outline">
+                                    View Packets
+                                  </Button>
+                                </Link>
+                              )}
+                              
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -359,6 +466,81 @@ export default function Onboarding() {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule Orientation</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleScheduleOrientation} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Employee</Label>
+              <Input value={scheduleData.employeeName} disabled />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="employeeEmail">Employee Email *</Label>
+              <Input
+                id="employeeEmail"
+                name="employeeEmail"
+                type="email"
+                placeholder="employee@company.com"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="managerEmail">Manager Email</Label>
+              <Input
+                id="managerEmail"
+                name="managerEmail"
+                type="email"
+                placeholder="manager@company.com"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="date">Date *</Label>
+                <Input
+                  id="date"
+                  name="date"
+                  type="date"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="time">Time *</Label>
+                <Input
+                  id="time"
+                  name="time"
+                  type="time"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                name="location"
+                placeholder="Office - Main Conference Room"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowScheduleDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+                Schedule & Send Invites
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
