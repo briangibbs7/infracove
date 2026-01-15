@@ -44,7 +44,7 @@ const navigation = [
     children: [
       { name: "Employees", href: "Employees", icon: Users },
       { name: "Time Off", href: "TimeOff", icon: FileText },
-      { name: "Contracts", href: "Contracts", icon: ShieldCheck },
+      { name: "Contracts", href: "HRContracts", icon: ShieldCheck },
       { name: "Onboarding", href: "Onboarding", icon: UserCircle },
     ],
   },

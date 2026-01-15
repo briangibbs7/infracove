@@ -11,6 +11,7 @@ import TimeOff from './pages/TimeOff';
 import Vendors from './pages/Vendors';
 import Onboarding from './pages/Onboarding';
 import WelcomePackets from './pages/WelcomePackets';
+import HRContracts from './pages/HRContracts';
 import __Layout from './Layout.jsx';
 
 
@@ -28,6 +29,7 @@ export const PAGES = {
     "Vendors": Vendors,
     "Onboarding": Onboarding,
     "WelcomePackets": WelcomePackets,
+    "HRContracts": HRContracts,
 }
 
 export const pagesConfig = {

@@ -31,13 +31,12 @@ import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { format, differenceInDays, parseISO } from "date-fns";
-import { ShieldCheck, MoreVertical, Pencil, Trash2, Eye, Upload, Check, AlertTriangle, Download, Send } from "lucide-react";
+import { Users, MoreVertical, Pencil, Trash2, Eye, Upload, Check, AlertTriangle, Download, Send, PlayCircle } from "lucide-react";
 
-const CONTRACT_TYPES = ["vendor", "client", "nda", "partnership", "lease", "license", "other"];
 const STATUSES = ["draft", "pending_review", "pending_signature", "active", "expired", "terminated"];
 const DEPARTMENTS = ["HR", "Finance", "Sales", "Legal", "IT", "Marketing", "Operations", "Executive"];
 
-export default function Contracts() {
+export default function HRContracts() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContract, setEditingContract] = useState(null);
   const [user, setUser] = useState(null);
@@ -54,8 +53,8 @@ export default function Contracts() {
     queryFn: () => base44.entities.Contract.list("-created_date"),
   });
 
-  // Filter out employment contracts (they're managed in HR)
-  const contracts = allContracts.filter(c => c.type !== "employment");
+  // Filter only employment contracts
+  const contracts = allContracts.filter(c => c.type === "employment");
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Contract.create(data),
@@ -103,24 +102,25 @@ export default function Contracts() {
     try {
       await base44.integrations.Core.SendEmail({
         to: contract.party_name.includes('@') ? contract.party_name : 'recipient@example.com',
-        subject: `Contract Signature Required: ${contract.title}`,
+        subject: `Employment Contract Signature Required: ${contract.title}`,
         body: `
-Hello,
+Hello ${contract.party_name},
 
-Please review and sign the contract: ${contract.title} (Contract #${contract.contract_number || 'N/A'})
+Please review and sign your employment contract: ${contract.title}
 
 Contract Details:
-- Type: ${contract.type?.replace(/_/g, ' ')}
 - Start Date: ${contract.start_date}
 - End Date: ${contract.end_date || 'N/A'}
-${contract.value ? `- Value: $${contract.value.toLocaleString()}` : ''}
+${contract.value ? `- Compensation: $${contract.value.toLocaleString()}` : ''}
+- Department: ${contract.department || 'N/A'}
 
-${contract.notes ? `\nNotes:\n${contract.notes}` : ''}
+${contract.notes ? `\nAdditional Information:\n${contract.notes}` : ''}
 
-Please contact us if you have any questions.
+Please contact HR if you have any questions.
 
 Best regards,
 ${user?.full_name}
+HR Team
         `
       });
 
@@ -136,7 +136,24 @@ ${user?.full_name}
     }
   };
 
+  const handleTriggerOnboarding = async (contract) => {
+    const confirmed = confirm(
+      `Trigger onboarding workflow for ${contract.party_name}? This will create tasks for profile creation, equipment assignment, orientation, and more.`
+    );
 
+    if (!confirmed) return;
+
+    try {
+      const response = await base44.functions.invoke('triggerOnboarding', { 
+        contractId: contract.id 
+      });
+
+      alert(`Onboarding workflow started! ${response.data.tasksCreated} tasks created.`);
+    } catch (error) {
+      console.error('Error triggering onboarding:', error);
+      alert('Failed to trigger onboarding. Please try again.');
+    }
+  };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -154,7 +171,7 @@ ${user?.full_name}
     const data = {
       title: formData.get("title"),
       contract_number: formData.get("contract_number"),
-      type: formData.get("type"),
+      type: "employment", // Always employment for HR
       party_name: formData.get("party_name"),
       value: formData.get("value") ? parseFloat(formData.get("value")) : undefined,
       start_date: formData.get("start_date"),
@@ -183,33 +200,26 @@ ${user?.full_name}
 
   const columns = [
     {
-      header: "Contract",
+      header: "Employee",
       cell: (row) => (
         <div>
-          <p className="font-medium text-slate-900">{row.title}</p>
+          <p className="font-medium text-slate-900">{row.party_name}</p>
           <p className="text-sm text-slate-500">{row.contract_number}</p>
         </div>
       ),
     },
     {
-      header: "Type",
-      accessor: "type",
-      cell: (row) => (
-        <span className="text-sm capitalize">{row.type?.replace(/_/g, " ")}</span>
-      ),
+      header: "Title",
+      accessor: "title",
     },
     {
-      header: "Party",
-      accessor: "party_name",
+      header: "Department",
+      accessor: "department",
     },
     {
-      header: "Value",
-      accessor: "value",
-      cell: (row) => (
-        <span className="font-medium">
-          {row.value ? `$${row.value.toLocaleString()}` : "-"}
-        </span>
-      ),
+      header: "Start Date",
+      accessor: "start_date",
+      cell: (row) => row.start_date && format(new Date(row.start_date), "MMM d, yyyy"),
     },
     {
       header: "End Date",
@@ -222,7 +232,7 @@ ${user?.full_name}
         return (
           <div className="flex items-center gap-2">
             <span className={isExpired ? "text-red-600" : isExpiringSoon ? "text-amber-600" : ""}>
-              {row.end_date && format(new Date(row.end_date), "MMM d, yyyy")}
+              {row.end_date ? format(new Date(row.end_date), "MMM d, yyyy") : "N/A"}
             </span>
             {isExpiringSoon && <AlertTriangle className="w-4 h-4 text-amber-500" />}
           </div>
@@ -266,7 +276,13 @@ ${user?.full_name}
                 <Send className="w-4 h-4 mr-2" />
                 Send for Signature
               </DropdownMenuItem>
-
+              <DropdownMenuItem 
+                onClick={() => handleTriggerOnboarding(row)}
+                className="text-indigo-600"
+              >
+                <PlayCircle className="w-4 h-4 mr-2" />
+                Trigger Onboarding
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   setEditingContract(row);
@@ -300,7 +316,7 @@ ${user?.full_name}
   return (
     <div>
       <PageHeader
-        title="Legal Contracts"
+        title="Employee Contracts"
         subtitle={`${activeContracts} active • ${expiringSoon} expiring soon`}
         action={() => {
           setEditingContract(null);
@@ -313,9 +329,9 @@ ${user?.full_name}
       <Card className="border-0 shadow-sm">
         {contracts.length === 0 && !isLoading ? (
           <EmptyState
-            icon={ShieldCheck}
-            title="No legal contracts yet"
-            description="Manage vendor, client, NDA, and other legal contracts"
+            icon={Users}
+            title="No employment contracts yet"
+            description="Add employee contracts to track employment agreements"
             action={() => setIsDialogOpen(true)}
             actionLabel="Add Contract"
           />
@@ -327,15 +343,16 @@ ${user?.full_name}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingContract ? "Edit Contract" : "Add New Contract"}</DialogTitle>
+            <DialogTitle>{editingContract ? "Edit" : "Add"} Employment Contract</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Contract Title *</Label>
+                <Label htmlFor="title">Position/Title *</Label>
                 <Input
                   id="title"
                   name="title"
+                  placeholder="e.g., Senior Software Engineer"
                   defaultValue={editingContract?.title}
                   required
                 />
@@ -345,44 +362,32 @@ ${user?.full_name}
                 <Input
                   id="contract_number"
                   name="contract_number"
+                  placeholder="EMP-2026-001"
                   defaultValue={editingContract?.contract_number}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="type">Type *</Label>
-                <Select name="type" defaultValue={editingContract?.type}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONTRACT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="party_name">Other Party *</Label>
+                <Label htmlFor="party_name">Employee Name *</Label>
                 <Input
                   id="party_name"
                   name="party_name"
+                  placeholder="Full name or email"
                   defaultValue={editingContract?.party_name}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="value">Contract Value ($)</Label>
+                <Label htmlFor="value">Annual Salary ($)</Label>
                 <Input
                   id="value"
                   name="value"
                   type="number"
+                  placeholder="e.g., 120000"
                   defaultValue={editingContract?.value}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="department">Department *</Label>
                 <Select name="department" defaultValue={editingContract?.department}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
@@ -405,7 +410,7 @@ ${user?.full_name}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="end_date">End Date</Label>
+                <Label htmlFor="end_date">End Date (if fixed term)</Label>
                 <Input
                   id="end_date"
                   name="end_date"
@@ -427,15 +432,6 @@ ${user?.full_name}
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="renewal_reminder_days">Reminder (days before expiry)</Label>
-                <Input
-                  id="renewal_reminder_days"
-                  name="renewal_reminder_days"
-                  type="number"
-                  defaultValue={editingContract?.renewal_reminder_days || 30}
-                />
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -483,9 +479,11 @@ ${user?.full_name}
               <Textarea
                 id="notes"
                 name="notes"
+                placeholder="Additional contract details..."
                 defaultValue={editingContract?.notes}
               />
             </div>
+            <input type="hidden" name="renewal_reminder_days" value="30" />
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
