@@ -4,6 +4,9 @@ import TimeOff from './pages/TimeOff';
 import Expenses from './pages/Expenses';
 import Invoices from './pages/Invoices';
 import Vendors from './pages/Vendors';
+import Leads from './pages/Leads';
+import Pipeline from './pages/Pipeline';
+import Contracts from './pages/Contracts';
 import __Layout from './Layout.jsx';
 
 
@@ -14,6 +17,9 @@ export const PAGES = {
     "Expenses": Expenses,
     "Invoices": Invoices,
     "Vendors": Vendors,
+    "Leads": Leads,
+    "Pipeline": Pipeline,
+    "Contracts": Contracts,
 }
 
 export const pagesConfig = {
