@@ -31,7 +31,7 @@ import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { format, differenceInDays, parseISO } from "date-fns";
-import { ShieldCheck, MoreVertical, Pencil, Trash2, Eye, Upload, Check, AlertTriangle } from "lucide-react";
+import { ShieldCheck, MoreVertical, Pencil, Trash2, Eye, Upload, Check, AlertTriangle, Download, Send } from "lucide-react";
 
 const CONTRACT_TYPES = ["employment", "vendor", "client", "nda", "partnership", "lease", "license", "other"];
 const STATUSES = ["draft", "pending_review", "pending_signature", "active", "expired", "terminated"];
@@ -78,6 +78,60 @@ export default function Contracts() {
     mutationFn: (id) => base44.entities.Contract.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["contracts"] }),
   });
+
+  const handleDownloadPdf = async (contractId) => {
+    try {
+      const response = await base44.functions.invoke('generateContractPdf', { contractId });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `contract-${contractId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    }
+  };
+
+  const handleSendForSignature = async (contract) => {
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: contract.party_name.includes('@') ? contract.party_name : 'recipient@example.com',
+        subject: `Contract Signature Required: ${contract.title}`,
+        body: `
+Hello,
+
+Please review and sign the contract: ${contract.title} (Contract #${contract.contract_number || 'N/A'})
+
+Contract Details:
+- Type: ${contract.type?.replace(/_/g, ' ')}
+- Start Date: ${contract.start_date}
+- End Date: ${contract.end_date || 'N/A'}
+${contract.value ? `- Value: $${contract.value.toLocaleString()}` : ''}
+
+${contract.notes ? `\nNotes:\n${contract.notes}` : ''}
+
+Please contact us if you have any questions.
+
+Best regards,
+${user?.full_name}
+        `
+      });
+
+      await updateMutation.mutateAsync({ 
+        id: contract.id, 
+        data: { ...contract, status: 'pending_signature' } 
+      });
+
+      alert('Contract sent for signature!');
+    } catch (error) {
+      console.error('Error sending contract:', error);
+      alert('Failed to send contract. Please try again.');
+    }
+  };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -188,6 +242,14 @@ export default function Contracts() {
               <Eye className="w-4 h-4" />
             </Button>
           )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleDownloadPdf(row.id)}
+            title="Download PDF"
+          >
+            <Download className="w-4 h-4" />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -195,6 +257,10 @@ export default function Contracts() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleSendForSignature(row)}>
+                <Send className="w-4 h-4 mr-2" />
+                Send for Signature
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   setEditingContract(row);
