@@ -7,6 +7,8 @@ import Vendors from './pages/Vendors';
 import Leads from './pages/Leads';
 import Pipeline from './pages/Pipeline';
 import Contracts from './pages/Contracts';
+import Assets from './pages/Assets';
+import Support from './pages/Support';
 import __Layout from './Layout.jsx';
 
 
@@ -20,6 +22,8 @@ export const PAGES = {
     "Leads": Leads,
     "Pipeline": Pipeline,
     "Contracts": Contracts,
+    "Assets": Assets,
+    "Support": Support,
 }
 
 export const pagesConfig = {
