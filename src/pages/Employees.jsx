@@ -23,7 +23,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { format } from "date-fns";
-import { Users, Mail, Phone, MapPin, Calendar, Search, Filter, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Users, Mail, Phone, MapPin, Calendar, Search, Filter, MoreVertical, Pencil, Trash2, Award } from "lucide-react";
+import EmployeeDetailsDialog from "@/components/employees/EmployeeDetailsDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ const STATUSES = ["active", "onboarding", "on_leave", "terminated"];
 
 export default function Employees() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
@@ -91,6 +93,16 @@ export default function Employees() {
       updateMutation.mutate({ id: editingEmployee.id, data });
     } else {
       createMutation.mutate(data);
+    }
+  };
+
+  const handleDetailsUpdate = (detailsData) => {
+    if (editingEmployee) {
+      updateMutation.mutate({
+        id: editingEmployee.id,
+        data: { ...editingEmployee, ...detailsData }
+      });
+      setIsDetailsDialogOpen(false);
     }
   };
 
@@ -212,7 +224,16 @@ export default function Employees() {
                         }}
                       >
                         <Pencil className="w-4 h-4 mr-2" />
-                        Edit
+                        Edit Basic Info
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditingEmployee(employee);
+                          setIsDetailsDialogOpen(true);
+                        }}
+                      >
+                        <Award className="w-4 h-4 mr-2" />
+                        Manage Details
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-600"
@@ -248,6 +269,13 @@ export default function Employees() {
                       <span>Started {format(new Date(employee.start_date), "MMM d, yyyy")}</span>
                     </div>
                   )}
+                  {employee.skills && employee.skills.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Award className="w-4 h-4 text-slate-400" />
+                      <span className="truncate">{employee.skills.slice(0, 3).join(", ")}</span>
+                      {employee.skills.length > 3 && <span className="text-xs">+{employee.skills.length - 3}</span>}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
@@ -261,6 +289,21 @@ export default function Employees() {
           ))}
         </div>
       )}
+
+      {/* Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Employee Details - {editingEmployee?.full_name}</DialogTitle>
+          </DialogHeader>
+          {editingEmployee && (
+            <EmployeeDetailsDialog
+              employee={editingEmployee}
+              onUpdate={handleDetailsUpdate}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
