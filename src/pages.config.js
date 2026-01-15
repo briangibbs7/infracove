@@ -1,29 +1,31 @@
+import Assets from './pages/Assets';
+import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
-import TimeOff from './pages/TimeOff';
 import Expenses from './pages/Expenses';
 import Invoices from './pages/Invoices';
-import Vendors from './pages/Vendors';
 import Leads from './pages/Leads';
 import Pipeline from './pages/Pipeline';
-import Contracts from './pages/Contracts';
-import Assets from './pages/Assets';
 import Support from './pages/Support';
+import TimeOff from './pages/TimeOff';
+import Vendors from './pages/Vendors';
+import Onboarding from './pages/Onboarding';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "Assets": Assets,
+    "Contracts": Contracts,
     "Dashboard": Dashboard,
     "Employees": Employees,
-    "TimeOff": TimeOff,
     "Expenses": Expenses,
     "Invoices": Invoices,
-    "Vendors": Vendors,
     "Leads": Leads,
     "Pipeline": Pipeline,
-    "Contracts": Contracts,
-    "Assets": Assets,
     "Support": Support,
+    "TimeOff": TimeOff,
+    "Vendors": Vendors,
+    "Onboarding": Onboarding,
 }
 
 export const pagesConfig = {

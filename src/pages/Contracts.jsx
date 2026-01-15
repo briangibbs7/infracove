@@ -31,7 +31,7 @@ import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { format, differenceInDays, parseISO } from "date-fns";
-import { ShieldCheck, MoreVertical, Pencil, Trash2, Eye, Upload, Check, AlertTriangle, Download, Send } from "lucide-react";
+import { ShieldCheck, MoreVertical, Pencil, Trash2, Eye, Upload, Check, AlertTriangle, Download, Send, PlayCircle } from "lucide-react";
 
 const CONTRACT_TYPES = ["employment", "vendor", "client", "nda", "partnership", "lease", "license", "other"];
 const STATUSES = ["draft", "pending_review", "pending_signature", "active", "expired", "terminated"];
@@ -130,6 +130,30 @@ ${user?.full_name}
     } catch (error) {
       console.error('Error sending contract:', error);
       alert('Failed to send contract. Please try again.');
+    }
+  };
+
+  const handleTriggerOnboarding = async (contract) => {
+    if (contract.type !== 'employment') {
+      alert('Only employment contracts can trigger onboarding workflows');
+      return;
+    }
+
+    const confirmed = confirm(
+      `Trigger onboarding workflow for ${contract.party_name}? This will create tasks for profile creation, equipment assignment, orientation, and more.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await base44.functions.invoke('triggerOnboarding', { 
+        contractId: contract.id 
+      });
+
+      alert(`Onboarding workflow started! ${response.data.tasksCreated} tasks created.`);
+    } catch (error) {
+      console.error('Error triggering onboarding:', error);
+      alert('Failed to trigger onboarding. Please try again.');
     }
   };
 
@@ -261,6 +285,15 @@ ${user?.full_name}
                 <Send className="w-4 h-4 mr-2" />
                 Send for Signature
               </DropdownMenuItem>
+              {row.type === 'employment' && (
+                <DropdownMenuItem 
+                  onClick={() => handleTriggerOnboarding(row)}
+                  className="text-indigo-600"
+                >
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Trigger Onboarding
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => {
                   setEditingContract(row);
