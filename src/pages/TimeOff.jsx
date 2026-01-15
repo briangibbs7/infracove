@@ -77,7 +77,7 @@ export default function TimeOff() {
       end_date: endDate,
       days_requested: days,
       reason: formData.get("reason"),
-      status: "pending",
+      status: "pending_approval",
     });
   };
 
@@ -87,6 +87,7 @@ export default function TimeOff() {
       data: {
         status: "approved",
         approved_by: user?.email,
+        approved_by_name: user?.full_name,
         approved_date: new Date().toISOString().split("T")[0],
       },
     });
@@ -129,6 +130,13 @@ export default function TimeOff() {
       cell: (row) => <span>{row.days_requested || 1} days</span>,
     },
     {
+      header: "Manager",
+      accessor: "manager_name",
+      cell: (row) => (
+        <span className="text-sm text-slate-600">{row.manager_name || "Assigning..."}</span>
+      ),
+    },
+    {
       header: "Status",
       accessor: "status",
       cell: (row) => <StatusBadge status={row.status} />,
@@ -136,7 +144,7 @@ export default function TimeOff() {
     {
       header: "Actions",
       cell: (row) =>
-        row.status === "pending" && user?.role === "admin" ? (
+        row.status === "pending_approval" && (user?.role === "admin" || row.manager_id === user?.email) ? (
           <div className="flex gap-2">
             <Button
               size="sm"
