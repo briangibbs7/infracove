@@ -56,6 +56,7 @@ export default function Onboarding() {
   const [selectedEmployee, setSelectedEmployee] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [scheduleData, setScheduleData] = useState({});
@@ -85,6 +86,14 @@ export default function Onboarding() {
     queryFn: () => base44.entities.WelcomePacket.list(),
   });
 
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.OnboardingTask.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["onboardingTasks"] });
+      setIsCreateDialogOpen(false);
+    },
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.OnboardingTask.update(id, data),
     onSuccess: () => {
@@ -92,6 +101,11 @@ export default function Onboarding() {
       setIsDialogOpen(false);
       setSelectedTask(null);
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.OnboardingTask.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["onboardingTasks"] }),
   });
 
   const handleStatusChange = (task, newStatus) => {
@@ -102,12 +116,41 @@ export default function Onboarding() {
     updateMutation.mutate({ id: task.id, data: updateData });
   };
 
+  const handleCreateTask = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    const selectedEmpId = formData.get("employee_id");
+    const selectedEmp = employees.find(emp => emp.id === selectedEmpId);
+    
+    const data = {
+      employee_id: selectedEmpId,
+      employee_name: selectedEmp?.full_name,
+      task_type: formData.get("task_type"),
+      title: formData.get("title"),
+      description: formData.get("description"),
+      status: "pending",
+      priority: formData.get("priority") || "medium",
+      assigned_to: formData.get("assigned_to"),
+      assigned_to_name: formData.get("assigned_to") ? employees.find(e => e.id === formData.get("assigned_to"))?.full_name : undefined,
+      due_date: formData.get("due_date"),
+      notes: formData.get("notes"),
+      order: tasks.length + 1,
+    };
+
+    createMutation.mutate(data);
+  };
+
   const handleTaskUpdate = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     
     const data = {
       status: formData.get("status"),
+      priority: formData.get("priority"),
+      due_date: formData.get("due_date"),
+      assigned_to: formData.get("assigned_to"),
+      assigned_to_name: formData.get("assigned_to") ? employees.find(e => e.id === formData.get("assigned_to"))?.full_name : undefined,
       notes: formData.get("notes"),
     };
 
@@ -215,6 +258,8 @@ export default function Onboarding() {
       <PageHeader
         title="Employee Onboarding"
         subtitle={`${pendingTasks} pending • ${completedTasks} completed • ${overdueTasks} overdue`}
+        action={() => setIsCreateDialogOpen(true)}
+        actionLabel="Create Task"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -341,14 +386,19 @@ export default function Onboarding() {
                               {task.description && (
                                 <p className="text-sm text-slate-500 mt-1">{task.description}</p>
                               )}
-                              <div className="flex items-center gap-3 mt-2">
-                                <StatusBadge status={task.status} />
-                                <StatusBadge status={task.priority} />
-                                {task.due_date && (
-                                  <span className={`text-xs ${isOverdue ? "text-red-600 font-medium" : "text-slate-500"}`}>
-                                    Due: {format(parseISO(task.due_date), "MMM d, yyyy")}
-                                  </span>
-                                )}
+                              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                               <StatusBadge status={task.status} />
+                               <StatusBadge status={task.priority} />
+                               {task.assigned_to_name && (
+                                 <span className="text-xs text-slate-500">
+                                   Assigned: {task.assigned_to_name}
+                                 </span>
+                               )}
+                               {task.due_date && (
+                                 <span className={`text-xs ${isOverdue ? "text-red-600 font-medium" : "text-slate-500"}`}>
+                                   Due: {format(parseISO(task.due_date), "MMM d, yyyy")}
+                                 </span>
+                               )}
                               </div>
                             </div>
                             
@@ -404,7 +454,7 @@ export default function Onboarding() {
                                   setIsDialogOpen(true);
                                 }}
                               >
-                                Update
+                                Manage
                               </Button>
                             </div>
                           </div>
@@ -419,29 +469,196 @@ export default function Onboarding() {
         </div>
       )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Update Task</DialogTitle>
+            <DialogTitle>Create Onboarding Task</DialogTitle>
           </DialogHeader>
-          {selectedTask && (
-            <form onSubmit={handleTaskUpdate} className="space-y-4">
-              <div>
-                <h4 className="font-medium text-slate-900 mb-2">{selectedTask.title}</h4>
-                <p className="text-sm text-slate-500">{selectedTask.description}</p>
-              </div>
-              
+          <form onSubmit={handleCreateTask} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select name="status" defaultValue={selectedTask.status}>
+                <Label htmlFor="employee_id">Employee *</Label>
+                <Select name="employee_id" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.filter(e => e.status === "onboarding" || e.status === "active").map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="task_type">Task Type *</Label>
+                <Select name="task_type" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="create_profile">Create Profile</SelectItem>
+                    <SelectItem value="assign_equipment">Assign Equipment</SelectItem>
+                    <SelectItem value="schedule_orientation">Schedule Orientation</SelectItem>
+                    <SelectItem value="send_welcome_materials">Send Welcome Materials</SelectItem>
+                    <SelectItem value="setup_accounts">Setup Accounts</SelectItem>
+                    <SelectItem value="benefits_enrollment">Benefits Enrollment</SelectItem>
+                    <SelectItem value="team_introduction">Team Introduction</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">Task Title *</Label>
+              <Input
+                id="title"
+                name="title"
+                placeholder="e.g., Setup email account"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                placeholder="Detailed task description..."
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select name="priority" defaultValue="medium">
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="blocked">Blocked</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="due_date">Due Date</Label>
+                <Input
+                  id="due_date"
+                  name="due_date"
+                  type="date"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="assigned_to">Assign To</Label>
+              <Select name="assigned_to">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.filter(e => e.status === "active").map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                placeholder="Additional notes..."
+                rows={2}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+                Create Task
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Task</DialogTitle>
+          </DialogHeader>
+          {selectedTask && (
+            <form onSubmit={handleTaskUpdate} className="space-y-4">
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <h4 className="font-medium text-slate-900 mb-1">{selectedTask.title}</h4>
+                <p className="text-sm text-slate-500">{selectedTask.description}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xs text-slate-400">For: {selectedTask.employee_name}</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status *</Label>
+                  <Select name="status" defaultValue={selectedTask.status} required>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="blocked">Blocked</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select name="priority" defaultValue={selectedTask.priority}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="due_date">Due Date</Label>
+                <Input
+                  id="due_date"
+                  name="due_date"
+                  type="date"
+                  defaultValue={selectedTask.due_date}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="assigned_to">Assigned To</Label>
+                <Select name="assigned_to" defaultValue={selectedTask.assigned_to}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select assignee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.filter(e => e.status === "active").map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -453,16 +670,37 @@ export default function Onboarding() {
                   name="notes"
                   defaultValue={selectedTask.notes}
                   placeholder="Add any notes or updates..."
+                  rows={3}
                 />
               </div>
 
-              <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
+              {selectedTask.completed_date && (
+                <div className="text-sm text-slate-500 bg-emerald-50 p-3 rounded-lg">
+                  ✓ Completed on {format(parseISO(selectedTask.completed_date), "MMM d, yyyy")}
+                </div>
+              )}
+
+              <div className="flex justify-between gap-3 pt-4 border-t">
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this task?")) {
+                      deleteMutation.mutate(selectedTask.id);
+                      setIsDialogOpen(false);
+                    }
+                  }}
+                >
+                  Delete Task
                 </Button>
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                  Update Task
-                </Button>
+                <div className="flex gap-3">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+                    Update Task
+                  </Button>
+                </div>
               </div>
             </form>
           )}
