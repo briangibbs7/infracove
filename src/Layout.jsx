@@ -43,6 +43,7 @@ const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard },
   { name: "My Portal", href: "EmployeePortal", icon: User },
   { name: "Announcements", href: "Announcements", icon: Building2 },
+  { name: "Analytics", href: "Analytics", icon: TrendingUp },
   {
     name: "HR",
     icon: Users,
