@@ -22,8 +22,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { Plus, Star, TrendingUp, Award, CheckCircle, Users } from "lucide-react";
+import { Plus, Star, TrendingUp, Award, CheckCircle, Users, Trophy } from "lucide-react";
 import { format } from "date-fns";
+import { BadgeCard, ProgressLevel } from "@/components/gamification/BadgeDisplay";
+import Leaderboard from "@/components/gamification/Leaderboard";
 
 export default function SkillsSection({ currentEmployee, isAdmin }) {
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false);
@@ -49,11 +51,43 @@ export default function SkillsSection({ currentEmployee, isAdmin }) {
     enabled: isAdmin,
   });
 
+  const { data: achievements = [] } = useQuery({
+    queryKey: ["achievements", currentEmployee?.id],
+    queryFn: () => base44.entities.Achievement.filter({ employee_id: currentEmployee?.id }),
+    enabled: !!currentEmployee,
+  });
+
+  const { data: allAchievements = [] } = useQuery({
+    queryKey: ["allAchievements"],
+    queryFn: () => base44.entities.Achievement.list(),
+  });
+
+  const { data: allSkills = [] } = useQuery({
+    queryKey: ["allSkills"],
+    queryFn: () => base44.entities.SkillEndorsement.list(),
+  });
+
+  const { data: allTrainingAssignments = [] } = useQuery({
+    queryKey: ["allTrainingAssignments"],
+    queryFn: () => base44.entities.TrainingAssignment.list(),
+  });
+
   const createSkillMutation = useMutation({
     mutationFn: (data) => base44.entities.SkillEndorsement.create(data),
-    onSuccess: () => {
+    onSuccess: async (newSkill) => {
       queryClient.invalidateQueries({ queryKey: ["skills"] });
       setIsSkillDialogOpen(false);
+      
+      // Check for badges
+      const empSkills = await base44.entities.SkillEndorsement.filter({ employee_id: currentEmployee?.id });
+      if (empSkills.length === 1) {
+        checkAndAwardBadge("first_skill", "First Skill", "Added your first skill", 10);
+      } else if (empSkills.length >= 5) {
+        checkAndAwardBadge("skill_master", "Skill Master", "Added 5+ skills", 50);
+      }
+      if (newSkill.self_rating === 5) {
+        checkAndAwardBadge("expert_level", "Expert Level", "Achieved expert rating", 75);
+      }
     },
   });
 
@@ -137,14 +171,84 @@ export default function SkillsSection({ currentEmployee, isAdmin }) {
     other: "bg-slate-100 text-slate-700 border-slate-200",
   };
 
+  const createAchievementMutation = useMutation({
+    mutationFn: (data) => base44.entities.Achievement.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["achievements"] });
+    },
+  });
+
+  const checkAndAwardBadge = async (badgeType, badgeName, description, points) => {
+    const existing = achievements.find(a => a.badge_type === badgeType);
+    if (!existing) {
+      createAchievementMutation.mutate({
+        employee_id: currentEmployee.id,
+        employee_name: currentEmployee.full_name,
+        badge_type: badgeType,
+        badge_name: badgeName,
+        badge_description: description,
+        points_earned: points,
+        earned_date: new Date().toISOString().split('T')[0],
+      });
+    }
+  };
+
+  const totalPoints = achievements.reduce((sum, a) => sum + (a.points_earned || 0), 0);
+
   const averageRating = (skill) => {
     if (!skill.endorsed_by || skill.endorsed_by.length === 0) return skill.self_rating;
     const totalRating = skill.endorsed_by.reduce((sum, e) => sum + e.rating, skill.self_rating);
     return (totalRating / (skill.endorsed_by.length + 1)).toFixed(1);
   };
 
+  // Leaderboard data
+  const employeePoints = allAchievements.reduce((acc, achievement) => {
+    if (!acc[achievement.employee_id]) {
+      acc[achievement.employee_id] = {
+        employee_id: achievement.employee_id,
+        employee_name: achievement.employee_name,
+        points: 0,
+      };
+    }
+    acc[achievement.employee_id].points += achievement.points_earned || 0;
+    return acc;
+  }, {});
+
+  const skillsLeaderboard = Object.entries(
+    allSkills.reduce((acc, skill) => {
+      if (!acc[skill.employee_id]) {
+        acc[skill.employee_id] = {
+          employee_id: skill.employee_id,
+          employee_name: skill.employee_name,
+          skillCount: 0,
+        };
+      }
+      acc[skill.employee_id].skillCount++;
+      return acc;
+    }, {})
+  ).map(([id, data]) => data);
+
+  const trainingLeaderboard = Object.entries(
+    allTrainingAssignments
+      .filter(a => a.status === "completed")
+      .reduce((acc, assignment) => {
+        if (!acc[assignment.employee_id]) {
+          acc[assignment.employee_id] = {
+            employee_id: assignment.employee_id,
+            employee_name: assignment.employee_name,
+            completedTraining: 0,
+          };
+        }
+        acc[assignment.employee_id].completedTraining++;
+        return acc;
+      }, {})
+  ).map(([id, data]) => data);
+
   return (
     <div className="space-y-6">
+      {/* Progress Level */}
+      <ProgressLevel points={totalPoints} />
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-0 shadow-sm">

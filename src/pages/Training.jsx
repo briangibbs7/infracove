@@ -38,9 +38,12 @@ import {
   ClipboardList,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Trophy
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { BadgeCard } from "@/components/gamification/BadgeDisplay";
+import Leaderboard from "@/components/gamification/Leaderboard";
 
 const DEPARTMENTS = ["HR", "Finance", "Sales", "Legal", "IT", "Marketing", "Operations", "Executive"];
 
@@ -71,6 +74,12 @@ export default function Training() {
   const { data: assignments = [] } = useQuery({
     queryKey: ["trainingAssignments"],
     queryFn: () => base44.entities.TrainingAssignment.list("-created_date"),
+  });
+
+  const { data: achievements = [] } = useQuery({
+    queryKey: ["achievements", currentEmployee?.id],
+    queryFn: () => currentEmployee ? base44.entities.Achievement.filter({ employee_id: currentEmployee.id }) : [],
+    enabled: !!currentEmployee,
   });
 
   useEffect(() => {
@@ -122,6 +131,28 @@ export default function Training() {
   const createNotificationMutation = useMutation({
     mutationFn: (data) => base44.entities.Notification.create(data),
   });
+
+  const createAchievementMutation = useMutation({
+    mutationFn: (data) => base44.entities.Achievement.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["achievements"] });
+    },
+  });
+
+  const checkAndAwardBadge = async (badgeType, badgeName, description, points) => {
+    const existing = achievements.find(a => a.badge_type === badgeType);
+    if (!existing && currentEmployee) {
+      createAchievementMutation.mutate({
+        employee_id: currentEmployee.id,
+        employee_name: currentEmployee.full_name,
+        badge_type: badgeType,
+        badge_name: badgeName,
+        badge_description: description,
+        points_earned: points,
+        earned_date: new Date().toISOString().split('T')[0],
+      });
+    }
+  };
 
   const handleAddMaterial = () => {
     setMaterials([...materials, { title: "", type: "document", file_url: "", order: materials.length }]);
@@ -310,12 +341,13 @@ export default function Training() {
                         {assignment.status !== "completed" && (
                           <Button
                             className="mt-4 bg-indigo-600 hover:bg-indigo-700"
-                            onClick={() => {
+                            onClick={async () => {
                               if (assignment.status === "not_started") {
                                 updateAssignmentMutation.mutate({
                                   id: assignment.id,
                                   data: { status: "in_progress", progress: 10 }
                                 });
+                                checkAndAwardBadge("training_starter", "Training Starter", "Started first course", 20);
                               } else {
                                 const newProgress = Math.min((assignment.progress || 0) + 25, 100);
                                 const newStatus = newProgress === 100 ? "completed" : "in_progress";
@@ -327,6 +359,15 @@ export default function Training() {
                                     completed_date: newProgress === 100 ? new Date().toISOString().split('T')[0] : undefined
                                   }
                                 });
+                                if (newProgress === 100) {
+                                  const completedCount = myAssignments.filter(a => a.status === "completed").length + 1;
+                                  if (completedCount >= 5) {
+                                    checkAndAwardBadge("training_champion", "Training Champion", "Completed 5+ courses", 100);
+                                  }
+                                  if (assignment.due_date && new Date() < new Date(assignment.due_date)) {
+                                    checkAndAwardBadge("quick_learner", "Quick Learner", "Completed ahead of deadline", 30);
+                                  }
+                                }
                               }
                             }}
                           >
@@ -345,6 +386,31 @@ export default function Training() {
                 />
               )}
             </div>
+
+            {/* Quick Badge View */}
+            {!canManage && achievements.length > 0 && (
+              <Card className="border-0 shadow-sm mt-6">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-amber-500" />
+                    <CardTitle>Recent Badges</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-3 flex-wrap">
+                    {achievements.slice(0, 4).map((achievement) => (
+                      <BadgeCard
+                        key={achievement.id}
+                        badgeType={achievement.badge_type}
+                        earned={true}
+                        earnedDate={achievement.earned_date}
+                        compact={true}
+                      />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         )}
 
@@ -459,6 +525,52 @@ export default function Training() {
         {/* Assignments Tab (Admin/HR only) */}
         {canManage && (
           <TabsContent value="assignments" className="space-y-6">
+            {/* Leaderboard */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Leaderboard 
+                data={Object.entries(
+                  assignments
+                    .filter(a => a.status === "completed")
+                    .reduce((acc, a) => {
+                      if (!acc[a.employee_id]) {
+                        acc[a.employee_id] = {
+                          employee_id: a.employee_id,
+                          employee_name: a.employee_name,
+                          completedTraining: 0,
+                        };
+                      }
+                      acc[a.employee_id].completedTraining++;
+                      return acc;
+                    }, {})
+                ).map(([id, data]) => data)}
+                title="Top Training Completers"
+                metric="completedTraining"
+              />
+              <Leaderboard 
+                data={Object.entries(
+                  assignments
+                    .reduce((acc, a) => {
+                      if (!acc[a.employee_id]) {
+                        acc[a.employee_id] = {
+                          employee_id: a.employee_id,
+                          employee_name: a.employee_name,
+                          avgProgress: 0,
+                          count: 0,
+                          total: 0,
+                        };
+                      }
+                      acc[a.employee_id].total += a.progress || 0;
+                      acc[a.employee_id].count++;
+                      acc[a.employee_id].avgProgress = Math.round(acc[a.employee_id].total / acc[a.employee_id].count);
+                      return acc;
+                    }, {})
+                ).map(([id, data]) => data)}
+                title="Average Progress Leaders"
+                metric="avgProgress"
+              />
+            </div>
+
+            {/* Assignments List */}
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle>All Training Assignments</CardTitle>
