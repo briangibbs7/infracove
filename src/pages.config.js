@@ -13,6 +13,7 @@ import TimeOff from './pages/TimeOff';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
 import Performance from './pages/Performance';
+import EmployeePortal from './pages/EmployeePortal';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +33,7 @@ export const PAGES = {
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
     "Performance": Performance,
+    "EmployeePortal": EmployeePortal,
 }
 
 export const pagesConfig = {

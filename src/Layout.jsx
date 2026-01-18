@@ -23,7 +23,8 @@ import {
   ShieldCheck,
   HeadphonesIcon,
   Package,
-  UserCircle
+  UserCircle,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 
 const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard },
+  { name: "My Portal", href: "EmployeePortal", icon: User },
   {
     name: "HR",
     icon: Users,
