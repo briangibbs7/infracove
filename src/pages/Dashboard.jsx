@@ -64,6 +64,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Contract.filter({ type: "employment" }),
   });
 
+  const { data: performanceReviews = [] } = useQuery({
+    queryKey: ["performanceReviews"],
+    queryFn: () => base44.entities.PerformanceReview.list(),
+  });
+
   useEffect(() => {
     if (user && employees.length > 0) {
       const emp = employees.find(e => e.email === user.email);
@@ -113,6 +118,13 @@ export default function Dashboard() {
   const myContract = currentEmployee
     ? hrContracts.find(c => c.party_name === currentEmployee.full_name || c.title?.includes(currentEmployee.full_name))
     : null;
+
+  const myPendingReviews = currentEmployee
+    ? performanceReviews.filter(r => 
+        r.employee_id === currentEmployee.id && 
+        r.status === "pending_self_assessment"
+      )
+    : [];
 
   // Manager-specific data
   const myTeam = currentEmployee
@@ -277,6 +289,36 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {myPendingReviews.length > 0 && (
+            <Card className="border-0 shadow-sm border-amber-200 bg-amber-50">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <CardTitle className="text-lg font-semibold text-amber-900">Pending Performance Reviews</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {myPendingReviews.map((review) => (
+                    <div key={review.id} className="flex items-center justify-between p-3 bg-white rounded-lg">
+                      <div>
+                        <p className="font-medium text-slate-900">{review.review_period}</p>
+                        <p className="text-sm text-slate-500 capitalize">{review.review_type} Review</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="bg-amber-600 hover:bg-amber-700"
+                        onClick={() => window.location.href = '/Performance'}
+                      >
+                        Complete Now
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 
