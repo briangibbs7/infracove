@@ -64,6 +64,11 @@ export default function Performance() {
     queryFn: () => base44.entities.PerformanceGoal.list("-created_date"),
   });
 
+  const { data: trainingAssignments = [] } = useQuery({
+    queryKey: ["trainingAssignments"],
+    queryFn: () => base44.entities.TrainingAssignment.list("-created_date"),
+  });
+
   useEffect(() => {
     if (user && employees.length > 0) {
       const emp = employees.find(e => e.email === user.email);
@@ -296,6 +301,11 @@ export default function Performance() {
                             </div>
                           )}
                         </div>
+                        {review.employee_id && (
+                          <div className="text-xs text-slate-500 mt-2">
+                            Training completed: {trainingAssignments.filter(t => t.employee_id === review.employee_id && t.status === "completed").length}
+                          </div>
+                        )}
                       </div>
                       {review.status === "pending_self_assessment" && (
                         <Button

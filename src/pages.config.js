@@ -15,6 +15,7 @@ import WelcomePackets from './pages/WelcomePackets';
 import Performance from './pages/Performance';
 import EmployeePortal from './pages/EmployeePortal';
 import Announcements from './pages/Announcements';
+import Training from './pages/Training';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +37,7 @@ export const PAGES = {
     "Performance": Performance,
     "EmployeePortal": EmployeePortal,
     "Announcements": Announcements,
+    "Training": Training,
 }
 
 export const pagesConfig = {

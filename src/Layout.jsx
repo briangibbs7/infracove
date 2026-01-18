@@ -50,6 +50,7 @@ const navigation = [
       { name: "Employees", href: "Employees", icon: Users },
       { name: "Time Off", href: "TimeOff", icon: FileText },
       { name: "Performance", href: "Performance", icon: TrendingUp },
+      { name: "Training", href: "Training", icon: TrendingUp },
       { name: "Contracts", href: "HRContracts", icon: ShieldCheck },
       { name: "Onboarding", href: "Onboarding", icon: UserCircle },
     ],
