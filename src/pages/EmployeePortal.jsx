@@ -36,9 +36,11 @@ import {
   Mail,
   MapPin,
   Shield,
-  MessageCircle
+  MessageCircle,
+  Award
 } from "lucide-react";
 import MessagingDialog from "@/components/communications/MessagingDialog";
+import SkillsSection from "@/components/portal/SkillsSection";
 
 export default function EmployeePortal() {
   const [user, setUser] = useState(null);
@@ -214,10 +216,14 @@ export default function EmployeePortal() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile">
             <User className="w-4 h-4 mr-2" />
             My Profile
+          </TabsTrigger>
+          <TabsTrigger value="skills">
+            <Award className="w-4 h-4 mr-2" />
+            Skills
           </TabsTrigger>
           <TabsTrigger value="messages">
             <MessageCircle className="w-4 h-4 mr-2" />
@@ -376,6 +382,11 @@ export default function EmployeePortal() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Skills & Development Tab */}
+        <TabsContent value="skills" className="space-y-6">
+          <SkillsSection currentEmployee={currentEmployee} isAdmin={user?.role === "admin"} />
         </TabsContent>
 
         {/* Messages Tab */}
