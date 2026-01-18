@@ -17,6 +17,7 @@ import EmployeePortal from './pages/EmployeePortal';
 import Announcements from './pages/Announcements';
 import Training from './pages/Training';
 import Analytics from './pages/Analytics';
+import CareerPathing from './pages/CareerPathing';
 import __Layout from './Layout.jsx';
 
 
@@ -40,6 +41,7 @@ export const PAGES = {
     "Announcements": Announcements,
     "Training": Training,
     "Analytics": Analytics,
+    "CareerPathing": CareerPathing,
 }
 
 export const pagesConfig = {
