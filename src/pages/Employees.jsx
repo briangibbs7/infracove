@@ -23,8 +23,9 @@ import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { format } from "date-fns";
-import { Users, Mail, Phone, MapPin, Calendar, Search, Filter, MoreVertical, Pencil, Trash2, Award } from "lucide-react";
+import { Users, Mail, Phone, MapPin, Calendar, Search, Filter, MoreVertical, Pencil, Trash2, Award, Network, Grid3x3, MessageCircle } from "lucide-react";
 import EmployeeDetailsDialog from "@/components/employees/EmployeeDetailsDialog";
+import OrgChart from "@/components/employees/OrgChart";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +44,10 @@ export default function Employees() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterEmploymentType, setFilterEmploymentType] = useState("all");
+  const [filterManager, setFilterManager] = useState("all");
+  const [filterSkill, setFilterSkill] = useState("");
+  const [viewMode, setViewMode] = useState("grid");
   const queryClient = useQueryClient();
 
   const { data: employees = [], isLoading } = useQuery({
@@ -106,67 +111,150 @@ export default function Employees() {
     }
   };
 
+  const handleContact = (employee, type) => {
+    if (type === 'email') {
+      window.location.href = `mailto:${employee.email}`;
+    } else if (type === 'phone') {
+      window.location.href = `tel:${employee.phone}`;
+    }
+  };
+
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
       emp.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.job_title?.toLowerCase().includes(searchQuery.toLowerCase());
+      emp.job_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.location?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDepartment = filterDepartment === "all" || emp.department === filterDepartment;
     const matchesStatus = filterStatus === "all" || emp.status === filterStatus;
-    return matchesSearch && matchesDepartment && matchesStatus;
+    const matchesEmploymentType = filterEmploymentType === "all" || emp.employment_type === filterEmploymentType;
+    const matchesManager = filterManager === "all" || emp.manager_id === filterManager;
+    const matchesSkill = !filterSkill || (emp.skills && emp.skills.some(s => s.toLowerCase().includes(filterSkill.toLowerCase())));
+    return matchesSearch && matchesDepartment && matchesStatus && matchesEmploymentType && matchesManager && matchesSkill;
   });
+
+  const managers = employees.filter(e => 
+    employees.some(emp => emp.manager_id === e.id)
+  );
 
   return (
     <div>
       <PageHeader
         title="Employees"
-        subtitle="Manage your team members"
+        subtitle={`${filteredEmployees.length} of ${employees.length} team members`}
         action={() => {
           setEditingEmployee(null);
           setIsDialogOpen(true);
         }}
         actionLabel="Add Employee"
-      />
+      >
+        <div className="flex gap-2">
+          <Button
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+          >
+            <Grid3x3 className="w-4 h-4 mr-2" />
+            Grid
+          </Button>
+          <Button
+            variant={viewMode === "org" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("org")}
+          >
+            <Network className="w-4 h-4 mr-2" />
+            Org Chart
+          </Button>
+        </div>
+      </PageHeader>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div className="space-y-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search by name, email, title, or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button variant="outline" className="sm:w-auto">
+            <Filter className="w-4 h-4 mr-2" />
+            Advanced Filters
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+            <SelectTrigger>
+              <SelectValue placeholder="Department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {DEPARTMENTS.map((dept) => (
+                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              {STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterEmploymentType} onValueChange={setFilterEmploymentType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Employment Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {EMPLOYMENT_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterManager} onValueChange={setFilterManager}>
+            <SelectTrigger>
+              <SelectValue placeholder="Manager" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Managers</SelectItem>
+              {managers.map((mgr) => (
+                <SelectItem key={mgr.id} value={mgr.id}>{mgr.full_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Input
-            placeholder="Search employees..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            placeholder="Filter by skill..."
+            value={filterSkill}
+            onChange={(e) => setFilterSkill(e.target.value)}
           />
         </div>
-        <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Department" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Departments</SelectItem>
-            {DEPARTMENTS.map((dept) => (
-              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            {STATUSES.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
-      {/* Employee Grid */}
-      {isLoading ? (
+      {/* View Content */}
+      {viewMode === "org" ? (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-0">
+            <OrgChart employees={filteredEmployees} onContact={handleContact} />
+          </CardContent>
+        </Card>
+      ) : isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -247,15 +335,21 @@ export default function Employees() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <button
+                    onClick={() => handleContact(employee, 'email')}
+                    className="flex items-center gap-2 text-sm text-slate-600 hover:text-indigo-600 transition-colors w-full"
+                  >
                     <Mail className="w-4 h-4 text-slate-400" />
                     <span className="truncate">{employee.email}</span>
-                  </div>
+                  </button>
                   {employee.phone && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <button
+                      onClick={() => handleContact(employee, 'phone')}
+                      className="flex items-center gap-2 text-sm text-slate-600 hover:text-indigo-600 transition-colors w-full"
+                    >
                       <Phone className="w-4 h-4 text-slate-400" />
                       <span>{employee.phone}</span>
-                    </div>
+                    </button>
                   )}
                   {employee.location && (
                     <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -278,11 +372,21 @@ export default function Employees() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
-                  <StatusBadge status={employee.status || "active"} />
-                  <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                    {employee.department}
-                  </span>
+                <div className="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={employee.status || "active"} />
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                      {employee.department}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2"
+                    onClick={() => handleContact(employee, 'email')}
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
