@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Users,
@@ -36,10 +37,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import NotificationCenter from "@/components/communications/NotificationCenter";
 
 const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard },
   { name: "My Portal", href: "EmployeePortal", icon: User },
+  { name: "Announcements", href: "Announcements", icon: Building2 },
   {
     name: "HR",
     icon: Users,
@@ -89,10 +92,23 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState(["HR", "Finance", "Sales", "Legal", "IT"]);
   const [user, setUser] = useState(null);
+  const [currentEmployee, setCurrentEmployee] = useState(null);
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees"],
+    queryFn: () => base44.entities.Employee.list(),
+  });
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (user && employees.length > 0) {
+      const emp = employees.find(e => e.email === user.email);
+      setCurrentEmployee(emp);
+    }
+  }, [user, employees]);
 
   const toggleGroup = (groupName) => {
     setExpandedGroups((prev) =>
@@ -250,10 +266,7 @@ export default function Layout({ children, currentPageName }) {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5 text-slate-500" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
-              </Button>
+              <NotificationCenter currentEmployee={currentEmployee} />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

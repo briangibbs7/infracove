@@ -35,13 +35,17 @@ import {
   Phone,
   Mail,
   MapPin,
-  Shield
+  Shield,
+  MessageCircle
 } from "lucide-react";
+import MessagingDialog from "@/components/communications/MessagingDialog";
 
 export default function EmployeePortal() {
   const [user, setUser] = useState(null);
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [isTimeOffDialogOpen, setIsTimeOffDialogOpen] = useState(false);
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+  const [messagingRecipient, setMessagingRecipient] = useState(null);
   const [emergencyContacts, setEmergencyContacts] = useState([]);
   const queryClient = useQueryClient();
 
@@ -72,6 +76,17 @@ export default function EmployeePortal() {
   const { data: contracts = [] } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => base44.entities.Contract.list(),
+  });
+
+  const { data: messages = [] } = useQuery({
+    queryKey: ["messages", currentEmployee?.id],
+    queryFn: async () => {
+      if (!currentEmployee) return [];
+      const sent = await base44.entities.Message.filter({ sender_id: currentEmployee.id });
+      const received = await base44.entities.Message.filter({ recipient_id: currentEmployee.id });
+      return [...sent, ...received];
+    },
+    enabled: !!currentEmployee,
   });
 
   useEffect(() => {
@@ -199,10 +214,14 @@ export default function EmployeePortal() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile">
             <User className="w-4 h-4 mr-2" />
             My Profile
+          </TabsTrigger>
+          <TabsTrigger value="messages">
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Messages
           </TabsTrigger>
           <TabsTrigger value="timeoff">
             <Calendar className="w-4 h-4 mr-2" />
@@ -355,6 +374,65 @@ export default function EmployeePortal() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Messages Tab */}
+        <TabsContent value="messages" className="space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">My Messages</h2>
+            <p className="text-sm text-slate-500">View and send messages to colleagues</p>
+          </div>
+
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-6">
+              {messages.length > 0 ? (
+                <div className="space-y-3">
+                  {messages
+                    .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+                    .slice(0, 20)
+                    .map((message) => {
+                      const isSent = message.sender_id === currentEmployee.id;
+                      const otherPerson = isSent 
+                        ? employees.find(e => e.id === message.recipient_id)
+                        : employees.find(e => e.id === message.sender_id);
+                      
+                      return (
+                        <div
+                          key={message.id}
+                          className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
+                          onClick={() => {
+                            setMessagingRecipient(otherPerson);
+                            setIsMessagingOpen(true);
+                          }}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-semibold text-slate-900">
+                                  {isSent ? `To: ${message.recipient_name}` : `From: ${message.sender_name}`}
+                                </p>
+                                {!message.is_read && !isSent && (
+                                  <Badge className="bg-indigo-600 text-xs">New</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-600 line-clamp-2">{message.content}</p>
+                            </div>
+                            <p className="text-xs text-slate-400">
+                              {format(new Date(message.created_date), "MMM d, h:mm a")}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-400">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No messages yet</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -704,6 +782,17 @@ export default function EmployeePortal() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Messaging Dialog */}
+      <MessagingDialog
+        isOpen={isMessagingOpen}
+        onClose={() => {
+          setIsMessagingOpen(false);
+          setMessagingRecipient(null);
+        }}
+        recipient={messagingRecipient}
+        currentEmployee={currentEmployee}
+      />
     </div>
   );
 }

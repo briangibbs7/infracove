@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { Users, Mail, Phone, MapPin, Calendar, Search, Filter, MoreVertical, Pencil, Trash2, Award, Network, Grid3x3, MessageCircle } from "lucide-react";
 import EmployeeDetailsDialog from "@/components/employees/EmployeeDetailsDialog";
 import OrgChart from "@/components/employees/OrgChart";
+import MessagingDialog from "@/components/communications/MessagingDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,9 +39,13 @@ const EMPLOYMENT_TYPES = ["full_time", "part_time", "contractor", "intern"];
 const STATUSES = ["active", "onboarding", "on_leave", "terminated"];
 
 export default function Employees() {
+  const [user, setUser] = useState(null);
+  const [currentEmployee, setCurrentEmployee] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [messagingRecipient, setMessagingRecipient] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -50,10 +55,21 @@ export default function Employees() {
   const [viewMode, setViewMode] = useState("grid");
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
+
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["employees"],
     queryFn: () => base44.entities.Employee.list("-created_date"),
   });
+
+  useEffect(() => {
+    if (user && employees.length > 0) {
+      const emp = employees.find(e => e.email === user.email);
+      setCurrentEmployee(emp);
+    }
+  }, [user, employees]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Employee.create(data),
@@ -307,6 +323,15 @@ export default function Employees() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         onClick={() => {
+                          setMessagingRecipient(employee);
+                          setIsMessagingOpen(true);
+                        }}
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Send Message
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
                           setEditingEmployee(employee);
                           setIsDialogOpen(true);
                         }}
@@ -536,6 +561,17 @@ export default function Employees() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Messaging Dialog */}
+      <MessagingDialog
+        isOpen={isMessagingOpen}
+        onClose={() => {
+          setIsMessagingOpen(false);
+          setMessagingRecipient(null);
+        }}
+        recipient={messagingRecipient}
+        currentEmployee={currentEmployee}
+      />
     </div>
   );
 }
