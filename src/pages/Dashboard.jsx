@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StatCard from "@/components/ui/StatCard";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { format } from "date-fns";
+import { format, parseISO, isFuture, isPast } from "date-fns";
 import {
   Users,
   DollarSign,
@@ -13,7 +13,11 @@ import {
   Package,
   HeadphonesIcon,
   ArrowRight,
-  Clock
+  Clock,
+  Calendar,
+  CheckCircle2,
+  Briefcase,
+  AlertCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -33,10 +37,39 @@ import {
 const COLORS = ["#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"];
 
 export default function Dashboard() {
+  const [user, setUser] = useState(null);
+  const [currentEmployee, setCurrentEmployee] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
+
   const { data: employees = [] } = useQuery({
     queryKey: ["employees"],
     queryFn: () => base44.entities.Employee.list(),
   });
+
+  const { data: timeOffRequests = [] } = useQuery({
+    queryKey: ["timeoff"],
+    queryFn: () => base44.entities.TimeOffRequest.list("-created_date"),
+  });
+
+  const { data: onboardingTasks = [] } = useQuery({
+    queryKey: ["onboardingTasks"],
+    queryFn: () => base44.entities.OnboardingTask.list(),
+  });
+
+  const { data: hrContracts = [] } = useQuery({
+    queryKey: ["hrContracts"],
+    queryFn: () => base44.entities.Contract.filter({ type: "employment" }),
+  });
+
+  useEffect(() => {
+    if (user && employees.length > 0) {
+      const emp = employees.find(e => e.email === user.email);
+      setCurrentEmployee(emp);
+    }
+  }, [user, employees]);
 
   const { data: leads = [] } = useQuery({
     queryKey: ["leads"],
@@ -63,6 +96,32 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Invoice.list(),
   });
 
+  // Personal data for employee
+  const myTimeOffRequests = currentEmployee 
+    ? timeOffRequests.filter(r => r.employee_id === currentEmployee.id)
+    : [];
+  const myUpcomingTimeOff = myTimeOffRequests.filter(r => 
+    r.status === "approved" && r.start_date && isFuture(parseISO(r.start_date))
+  );
+  const myPendingTimeOff = myTimeOffRequests.filter(r => r.status === "pending_approval");
+  
+  const myTasks = currentEmployee
+    ? onboardingTasks.filter(t => t.assigned_to === currentEmployee.id || t.employee_id === currentEmployee.id)
+    : [];
+  const myPendingTasks = myTasks.filter(t => t.status !== "completed");
+
+  const myContract = currentEmployee
+    ? hrContracts.find(c => c.party_name === currentEmployee.full_name || c.title?.includes(currentEmployee.full_name))
+    : null;
+
+  // Manager-specific data
+  const myTeam = currentEmployee
+    ? employees.filter(e => e.manager_id === currentEmployee.id)
+    : [];
+  const teamTimeOffRequests = timeOffRequests.filter(r => r.manager_id === currentEmployee?.id);
+  const pendingApprovals = teamTimeOffRequests.filter(r => r.status === "pending_approval");
+
+  // Admin/HR data
   const activeEmployees = employees.filter((e) => e.status === "active").length;
   const pendingExpenses = expenses.filter((e) => e.status === "pending");
   const totalExpenseAmount = pendingExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
@@ -70,6 +129,7 @@ export default function Dashboard() {
   const pipelineValue = leads
     .filter((l) => !["won", "lost"].includes(l.status))
     .reduce((sum, l) => sum + (l.value || 0), 0);
+  const onboardingEmployees = employees.filter(e => e.status === "onboarding").length;
 
   const departmentData = employees.reduce((acc, emp) => {
     const dept = emp.department || "Other";
@@ -109,48 +169,203 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5);
 
+  const isAdmin = user?.role === "admin";
+  const isManager = myTeam.length > 0;
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 mt-1">Welcome back! Here's what's happening today.</p>
+        <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
+          Welcome back, {user?.full_name || "User"}
+        </h1>
+        <p className="text-slate-500 mt-1">
+          {isAdmin ? "Here's your organization overview" : "Here's your personalized dashboard"}
+        </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Active Employees"
-          value={activeEmployees}
-          icon={Users}
-          iconBg="bg-blue-100"
-          iconColor="text-blue-600"
-          change={`${employees.length} total`}
-        />
-        <StatCard
-          title="Pipeline Value"
-          value={`$${pipelineValue.toLocaleString()}`}
-          icon={TrendingUp}
-          iconBg="bg-emerald-100"
-          iconColor="text-emerald-600"
-          change={`${leads.length} leads`}
-        />
-        <StatCard
-          title="Pending Expenses"
-          value={`$${totalExpenseAmount.toLocaleString()}`}
-          icon={DollarSign}
-          iconBg="bg-amber-100"
-          iconColor="text-amber-600"
-          change={`${pendingExpenses.length} requests`}
-        />
-        <StatCard
-          title="Open Tickets"
-          value={openTickets}
-          icon={HeadphonesIcon}
-          iconBg="bg-purple-100"
-          iconColor="text-purple-600"
-          change={`${tickets.length} total`}
-        />
-      </div>
+      {/* Employee Personal Dashboard */}
+      {!isAdmin && currentEmployee && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <StatCard
+              title="Upcoming Time Off"
+              value={myUpcomingTimeOff.length}
+              icon={Calendar}
+              iconBg="bg-blue-100"
+              iconColor="text-blue-600"
+              change={`${myPendingTimeOff.length} pending approval`}
+            />
+            <StatCard
+              title="My Tasks"
+              value={myPendingTasks.length}
+              icon={CheckCircle2}
+              iconBg="bg-indigo-100"
+              iconColor="text-indigo-600"
+              change={`${myTasks.filter(t => t.status === "completed").length} completed`}
+            />
+            <StatCard
+              title="Contract Status"
+              value={myContract ? myContract.status : "No Contract"}
+              icon={Briefcase}
+              iconBg="bg-emerald-100"
+              iconColor="text-emerald-600"
+              change={myContract?.end_date ? `Expires ${format(parseISO(myContract.end_date), "MMM d, yyyy")}` : ""}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">My Time Off Requests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {myTimeOffRequests.length > 0 ? (
+                  <div className="space-y-3">
+                    {myTimeOffRequests.slice(0, 5).map((request) => (
+                      <div key={request.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-slate-900 capitalize">
+                            {request.type?.replace(/_/g, " ")}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {request.start_date && format(parseISO(request.start_date), "MMM d")} - {request.end_date && format(parseISO(request.end_date), "MMM d")}
+                          </p>
+                        </div>
+                        <StatusBadge status={request.status} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-slate-400">
+                    <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p>No time off requests</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">My Tasks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {myPendingTasks.length > 0 ? (
+                  <div className="space-y-3">
+                    {myPendingTasks.slice(0, 5).map((task) => (
+                      <div key={task.id} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900">{task.title}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <StatusBadge status={task.priority} />
+                            {task.due_date && (
+                              <span className={`text-xs ${isPast(parseISO(task.due_date)) ? "text-red-600" : "text-slate-500"}`}>
+                                Due: {format(parseISO(task.due_date), "MMM d")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <StatusBadge status={task.status} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-slate-400">
+                    <CheckCircle2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p>No pending tasks</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* Manager View */}
+      {isManager && !isAdmin && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Team Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-medium text-slate-900 mb-3">Pending Approvals</h3>
+                {pendingApprovals.length > 0 ? (
+                  <div className="space-y-2">
+                    {pendingApprovals.map((request) => (
+                      <div key={request.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div>
+                          <p className="font-medium text-slate-900">{request.employee_name}</p>
+                          <p className="text-sm text-slate-500 capitalize">
+                            {request.type?.replace(/_/g, " ")} • {request.days_requested} days
+                          </p>
+                        </div>
+                        <AlertCircle className="w-5 h-5 text-amber-600" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">No pending approvals</p>
+                )}
+              </div>
+              <div>
+                <h3 className="font-medium text-slate-900 mb-3">Your Team ({myTeam.length})</h3>
+                <div className="space-y-2">
+                  {myTeam.slice(0, 5).map((emp) => (
+                    <div key={emp.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-slate-900">{emp.full_name}</p>
+                        <p className="text-sm text-slate-500">{emp.job_title}</p>
+                      </div>
+                      <StatusBadge status={emp.status} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Admin/HR View */}
+      {isAdmin && (
+        <>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="Active Employees"
+              value={activeEmployees}
+              icon={Users}
+              iconBg="bg-blue-100"
+              iconColor="text-blue-600"
+              change={`${onboardingEmployees} onboarding`}
+            />
+            <StatCard
+              title="Pipeline Value"
+              value={`$${pipelineValue.toLocaleString()}`}
+              icon={TrendingUp}
+              iconBg="bg-emerald-100"
+              iconColor="text-emerald-600"
+              change={`${leads.length} leads`}
+            />
+            <StatCard
+              title="Pending Expenses"
+              value={`$${totalExpenseAmount.toLocaleString()}`}
+              icon={DollarSign}
+              iconBg="bg-amber-100"
+              iconColor="text-amber-600"
+              change={`${pendingExpenses.length} requests`}
+            />
+            <StatCard
+              title="Open Tickets"
+              value={openTickets}
+              icon={HeadphonesIcon}
+              iconBg="bg-purple-100"
+              iconColor="text-purple-600"
+              change={`${tickets.length} total`}
+            />
+          </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -316,6 +531,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 }
