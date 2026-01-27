@@ -17,7 +17,10 @@ import {
   Calendar,
   CheckCircle2,
   Briefcase,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck,
+  GraduationCap,
+  Target
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -101,6 +104,21 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Invoice.list(),
   });
 
+  const { data: ndas = [] } = useQuery({
+    queryKey: ["ndas"],
+    queryFn: () => base44.entities.Contract.filter({ type: "nda" }),
+  });
+
+  const { data: assets = [] } = useQuery({
+    queryKey: ["assets"],
+    queryFn: () => base44.entities.Asset.list(),
+  });
+
+  const { data: trainingAssignments = [] } = useQuery({
+    queryKey: ["trainingAssignments"],
+    queryFn: () => base44.entities.TrainingAssignment.list(),
+  });
+
   // Personal data for employee
   const myTimeOffRequests = currentEmployee 
     ? timeOffRequests.filter(r => r.employee_id === currentEmployee.id)
@@ -142,6 +160,33 @@ export default function Dashboard() {
     .filter((l) => !["won", "lost"].includes(l.status))
     .reduce((sum, l) => sum + (l.value || 0), 0);
   const onboardingEmployees = employees.filter(e => e.status === "onboarding").length;
+  
+  // Enhanced metrics
+  const overdueInvoices = invoices.filter(inv => 
+    inv.status === "pending" && inv.due_date && isPast(parseISO(inv.due_date))
+  );
+  const totalOverdueAmount = overdueInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+  
+  const activeNDAs = ndas.filter(n => n.status === "active").length;
+  const pendingSignatureNDAs = ndas.filter(n => n.status === "pending_signature").length;
+  const expiringNDAs = ndas.filter(n => {
+    if (n.status === "active" && n.end_date) {
+      const daysUntil = Math.ceil((new Date(n.end_date) - new Date()) / (1000 * 60 * 60 * 24));
+      return daysUntil <= 30 && daysUntil >= 0;
+    }
+    return false;
+  }).length;
+
+  const assignedAssets = assets.filter(a => a.status === "assigned").length;
+  const availableAssets = assets.filter(a => a.status === "available").length;
+  
+  const myTraining = currentEmployee 
+    ? trainingAssignments.filter(t => t.employee_id === currentEmployee.id && t.status !== "completed")
+    : [];
+  
+  const completedTraining = currentEmployee
+    ? trainingAssignments.filter(t => t.employee_id === currentEmployee.id && t.status === "completed").length
+    : 0;
 
   const departmentData = employees.reduce((acc, emp) => {
     const dept = emp.department || "Other";
@@ -163,23 +208,37 @@ export default function Dashboard() {
   ].filter((d) => d.value > 0);
 
   const recentActivities = [
-    ...expenses.slice(0, 3).map((e) => ({
+    ...expenses.slice(0, 2).map((e) => ({
       type: "expense",
       title: `Expense: ${e.title}`,
       subtitle: `$${e.amount?.toLocaleString()} - ${e.category?.replace(/_/g, " ")}`,
       status: e.status,
       date: e.created_date,
     })),
-    ...tickets.slice(0, 3).map((t) => ({
-      type: "ticket",
-      title: `Ticket: ${t.title}`,
-      subtitle: t.category?.replace(/_/g, " "),
+    ...timeOffRequests.slice(0, 2).map((t) => ({
+      type: "timeoff",
+      title: `Time Off: ${t.employee_name}`,
+      subtitle: `${t.type?.replace(/_/g, " ")} - ${t.days_requested} days`,
+      status: t.status,
+      date: t.created_date,
+    })),
+    ...ndas.slice(0, 2).map((n) => ({
+      type: "nda",
+      title: `NDA: ${n.title}`,
+      subtitle: n.party_name,
+      status: n.status,
+      date: n.created_date,
+    })),
+    ...onboardingTasks.slice(0, 2).map((t) => ({
+      type: "task",
+      title: `Task: ${t.title}`,
+      subtitle: t.employee_name || "Onboarding",
       status: t.status,
       date: t.created_date,
     })),
   ]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 5);
+    .slice(0, 8);
 
   const isAdmin = user?.role === "admin";
   const isManager = myTeam.length > 0;
@@ -198,7 +257,7 @@ export default function Dashboard() {
       {/* Employee Personal Dashboard */}
       {!isAdmin && currentEmployee && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               title="Upcoming Time Off"
               value={myUpcomingTimeOff.length}
@@ -216,8 +275,16 @@ export default function Dashboard() {
               change={`${myTasks.filter(t => t.status === "completed").length} completed`}
             />
             <StatCard
+              title="Training Progress"
+              value={myTraining.length}
+              icon={GraduationCap}
+              iconBg="bg-purple-100"
+              iconColor="text-purple-600"
+              change={`${completedTraining} completed`}
+            />
+            <StatCard
               title="Contract Status"
-              value={myContract ? myContract.status : "No Contract"}
+              value={myContract ? myContract.status.replace(/_/g, " ") : "No Contract"}
               icon={Briefcase}
               iconBg="bg-emerald-100"
               iconColor="text-emerald-600"
@@ -384,14 +451,6 @@ export default function Dashboard() {
               change={`${onboardingEmployees} onboarding`}
             />
             <StatCard
-              title="Pipeline Value"
-              value={`$${pipelineValue.toLocaleString()}`}
-              icon={TrendingUp}
-              iconBg="bg-emerald-100"
-              iconColor="text-emerald-600"
-              change={`${leads.length} leads`}
-            />
-            <StatCard
               title="Pending Expenses"
               value={`$${totalExpenseAmount.toLocaleString()}`}
               icon={DollarSign}
@@ -400,12 +459,47 @@ export default function Dashboard() {
               change={`${pendingExpenses.length} requests`}
             />
             <StatCard
-              title="Open Tickets"
-              value={openTickets}
-              icon={HeadphonesIcon}
+              title="Overdue Invoices"
+              value={`$${totalOverdueAmount.toLocaleString()}`}
+              icon={AlertCircle}
+              iconBg="bg-red-100"
+              iconColor="text-red-600"
+              change={`${overdueInvoices.length} invoices`}
+            />
+            <StatCard
+              title="IT Assets"
+              value={assignedAssets}
+              icon={Package}
+              iconBg="bg-cyan-100"
+              iconColor="text-cyan-600"
+              change={`${availableAssets} available`}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <StatCard
+              title="Active NDAs"
+              value={activeNDAs}
+              icon={ShieldCheck}
+              iconBg="bg-indigo-100"
+              iconColor="text-indigo-600"
+              change={pendingSignatureNDAs > 0 ? `${pendingSignatureNDAs} pending signature` : `${expiringNDAs} expiring soon`}
+            />
+            <StatCard
+              title="Pending Approvals"
+              value={pendingApprovals.length}
+              icon={Clock}
+              iconBg="bg-amber-100"
+              iconColor="text-amber-600"
+              change="Time off requests"
+            />
+            <StatCard
+              title="Onboarding Tasks"
+              value={onboardingTasks.filter(t => t.status === "pending" || t.status === "in_progress").length}
+              icon={Target}
               iconBg="bg-purple-100"
               iconColor="text-purple-600"
-              change={`${tickets.length} total`}
+              change={`${onboardingEmployees} new hires`}
             />
           </div>
 
@@ -491,16 +585,18 @@ export default function Dashboard() {
                     <div className="flex items-center gap-4">
                       <div
                         className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          activity.type === "expense"
-                            ? "bg-amber-100 text-amber-600"
-                            : "bg-purple-100 text-purple-600"
+                          activity.type === "expense" ? "bg-amber-100 text-amber-600" :
+                          activity.type === "timeoff" ? "bg-blue-100 text-blue-600" :
+                          activity.type === "nda" ? "bg-indigo-100 text-indigo-600" :
+                          activity.type === "task" ? "bg-purple-100 text-purple-600" :
+                          "bg-slate-100 text-slate-600"
                         }`}
                       >
-                        {activity.type === "expense" ? (
-                          <DollarSign className="w-5 h-5" />
-                        ) : (
-                          <HeadphonesIcon className="w-5 h-5" />
-                        )}
+                        {activity.type === "expense" ? <DollarSign className="w-5 h-5" /> :
+                         activity.type === "timeoff" ? <Calendar className="w-5 h-5" /> :
+                         activity.type === "nda" ? <ShieldCheck className="w-5 h-5" /> :
+                         activity.type === "task" ? <CheckCircle2 className="w-5 h-5" /> :
+                         <FileText className="w-5 h-5" />}
                       </div>
                       <div>
                         <p className="font-medium text-slate-900">{activity.title}</p>
@@ -551,24 +647,24 @@ export default function Dashboard() {
               <ArrowRight className="w-4 h-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              to={createPageUrl("Leads")}
-              className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-colors group"
+              to={createPageUrl("TimeOff")}
+              className="flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />
-                <span className="font-medium text-emerald-900">Add Lead</span>
+                <Calendar className="w-5 h-5 text-blue-600" />
+                <span className="font-medium text-blue-900">Request Time Off</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              to={createPageUrl("Support")}
-              className="flex items-center justify-between p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors group"
+              to={createPageUrl("NDAs")}
+              className="flex items-center justify-between p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <HeadphonesIcon className="w-5 h-5 text-purple-600" />
-                <span className="font-medium text-purple-900">Create Ticket</span>
+                <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                <span className="font-medium text-indigo-900">Create NDA</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform" />
             </Link>
           </CardContent>
         </Card>
