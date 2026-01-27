@@ -22,16 +22,18 @@ import {
 } from "@/components/ui/dialog";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { FileText, Upload, Download, Clock, AlertCircle, CheckCircle2, Filter } from "lucide-react";
+import { FileText, Upload, Download, Clock, AlertCircle, CheckCircle2, Filter, Send, Edit } from "lucide-react";
 import { format, parseISO, differenceInDays, addDays } from "date-fns";
 
 export default function NDAs() {
   const [user, setUser] = useState(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [selectedNDA, setSelectedNDA] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [signers, setSigners] = useState([{ name: "", email: "", role: "counterparty" }]);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -46,6 +48,11 @@ export default function NDAs() {
   const { data: employees = [] } = useQuery({
     queryKey: ["employees"],
     queryFn: () => base44.entities.Employee.list(),
+  });
+
+  const { data: signatures = [] } = useQuery({
+    queryKey: ["ndaSignatures"],
+    queryFn: () => base44.entities.NDASignature.list("-sent_date"),
   });
 
   const createMutation = useMutation({
@@ -127,6 +134,45 @@ export default function NDAs() {
     } catch (error) {
       alert("Failed to upload file");
     }
+  };
+
+  const handleSendForSignature = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const response = await base44.functions.invoke('sendNDAForSignature', {
+        ndaId: selectedNDA.id,
+        ndaTitle: selectedNDA.title,
+        signers: signers.filter(s => s.name && s.email)
+      });
+
+      alert(`NDA sent successfully to ${signers.filter(s => s.name && s.email).length} signer(s)`);
+      queryClient.invalidateQueries({ queryKey: ["ndas"] });
+      queryClient.invalidateQueries({ queryKey: ["ndaSignatures"] });
+      setIsSendDialogOpen(false);
+      setIsDetailsDialogOpen(false);
+      setSigners([{ name: "", email: "", role: "counterparty" }]);
+    } catch (error) {
+      alert("Failed to send NDA for signature");
+    }
+  };
+
+  const addSigner = () => {
+    setSigners([...signers, { name: "", email: "", role: "counterparty" }]);
+  };
+
+  const removeSigner = (index) => {
+    setSigners(signers.filter((_, i) => i !== index));
+  };
+
+  const updateSigner = (index, field, value) => {
+    const updated = [...signers];
+    updated[index][field] = value;
+    setSigners(updated);
+  };
+
+  const getNDASignatures = (ndaId) => {
+    return signatures.filter(sig => sig.nda_id === ndaId);
   };
 
   // Filter NDAs
@@ -474,37 +520,76 @@ export default function NDAs() {
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between mb-3">
                   <Label>Document</Label>
-                  {selectedNDA.file_url ? (
-                    <a
-                      href={selectedNDA.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-indigo-600 hover:text-indigo-700 text-sm flex items-center gap-1"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </a>
-                  ) : (
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                        accept=".pdf,.doc,.docx"
-                      />
-                      <span className="text-indigo-600 hover:text-indigo-700 text-sm flex items-center gap-1">
-                        <Upload className="w-4 h-4" />
-                        Upload
-                      </span>
-                    </label>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {selectedNDA.file_url ? (
+                      <a
+                        href={selectedNDA.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-700 text-sm flex items-center gap-1"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download
+                      </a>
+                    ) : (
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                          accept=".pdf,.doc,.docx"
+                        />
+                        <span className="text-indigo-600 hover:text-indigo-700 text-sm flex items-center gap-1">
+                          <Upload className="w-4 h-4" />
+                          Upload
+                        </span>
+                      </label>
+                    )}
+                  </div>
                 </div>
                 {selectedNDA.file_url && (
-                  <div className="bg-emerald-50 p-3 rounded-lg text-sm text-emerald-700">
-                    ✓ Document attached
+                  <div className="bg-emerald-50 p-3 rounded-lg text-sm text-emerald-700 flex items-center justify-between">
+                    <span>✓ Document attached</span>
+                    {(selectedNDA.status === "draft" || selectedNDA.status === "pending_review") && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setIsSendDialogOpen(true);
+                          setIsDetailsDialogOpen(false);
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Send for Signature
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
+
+              {getNDASignatures(selectedNDA.id).length > 0 && (
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-slate-900 mb-3">Signature Status</h4>
+                  <div className="space-y-2">
+                    {getNDASignatures(selectedNDA.id).map(sig => (
+                      <div key={sig.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-slate-900">{sig.signer_name}</p>
+                          <p className="text-sm text-slate-500">{sig.signer_email}</p>
+                        </div>
+                        <div className="text-right">
+                          <StatusBadge status={sig.status} />
+                          {sig.signed_date && (
+                            <p className="text-xs text-slate-500 mt-1">
+                              {format(parseISO(sig.signed_date), "MMM d, yyyy")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleUpdateNDA} className="border-t pt-4 space-y-4">
                 <h4 className="font-semibold text-slate-900">Update NDA</h4>
@@ -585,6 +670,112 @@ export default function NDAs() {
                 </div>
               </form>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Send NDA for Signature</DialogTitle>
+          </DialogHeader>
+          {selectedNDA && (
+            <form onSubmit={handleSendForSignature} className="space-y-4">
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-slate-900">{selectedNDA.title}</h4>
+                <p className="text-sm text-slate-500">#{selectedNDA.contract_number}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Signers</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={addSigner}>
+                    Add Signer
+                  </Button>
+                </div>
+
+                {signers.map((signer, index) => (
+                  <Card key={index} className="p-4 border-slate-200">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-medium text-sm text-slate-700">Signer {index + 1}</h5>
+                        {signers.length > 1 && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeSigner(index)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Name *</Label>
+                          <Input
+                            value={signer.name}
+                            onChange={(e) => updateSigner(index, "name", e.target.value)}
+                            placeholder="Full name"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Email *</Label>
+                          <Input
+                            type="email"
+                            value={signer.email}
+                            onChange={(e) => updateSigner(index, "email", e.target.value)}
+                            placeholder="email@example.com"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Role</Label>
+                        <Select 
+                          value={signer.role} 
+                          onValueChange={(value) => updateSigner(index, "role", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="company">Company Representative</SelectItem>
+                            <SelectItem value="counterparty">External Party</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-900">
+                <p><strong>Note:</strong> Each signer will receive an email with instructions to review and sign the NDA.</p>
+              </div>
+
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsSendDialogOpen(false);
+                    setIsDetailsDialogOpen(true);
+                    setSigners([{ name: "", email: "", role: "counterparty" }]);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+                  <Send className="w-4 h-4 mr-2" />
+                  Send for Signature
+                </Button>
+              </DialogFooter>
+            </form>
           )}
         </DialogContent>
       </Dialog>
