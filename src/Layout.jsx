@@ -84,7 +84,6 @@ const navigation = [
     color: "cyan",
     children: [
       { name: "Assets", href: "Assets", icon: Package },
-      { name: "Support", href: "Support", icon: HeadphonesIcon },
     ],
   },
 ];
