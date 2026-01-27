@@ -285,12 +285,8 @@ export default function Analytics() {
               <SelectItem value="all">All Departments</SelectItem>
               <SelectItem value="HR">HR</SelectItem>
               <SelectItem value="Finance">Finance</SelectItem>
-              <SelectItem value="Sales">Sales</SelectItem>
               <SelectItem value="Legal">Legal</SelectItem>
               <SelectItem value="IT">IT</SelectItem>
-              <SelectItem value="Marketing">Marketing</SelectItem>
-              <SelectItem value="Operations">Operations</SelectItem>
-              <SelectItem value="Executive">Executive</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={handleExportReport} variant="outline">
