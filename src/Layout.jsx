@@ -200,12 +200,16 @@ export default function Layout({ children, currentPageName }) {
         to={createPageUrl(item.href)}
         onClick={() => setSidebarOpen(false)}
         className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-          isActive
-            ? getColorClasses(item.color, true)
-            : getColorClasses(item.color, false)
+          depth === 0
+            ? isActive
+              ? getColorClasses(item.color, true)
+              : getColorClasses(item.color, false)
+            : isActive
+              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
         }`}
       >
-        <item.icon className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-600"}`} />
+        <item.icon className={`w-5 h-5 ${isActive ? "text-white" : depth === 0 ? "text-slate-600" : "text-slate-400"}`} />
         <span className={isActive ? "text-white" : "text-slate-700"}>{item.name}</span>
       </Link>
     );
