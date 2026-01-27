@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import NewHireChecklist from "@/components/onboarding/NewHireChecklist";
+import OnboardingProgressDashboard from "@/components/onboarding/OnboardingProgressDashboard";
 import {
   Select,
   SelectContent,
@@ -53,6 +56,7 @@ const TASK_ICONS = {
 
 export default function Onboarding() {
   const [user, setUser] = useState(null);
+  const [currentEmployee, setCurrentEmployee] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -85,6 +89,18 @@ export default function Onboarding() {
     queryKey: ["welcomePackets"],
     queryFn: () => base44.entities.WelcomePacket.list(),
   });
+
+  const { data: companyDocuments = [] } = useQuery({
+    queryKey: ["companyDocuments"],
+    queryFn: () => base44.entities.CompanyDocument.filter({ status: "active" }),
+  });
+
+  useEffect(() => {
+    if (user && employees.length > 0) {
+      const emp = employees.find(e => e.email === user.email);
+      setCurrentEmployee(emp);
+    }
+  }, [user, employees]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.OnboardingTask.create(data),
@@ -253,14 +269,85 @@ export default function Onboarding() {
 
   const uniqueEmployees = [...new Set(tasks.map(t => t.employee_name).filter(Boolean))];
 
+  const isAdmin = user?.role === "admin";
+  const isHR = currentEmployee?.department === "HR";
+  const canManage = isAdmin || isHR;
+
+  // New hire view data
+  const myTasks = currentEmployee
+    ? tasks.filter(t => t.employee_id === currentEmployee.id)
+    : [];
+
+  const myWelcomePacket = currentEmployee
+    ? welcomePackets.find(w => w.employee_id === currentEmployee.id)
+    : null;
+
+  const myDocuments = [];
+  if (myWelcomePacket) {
+    if (myWelcomePacket.company_handbook_url) {
+      myDocuments.push({ name: "Company Handbook", url: myWelcomePacket.company_handbook_url });
+    }
+    if (myWelcomePacket.benefits_information_url) {
+      myDocuments.push({ name: "Benefits Information", url: myWelcomePacket.benefits_information_url });
+    }
+    if (myWelcomePacket.it_policies_url) {
+      myDocuments.push({ name: "IT Policies", url: myWelcomePacket.it_policies_url });
+    }
+    if (myWelcomePacket.additional_documents) {
+      myDocuments.push(...myWelcomePacket.additional_documents);
+    }
+  }
+
+  // Add general company documents
+  companyDocuments.forEach(doc => {
+    if (doc.department === "all" || doc.department === currentEmployee?.department) {
+      myDocuments.push({ name: doc.title, url: doc.file_url });
+    }
+  });
+
+  const handleTaskComplete = (task) => {
+    updateMutation.mutate({
+      id: task.id,
+      data: {
+        status: "completed",
+        completed_date: new Date().toISOString().split('T')[0],
+      },
+    });
+  };
+
   return (
     <div>
       <PageHeader
         title="Employee Onboarding"
-        subtitle={`${pendingTasks} pending • ${completedTasks} completed • ${overdueTasks} overdue`}
-        action={() => setIsCreateDialogOpen(true)}
-        actionLabel="Create Task"
+        subtitle={
+          canManage
+            ? `${pendingTasks} pending • ${completedTasks} completed • ${overdueTasks} overdue`
+            : "Your onboarding journey"
+        }
+        action={canManage ? () => setIsCreateDialogOpen(true) : undefined}
+        actionLabel={canManage ? "Create Task" : undefined}
       />
+
+      {!canManage && currentEmployee?.status === "onboarding" ? (
+        <NewHireChecklist
+          tasks={myTasks}
+          documents={myDocuments}
+          onTaskComplete={handleTaskComplete}
+        />
+      ) : !canManage ? (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="py-12 text-center">
+            <p className="text-slate-500">You don't have any active onboarding tasks.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue="tasks" className="w-full">
+          <TabsList>
+            <TabsTrigger value="tasks">Task Management</TabsTrigger>
+            <TabsTrigger value="dashboard">Progress Dashboard</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tasks" className="space-y-6 mt-6">
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <Card className="border-0 shadow-sm">
@@ -467,6 +554,12 @@ export default function Onboarding() {
             </Card>
           ))}
         </div>
+          </TabsContent>
+
+          <TabsContent value="dashboard" className="mt-6">
+            <OnboardingProgressDashboard employees={employees} tasks={tasks} />
+          </TabsContent>
+        </Tabs>
       )}
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
