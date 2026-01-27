@@ -22,16 +22,21 @@ import {
 } from "@/components/ui/dialog";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { FileText, Upload, Download, Clock, AlertCircle, CheckCircle2, Filter, Send, Edit } from "lucide-react";
+import NDAGenerator from "@/components/nda/NDAGenerator";
+import { FileText, Upload, Download, Clock, AlertCircle, CheckCircle2, Filter, Send, Edit, Bell, Sparkles, Tag, FolderOpen } from "lucide-react";
 import { format, parseISO, differenceInDays, addDays } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export default function NDAs() {
   const [user, setUser] = useState(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [selectedNDA, setSelectedNDA] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [signers, setSigners] = useState([{ name: "", email: "", role: "counterparty" }]);
   const queryClient = useQueryClient();
@@ -85,6 +90,8 @@ export default function NDAs() {
     
     const ownerId = formData.get("owner");
     const ownerEmp = employees.find(emp => emp.id === ownerId);
+    const tagsString = formData.get("tags");
+    const tags = tagsString ? tagsString.split(',').map(t => t.trim()).filter(Boolean) : [];
     
     const data = {
       title: formData.get("title"),
@@ -97,6 +104,8 @@ export default function NDAs() {
       department: "Legal",
       owner: ownerId,
       owner_name: ownerEmp?.full_name,
+      category: formData.get("category"),
+      tags: tags,
       notes: formData.get("notes"),
     };
 
@@ -175,14 +184,52 @@ export default function NDAs() {
     return signatures.filter(sig => sig.nda_id === ndaId);
   };
 
+  const handleGeneratedNDA = async (data) => {
+    // Create NDA with generated content
+    const ndaData = {
+      title: `NDA - ${data.metadata.partyName}`,
+      contract_number: `NDA-${Date.now()}`,
+      type: "nda",
+      party_name: data.metadata.partyName,
+      start_date: data.metadata.effectiveDate,
+      end_date: data.metadata.expiryDate || null,
+      status: "draft",
+      department: "Legal",
+      owner: user?.id,
+      owner_name: user?.full_name,
+      notes: data.content
+    };
+    
+    createMutation.mutate(ndaData);
+    setIsGenerateDialogOpen(false);
+  };
+
+  const sendReminder = async (signatureId) => {
+    try {
+      await base44.functions.invoke('sendSignatureReminder', { signatureId });
+      alert('Reminder sent successfully');
+      queryClient.invalidateQueries({ queryKey: ["ndaSignatures"] });
+    } catch (error) {
+      alert('Failed to send reminder: ' + error.message);
+    }
+  };
+
+  // Get unique categories and owners for filters
+  const categories = [...new Set(ndas.map(n => n.category).filter(Boolean))];
+  const owners = [...new Set(ndas.map(n => n.owner_name).filter(Boolean))];
+
   // Filter NDAs
   const filteredNDAs = ndas.filter(nda => {
     const statusMatch = statusFilter === "all" || nda.status === statusFilter;
+    const categoryMatch = categoryFilter === "all" || nda.category === categoryFilter;
+    const ownerMatch = ownerFilter === "all" || nda.owner_name === ownerFilter;
     const searchMatch = searchQuery === "" || 
       nda.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       nda.party_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      nda.contract_number?.toLowerCase().includes(searchQuery.toLowerCase());
-    return statusMatch && searchMatch;
+      nda.contract_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      nda.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      nda.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    return statusMatch && categoryMatch && ownerMatch && searchMatch;
   });
 
   // Stats
@@ -210,9 +257,24 @@ export default function NDAs() {
       <PageHeader
         title="Non-Disclosure Agreements"
         subtitle={`${activeNDAs} active • ${pendingNDAs} pending • ${expiringNDAs} expiring soon`}
-        action={() => setIsCreateDialogOpen(true)}
-        actionLabel="Create NDA"
-      />
+      >
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsGenerateDialogOpen(true)}
+            className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Generate with AI
+          </Button>
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            Create NDA
+          </Button>
+        </div>
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <Card className="border-0 shadow-sm">
@@ -252,27 +314,57 @@ export default function NDAs() {
         </Card>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <Input
-          placeholder="Search NDAs..."
+          placeholder="Search NDAs by title, party, number, notes, or tags..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="sm:w-80"
+          className="w-full"
         />
         
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="pending_review">Pending Review</SelectItem>
-            <SelectItem value="pending_signature">Pending Signature</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="expired">Expired</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap gap-3">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending_review">Pending Review</SelectItem>
+              <SelectItem value="pending_signature">Pending Signature</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {categories.length > 0 && (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {owners.length > 0 && (
+            <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by owner" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Owners</SelectItem>
+                {owners.map(owner => (
+                  <SelectItem key={owner} value={owner}>{owner}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -313,9 +405,21 @@ export default function NDAs() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <h3 className="text-lg font-semibold text-slate-900">{nda.title}</h3>
                         <StatusBadge status={nda.status} />
+                        {nda.category && (
+                          <Badge variant="outline" className="text-xs">
+                            <FolderOpen className="w-3 h-3 mr-1" />
+                            {nda.category}
+                          </Badge>
+                        )}
+                        {nda.tags?.map(tag => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            <Tag className="w-3 h-3 mr-1" />
+                            {tag}
+                          </Badge>
+                        ))}
                       </div>
                       
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mt-3">
@@ -451,6 +555,24 @@ export default function NDAs() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="category">Category/Project (optional)</Label>
+              <Input
+                id="category"
+                name="category"
+                placeholder="e.g., Vendor Partnerships, M&A, Client Projects"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (optional)</Label>
+              <Input
+                id="tags"
+                name="tags"
+                placeholder="Comma-separated tags for searchability"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
@@ -572,20 +694,40 @@ export default function NDAs() {
                   <h4 className="font-semibold text-slate-900 mb-3">Signature Status</h4>
                   <div className="space-y-2">
                     {getNDASignatures(selectedNDA.id).map(sig => (
-                      <div key={sig.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-slate-900">{sig.signer_name}</p>
-                          <p className="text-sm text-slate-500">{sig.signer_email}</p>
-                        </div>
-                        <div className="text-right">
-                          <StatusBadge status={sig.status} />
-                          {sig.signed_date && (
-                            <p className="text-xs text-slate-500 mt-1">
-                              {format(parseISO(sig.signed_date), "MMM d, yyyy")}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                     <div key={sig.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                       <div className="flex-1">
+                         <p className="font-medium text-slate-900">{sig.signer_name}</p>
+                         <p className="text-sm text-slate-500">{sig.signer_email}</p>
+                         {sig.reminder_count > 0 && (
+                           <p className="text-xs text-slate-400 mt-1">
+                             {sig.reminder_count} reminder(s) sent
+                           </p>
+                         )}
+                       </div>
+                       <div className="flex items-center gap-3">
+                         <div className="text-right">
+                           <StatusBadge status={sig.status} />
+                           {sig.signed_date && (
+                             <p className="text-xs text-slate-500 mt-1">
+                               {format(parseISO(sig.signed_date), "MMM d, yyyy")}
+                             </p>
+                           )}
+                         </div>
+                         {(sig.status === 'pending' || sig.status === 'reminded') && (
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               sendReminder(sig.id);
+                             }}
+                           >
+                             <Bell className="w-4 h-4 mr-1" />
+                             Remind
+                           </Button>
+                         )}
+                       </div>
+                     </div>
                     ))}
                   </div>
                 </div>
@@ -777,6 +919,15 @@ export default function NDAs() {
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Generate NDA with AI</DialogTitle>
+          </DialogHeader>
+          <NDAGenerator onComplete={handleGeneratedNDA} />
         </DialogContent>
       </Dialog>
     </div>
