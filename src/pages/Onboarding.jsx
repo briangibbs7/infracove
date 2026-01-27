@@ -553,7 +553,8 @@ export default function Onboarding() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+          )}
           </TabsContent>
 
           <TabsContent value="dashboard" className="mt-6">
