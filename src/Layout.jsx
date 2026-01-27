@@ -72,6 +72,7 @@ const navigation = [
     icon: Scale,
     children: [
       { name: "Contracts", href: "Contracts", icon: ShieldCheck },
+      { name: "NDAs", href: "NDAs", icon: FileText },
     ],
   },
   {
