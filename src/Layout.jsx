@@ -169,14 +169,12 @@ export default function Layout({ children, currentPageName }) {
           <button
             onClick={() => toggleGroup(item.name)}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-              isGroupActive
-                ? getGroupColorClasses(item.color, true)
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              getGroupColorClasses(item.color, isGroupActive)
             }`}
           >
             <div className="flex items-center gap-3">
-              <item.icon className={`w-5 h-5 ${isGroupActive ? getIconColorClasses(item.color, true) : "text-slate-400"}`} />
-              <span>{item.name}</span>
+              <item.icon className={`w-5 h-5 ${getIconColorClasses(item.color, isGroupActive)}`} />
+              <span className="text-slate-700">{item.name}</span>
             </div>
             <ChevronDown
               className={`w-4 h-4 transition-transform duration-200 ${
