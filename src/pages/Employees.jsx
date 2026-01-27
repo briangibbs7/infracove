@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const DEPARTMENTS = ["HR", "Finance", "Sales", "Legal", "IT", "Marketing", "Operations", "Executive"];
+const DEPARTMENTS = ["HR", "Finance", "Legal", "IT"];
 const EMPLOYMENT_TYPES = ["full_time", "part_time", "contractor", "intern"];
 const STATUSES = ["active", "onboarding", "on_leave", "terminated"];
 
