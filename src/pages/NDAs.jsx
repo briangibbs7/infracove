@@ -23,9 +23,11 @@ import {
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import NDAGenerator from "@/components/nda/NDAGenerator";
-import { FileText, Upload, Download, Clock, AlertCircle, CheckCircle2, Filter, Send, Edit, Bell, Sparkles, Tag, FolderOpen } from "lucide-react";
+import VersionHistory from "@/components/nda/VersionHistory";
+import { FileText, Upload, Download, Clock, AlertCircle, CheckCircle2, Filter, Send, Edit, Bell, Sparkles, Tag, FolderOpen, GitBranch, RotateCcw } from "lucide-react";
 import { format, parseISO, differenceInDays, addDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function NDAs() {
   const [user, setUser] = useState(null);
@@ -33,6 +35,8 @@ export default function NDAs() {
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
+  const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false);
+  const [versionChangeSummary, setVersionChangeSummary] = useState("");
   const [selectedNDA, setSelectedNDA] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -58,6 +62,11 @@ export default function NDAs() {
   const { data: signatures = [] } = useQuery({
     queryKey: ["ndaSignatures"],
     queryFn: () => base44.entities.NDASignature.list("-sent_date"),
+  });
+
+  const { data: versions = [] } = useQuery({
+    queryKey: ["ndaVersions"],
+    queryFn: () => base44.entities.NDAVersion.list("-created_date"),
   });
 
   const createMutation = useMutation({
@@ -211,6 +220,58 @@ export default function NDAs() {
       queryClient.invalidateQueries({ queryKey: ["ndaSignatures"] });
     } catch (error) {
       alert('Failed to send reminder: ' + error.message);
+    }
+  };
+
+  const createNewVersion = async () => {
+    if (!versionChangeSummary.trim()) {
+      alert('Please provide a summary of changes');
+      return;
+    }
+
+    try {
+      await base44.functions.invoke('createNDAVersion', {
+        ndaId: selectedNDA.id,
+        changeSummary: versionChangeSummary,
+        content: selectedNDA.notes,
+        fileUrl: selectedNDA.file_url
+      });
+      
+      alert('New version created successfully');
+      queryClient.invalidateQueries({ queryKey: ["ndas"] });
+      queryClient.invalidateQueries({ queryKey: ["ndaVersions"] });
+      queryClient.invalidateQueries({ queryKey: ["ndaSignatures"] });
+      setIsVersionDialogOpen(false);
+      setVersionChangeSummary("");
+    } catch (error) {
+      alert('Failed to create version: ' + error.message);
+    }
+  };
+
+  const getNDAVersions = (ndaId) => {
+    return versions.filter(v => v.nda_id === ndaId);
+  };
+
+  const handleSendViaDocuSign = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const response = await base44.functions.invoke('sendToDocuSign', {
+        ndaId: selectedNDA.id,
+        ndaTitle: selectedNDA.title,
+        fileUrl: selectedNDA.file_url,
+        signers: signers.filter(s => s.name && s.email)
+      });
+
+      const message = response.data.note || `NDA sent successfully to ${signers.filter(s => s.name && s.email).length} signer(s)`;
+      alert(message);
+      queryClient.invalidateQueries({ queryKey: ["ndas"] });
+      queryClient.invalidateQueries({ queryKey: ["ndaSignatures"] });
+      setIsSendDialogOpen(false);
+      setIsDetailsDialogOpen(false);
+      setSigners([{ name: "", email: "", role: "counterparty" }]);
+    } catch (error) {
+      alert("Failed to send NDA: " + error.message);
     }
   };
 
@@ -595,19 +656,26 @@ export default function NDAs() {
       </Dialog>
 
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>NDA Details</DialogTitle>
           </DialogHeader>
           {selectedNDA && (
-            <div className="space-y-6">
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">{selectedNDA.title}</h3>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={selectedNDA.status} />
-                  <span className="text-sm text-slate-500">#{selectedNDA.contract_number}</span>
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="signatures">Signatures</TabsTrigger>
+                <TabsTrigger value="versions">Version History</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="space-y-6 mt-6">
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <h3 className="text-xl font-semibold text-slate-900 mb-2">{selectedNDA.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={selectedNDA.status} />
+                    <span className="text-sm text-slate-500">#{selectedNDA.contract_number}</span>
+                  </div>
                 </div>
-              </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -670,68 +738,37 @@ export default function NDAs() {
                   </div>
                 </div>
                 {selectedNDA.file_url && (
-                  <div className="bg-emerald-50 p-3 rounded-lg text-sm text-emerald-700 flex items-center justify-between">
+                  <div className="bg-emerald-50 p-3 rounded-lg text-sm text-emerald-700 flex items-center justify-between flex-wrap gap-2">
                     <span>✓ Document attached</span>
-                    {(selectedNDA.status === "draft" || selectedNDA.status === "pending_review") && (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setIsSendDialogOpen(true);
-                          setIsDetailsDialogOpen(false);
-                        }}
-                        className="bg-indigo-600 hover:bg-indigo-700"
-                      >
-                        <Send className="w-4 h-4 mr-2" />
-                        Send for Signature
-                      </Button>
-                    )}
+                    <div className="flex gap-2">
+                      {(selectedNDA.status === "pending_signature" || selectedNDA.status === "active") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsVersionDialogOpen(true)}
+                          className="bg-white"
+                        >
+                          <GitBranch className="w-4 h-4 mr-2" />
+                          Create New Version
+                        </Button>
+                      )}
+                      {(selectedNDA.status === "draft" || selectedNDA.status === "pending_review") && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setIsSendDialogOpen(true);
+                            setIsDetailsDialogOpen(false);
+                          }}
+                          className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          Send for Signature
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-
-              {getNDASignatures(selectedNDA.id).length > 0 && (
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">Signature Status</h4>
-                  <div className="space-y-2">
-                    {getNDASignatures(selectedNDA.id).map(sig => (
-                     <div key={sig.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                       <div className="flex-1">
-                         <p className="font-medium text-slate-900">{sig.signer_name}</p>
-                         <p className="text-sm text-slate-500">{sig.signer_email}</p>
-                         {sig.reminder_count > 0 && (
-                           <p className="text-xs text-slate-400 mt-1">
-                             {sig.reminder_count} reminder(s) sent
-                           </p>
-                         )}
-                       </div>
-                       <div className="flex items-center gap-3">
-                         <div className="text-right">
-                           <StatusBadge status={sig.status} />
-                           {sig.signed_date && (
-                             <p className="text-xs text-slate-500 mt-1">
-                               {format(parseISO(sig.signed_date), "MMM d, yyyy")}
-                             </p>
-                           )}
-                         </div>
-                         {(sig.status === 'pending' || sig.status === 'reminded') && (
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               sendReminder(sig.id);
-                             }}
-                           >
-                             <Bell className="w-4 h-4 mr-1" />
-                             Remind
-                           </Button>
-                         )}
-                       </div>
-                     </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <form onSubmit={handleUpdateNDA} className="border-t pt-4 space-y-4">
                 <h4 className="font-semibold text-slate-900">Update NDA</h4>
@@ -811,7 +848,81 @@ export default function NDAs() {
                   </div>
                 </div>
               </form>
-            </div>
+              </TabsContent>
+
+              <TabsContent value="signatures" className="space-y-4 mt-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-slate-900">Signature Tracking</h4>
+                  
+                  {getNDASignatures(selectedNDA.id).length === 0 ? (
+                    <Card className="border-slate-200">
+                      <CardContent className="p-6 text-center text-slate-500">
+                        <Bell className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                        <p className="text-sm">No signatures requested yet</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-3">
+                      {getNDASignatures(selectedNDA.id).map(sig => (
+                        <Card key={sig.id} className="border-slate-200">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="font-medium text-slate-900">{sig.signer_name}</p>
+                                  <StatusBadge status={sig.status} />
+                                </div>
+                                <p className="text-sm text-slate-500">{sig.signer_email}</p>
+                                <div className="text-xs text-slate-400 mt-2 space-y-1">
+                                  <p>Sent: {format(parseISO(sig.sent_date), "MMM d, yyyy")}</p>
+                                  {sig.signed_date && (
+                                    <p>Signed: {format(parseISO(sig.signed_date), "MMM d, yyyy")}</p>
+                                  )}
+                                  {sig.reminder_count > 0 && (
+                                    <p>{sig.reminder_count} reminder(s) sent</p>
+                                  )}
+                                </div>
+                              </div>
+                              {(sig.status === 'pending' || sig.status === 'reminded') && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => sendReminder(sig.id)}
+                                >
+                                  <Bell className="w-4 h-4 mr-2" />
+                                  Send Reminder
+                                </Button>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="versions" className="space-y-4 mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-slate-900">Document Versions</h4>
+                  {selectedNDA.file_url && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsVersionDialogOpen(true)}
+                    >
+                      <GitBranch className="w-4 h-4 mr-2" />
+                      Create New Version
+                    </Button>
+                  )}
+                </div>
+                
+                <VersionHistory 
+                  versions={getNDAVersions(selectedNDA.id)}
+                  onDownload={(version) => window.open(version.file_url, '_blank')}
+                />
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>
@@ -822,7 +933,7 @@ export default function NDAs() {
             <DialogTitle>Send NDA for Signature</DialogTitle>
           </DialogHeader>
           {selectedNDA && (
-            <form onSubmit={handleSendForSignature} className="space-y-4">
+            <form onSubmit={handleSendViaDocuSign} className="space-y-4">
               <div className="bg-slate-50 p-4 rounded-lg">
                 <h4 className="font-semibold text-slate-900">{selectedNDA.title}</h4>
                 <p className="text-sm text-slate-500">#{selectedNDA.contract_number}</p>
@@ -897,7 +1008,7 @@ export default function NDAs() {
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-900">
-                <p><strong>Note:</strong> Each signer will receive an email with instructions to review and sign the NDA.</p>
+                <p><strong>Note:</strong> This will send the NDA via e-signature service (DocuSign if configured, otherwise internal workflow). Each signer will receive an email with signing instructions.</p>
               </div>
 
               <DialogFooter>
@@ -928,6 +1039,57 @@ export default function NDAs() {
             <DialogTitle>Generate NDA with AI</DialogTitle>
           </DialogHeader>
           <NDAGenerator onComplete={handleGeneratedNDA} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isVersionDialogOpen} onOpenChange={setIsVersionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New NDA Version</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-amber-50 p-4 rounded-lg text-sm text-amber-900">
+              <p className="font-semibold mb-1">Important:</p>
+              <p>Creating a new version will:</p>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Archive the current version</li>
+                <li>Cancel any pending signatures</li>
+                <li>Reset the NDA to draft status</li>
+                <li>Require new signatures for the updated version</li>
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="changeSummary">Summary of Changes *</Label>
+              <Textarea
+                id="changeSummary"
+                value={versionChangeSummary}
+                onChange={(e) => setVersionChangeSummary(e.target.value)}
+                placeholder="Describe what changed in this version..."
+                rows={3}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsVersionDialogOpen(false);
+                  setVersionChangeSummary("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={createNewVersion}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                <GitBranch className="w-4 h-4 mr-2" />
+                Create Version
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
