@@ -66,14 +66,7 @@ const navigation = [
       { name: "Vendors", href: "Vendors", icon: Briefcase },
     ],
   },
-  {
-    name: "Sales",
-    icon: TrendingUp,
-    children: [
-      { name: "Leads", href: "Leads", icon: TrendingUp },
-      { name: "Pipeline", href: "Pipeline", icon: TrendingUp },
-    ],
-  },
+
   {
     name: "Legal",
     icon: Scale,

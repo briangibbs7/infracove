@@ -1,47 +1,43 @@
+import Analytics from './pages/Analytics';
+import Announcements from './pages/Announcements';
 import Assets from './pages/Assets';
+import CareerPathing from './pages/CareerPathing';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
+import EmployeePortal from './pages/EmployeePortal';
 import Employees from './pages/Employees';
 import Expenses from './pages/Expenses';
 import HRContracts from './pages/HRContracts';
 import Invoices from './pages/Invoices';
-import Leads from './pages/Leads';
 import Onboarding from './pages/Onboarding';
-import Pipeline from './pages/Pipeline';
+import Performance from './pages/Performance';
 import Support from './pages/Support';
 import TimeOff from './pages/TimeOff';
+import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Performance from './pages/Performance';
-import EmployeePortal from './pages/EmployeePortal';
-import Announcements from './pages/Announcements';
-import Training from './pages/Training';
-import Analytics from './pages/Analytics';
-import CareerPathing from './pages/CareerPathing';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "Analytics": Analytics,
+    "Announcements": Announcements,
     "Assets": Assets,
+    "CareerPathing": CareerPathing,
     "Contracts": Contracts,
     "Dashboard": Dashboard,
+    "EmployeePortal": EmployeePortal,
     "Employees": Employees,
     "Expenses": Expenses,
     "HRContracts": HRContracts,
     "Invoices": Invoices,
-    "Leads": Leads,
     "Onboarding": Onboarding,
-    "Pipeline": Pipeline,
+    "Performance": Performance,
     "Support": Support,
     "TimeOff": TimeOff,
+    "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Performance": Performance,
-    "EmployeePortal": EmployeePortal,
-    "Announcements": Announcements,
-    "Training": Training,
-    "Analytics": Analytics,
-    "CareerPathing": CareerPathing,
 }
 
 export const pagesConfig = {

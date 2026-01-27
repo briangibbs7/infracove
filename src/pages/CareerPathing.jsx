@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { format, addMonths, addYears } from "date-fns";
 
-const DEPARTMENTS = ["HR", "Finance", "Sales", "Legal", "IT", "Marketing", "Operations", "Executive"];
+const DEPARTMENTS = ["HR", "Finance", "Legal", "IT"];
 
 export default function CareerPathing() {
   const [user, setUser] = useState(null);
