@@ -40,13 +40,14 @@ import { Badge } from "@/components/ui/badge";
 import NotificationCenter from "@/components/communications/NotificationCenter";
 
 const navigation = [
-  { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard },
-  { name: "My Portal", href: "EmployeePortal", icon: User },
-  { name: "Announcements", href: "Announcements", icon: Building2 },
-  { name: "Analytics", href: "Analytics", icon: TrendingUp },
+  { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard, color: "slate" },
+  { name: "My Portal", href: "EmployeePortal", icon: User, color: "blue" },
+  { name: "Announcements", href: "Announcements", icon: Building2, color: "purple" },
+  { name: "Analytics", href: "Analytics", icon: TrendingUp, color: "emerald" },
   {
     name: "HR",
     icon: Users,
+    color: "indigo",
     children: [
       { name: "Employees", href: "Employees", icon: Users },
       { name: "Time Off", href: "TimeOff", icon: FileText },
@@ -60,6 +61,7 @@ const navigation = [
   {
     name: "Finance",
     icon: DollarSign,
+    color: "green",
     children: [
       { name: "Expenses", href: "Expenses", icon: Receipt },
       { name: "Invoices", href: "Invoices", icon: FileText },
@@ -70,6 +72,7 @@ const navigation = [
   {
     name: "Legal",
     icon: Scale,
+    color: "amber",
     children: [
       { name: "Contracts", href: "Contracts", icon: ShieldCheck },
       { name: "NDAs", href: "NDAs", icon: FileText },
@@ -78,6 +81,7 @@ const navigation = [
   {
     name: "IT",
     icon: Monitor,
+    color: "cyan",
     children: [
       { name: "Assets", href: "Assets", icon: Package },
       { name: "Support", href: "Support", icon: HeadphonesIcon },
@@ -119,6 +123,40 @@ export default function Layout({ children, currentPageName }) {
   const isActiveGroup = (group) => 
     group.children?.some((child) => currentPageName === child.href);
 
+  const getColorClasses = (color, isActive) => {
+    const colors = {
+      slate: isActive ? "bg-slate-600 text-white shadow-lg shadow-slate-200" : "hover:bg-slate-50",
+      blue: isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "hover:bg-blue-50",
+      purple: isActive ? "bg-purple-600 text-white shadow-lg shadow-purple-200" : "hover:bg-purple-50",
+      emerald: isActive ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" : "hover:bg-emerald-50",
+      indigo: isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "hover:bg-indigo-50",
+      green: isActive ? "bg-green-600 text-white shadow-lg shadow-green-200" : "hover:bg-green-50",
+      amber: isActive ? "bg-amber-600 text-white shadow-lg shadow-amber-200" : "hover:bg-amber-50",
+      cyan: isActive ? "bg-cyan-600 text-white shadow-lg shadow-cyan-200" : "hover:bg-cyan-50",
+    };
+    return colors[color] || colors.indigo;
+  };
+
+  const getGroupColorClasses = (color, isActive) => {
+    const colors = {
+      indigo: isActive ? "bg-indigo-50 text-indigo-700" : "",
+      green: isActive ? "bg-green-50 text-green-700" : "",
+      amber: isActive ? "bg-amber-50 text-amber-700" : "",
+      cyan: isActive ? "bg-cyan-50 text-cyan-700" : "",
+    };
+    return colors[color] || colors.indigo;
+  };
+
+  const getIconColorClasses = (color, isActive) => {
+    const colors = {
+      indigo: isActive ? "text-indigo-600" : "text-slate-400",
+      green: isActive ? "text-green-600" : "text-slate-400",
+      amber: isActive ? "text-amber-600" : "text-slate-400",
+      cyan: isActive ? "text-cyan-600" : "text-slate-400",
+    };
+    return colors[color] || colors.indigo;
+  };
+
   const NavItem = ({ item, depth = 0 }) => {
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedGroups.includes(item.name);
@@ -132,12 +170,12 @@ export default function Layout({ children, currentPageName }) {
             onClick={() => toggleGroup(item.name)}
             className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
               isGroupActive
-                ? "bg-indigo-50 text-indigo-700"
+                ? getGroupColorClasses(item.color, true)
                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
             <div className="flex items-center gap-3">
-              <item.icon className={`w-5 h-5 ${isGroupActive ? "text-indigo-600" : "text-slate-400"}`} />
+              <item.icon className={`w-5 h-5 ${isGroupActive ? getIconColorClasses(item.color, true) : "text-slate-400"}`} />
               <span>{item.name}</span>
             </div>
             <ChevronDown
@@ -149,7 +187,7 @@ export default function Layout({ children, currentPageName }) {
           {isExpanded && (
             <div className="ml-4 pl-4 border-l border-slate-200 space-y-1">
               {item.children.map((child) => (
-                <NavItem key={child.name} item={child} depth={depth + 1} />
+                <NavItem key={child.name} item={{...child, color: item.color}} depth={depth + 1} />
               ))}
             </div>
           )}
@@ -163,8 +201,8 @@ export default function Layout({ children, currentPageName }) {
         onClick={() => setSidebarOpen(false)}
         className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
           isActive
-            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            ? getColorClasses(item.color, true)
+            : `text-slate-600 ${getColorClasses(item.color, false)} hover:text-slate-900`
         }`}
       >
         <item.icon className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-400"}`} />
