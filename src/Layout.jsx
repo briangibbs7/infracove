@@ -56,6 +56,7 @@ const navigation = [
       { name: "Career Paths", href: "CareerPathing", icon: TrendingUp },
       { name: "Contracts", href: "HRContracts", icon: ShieldCheck },
       { name: "Onboarding", href: "Onboarding", icon: UserCircle },
+      { name: "Offboarding", href: "Offboarding", icon: UserCircle },
     ],
   },
   {
