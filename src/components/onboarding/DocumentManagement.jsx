@@ -67,6 +67,18 @@ export default function DocumentManagement({ employeeId, isManager = false }) {
         revision_notes: notes || undefined
       }
     });
+
+    // Notify employee
+    await base44.entities.Notification.create({
+      type: status === "approved" ? "document_approved" : "document_revision_required",
+      title: status === "approved" ? "Document Approved" : "Document Revision Required",
+      message: status === "approved" 
+        ? `Your ${document.title} has been approved`
+        : `Your ${document.title} requires revision: ${notes}`,
+      recipient_id: document.employee_id,
+      priority: status === "approved" ? "low" : "medium",
+      link: "/Onboarding"
+    });
   };
 
   const requiredDocs = documents.filter(d => d.is_required);

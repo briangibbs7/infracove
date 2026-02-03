@@ -38,6 +38,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import NotificationCenter from "@/components/communications/NotificationCenter";
+import ChatButton from "@/components/chat/ChatButton";
 
 const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard, color: "slate" },
@@ -348,7 +349,12 @@ export default function Layout({ children, currentPageName }) {
         <main className="p-4 lg:p-8">
           {children}
         </main>
-      </div>
-    </div>
-  );
-}
+
+        {/* Chat Button */}
+        {user && currentEmployee && (
+          <ChatButton currentUser={user} currentEmployee={currentEmployee} />
+        )}
+        </div>
+        </div>
+        );
+        }

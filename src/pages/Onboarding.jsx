@@ -141,12 +141,14 @@ export default function Onboarding() {
     updateMutation.mutate({ id: task.id, data: updateData });
   };
 
-  const handleCreateTask = (e) => {
+  const handleCreateTask = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     
     const selectedEmpId = formData.get("employee_id");
     const selectedEmp = employees.find(emp => emp.id === selectedEmpId);
+    const assignedToId = formData.get("assigned_to");
+    const assignedTo = employees.find(e => e.id === assignedToId);
     
     const data = {
       employee_id: selectedEmpId,
@@ -156,14 +158,25 @@ export default function Onboarding() {
       description: formData.get("description"),
       status: "pending",
       priority: formData.get("priority") || "medium",
-      assigned_to: formData.get("assigned_to"),
-      assigned_to_name: formData.get("assigned_to") ? employees.find(e => e.id === formData.get("assigned_to"))?.full_name : undefined,
+      assigned_to: assignedToId,
+      assigned_to_name: assignedTo?.full_name,
       due_date: formData.get("due_date"),
       notes: formData.get("notes"),
       order: tasks.length + 1,
     };
 
-    createMutation.mutate(data);
+    await createMutation.mutateAsync(data);
+
+    // Notify assigned user
+    if (assignedToId) {
+      await base44.functions.invoke("notifyTaskAssignment", {
+        taskId: data.id,
+        taskTitle: data.title,
+        assigneeName: assignedTo.full_name,
+        assigneeId: assignedToId,
+        assignedBy: currentEmployee?.full_name || user?.full_name
+      });
+    }
   };
 
   const handleTaskUpdate = (e) => {
