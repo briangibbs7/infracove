@@ -181,18 +181,19 @@ export default function OnboardingWizard({ employee, onComplete }) {
             Select which departments should receive automated onboarding tasks:
           </p>
 
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {Object.entries(selectedDepartments).map(([dept, selected]) => (
-              <label key={dept} className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:bg-slate-50">
+              <label key={dept} className="flex items-start md:items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:bg-slate-50 active:bg-slate-100">
                 <Checkbox
                   checked={selected}
                   onCheckedChange={(checked) => 
                     setSelectedDepartments(prev => ({ ...prev, [dept]: checked }))
                   }
+                  className="mt-0.5 md:mt-0"
                 />
-                <div>
-                  <p className="font-medium text-slate-900">{dept}</p>
-                  <p className="text-xs text-slate-500">
+                <div className="flex-1">
+                  <p className="font-medium text-slate-900 text-sm md:text-base">{dept}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
                     {dept === "IT" && "Setup accounts, assign equipment"}
                     {dept === "HR" && "Welcome materials, orientation, benefits"}
                     {dept === "Finance" && "Payroll and tax forms"}

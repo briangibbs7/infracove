@@ -201,11 +201,11 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-96 h-[600px] shadow-2xl rounded-lg overflow-hidden">
-      <Card className="h-full flex flex-col">
-        <CardHeader className="bg-indigo-600 text-white pb-3">
+    <div className="fixed inset-0 md:bottom-6 md:right-6 md:top-auto md:left-auto z-50 md:w-96 md:h-[600px] shadow-2xl md:rounded-lg overflow-hidden">
+      <Card className="h-full flex flex-col border-0 md:border">
+        <CardHeader className="bg-indigo-600 text-white pb-3 pt-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-lg md:text-base flex items-center gap-2">
               <MessageSquare className="w-5 h-5" />
               Messages
             </CardTitle>
@@ -213,9 +213,9 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-indigo-700"
+              className="text-white hover:bg-indigo-700 h-9 w-9"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5 md:w-4 md:h-4" />
             </Button>
           </div>
         </CardHeader>
@@ -243,7 +243,7 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
                     <button
                       key={conv.userId}
                       onClick={() => handleSelectConversation(conv)}
-                      className="w-full p-3 hover:bg-slate-50 rounded-lg transition-colors text-left flex items-start gap-3"
+                      className="w-full p-3 md:p-3 hover:bg-slate-50 active:bg-slate-100 rounded-lg transition-colors text-left flex items-start gap-3"
                     >
                       <Avatar className="h-10 w-10">
                         <AvatarFallback className="bg-indigo-100 text-indigo-700">
@@ -278,20 +278,21 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
             </div>
           ) : (
             <div className="flex flex-col h-full">
-              <div className="p-3 border-b flex items-center gap-3">
+              <div className="p-3 md:p-3 border-b flex items-center gap-2 md:gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedConversation(null)}
+                  className="px-2"
                 >
                   ←
                 </Button>
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-9 w-9 md:h-8 md:w-8">
                   <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm">
                     {selectedConversation.userName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-medium text-slate-900">{selectedConversation.userName}</span>
+                <span className="font-medium text-slate-900 truncate">{selectedConversation.userName}</span>
               </div>
 
               <ScrollArea className="flex-1 p-4">
@@ -302,13 +303,13 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
                       const isMine = msg.sender_id === currentUser?.id;
                       return (
                         <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                          <div className={`max-w-[80%] ${isMine ? "order-2" : ""}`}>
-                            <div className={`rounded-lg p-3 ${
+                          <div className={`max-w-[85%] md:max-w-[80%] ${isMine ? "order-2" : ""}`}>
+                            <div className={`rounded-lg p-2.5 md:p-3 ${
                               isMine 
                                 ? "bg-indigo-600 text-white" 
                                 : "bg-slate-100 text-slate-900"
                             }`}>
-                              <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
+                              <p className="text-sm md:text-sm whitespace-pre-wrap break-words">{msg.message}</p>
                             </div>
                             <p className={`text-xs text-slate-400 mt-1 ${isMine ? "text-right" : ""}`}>
                               {formatMessageTime(msg.created_date)}
@@ -321,22 +322,22 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
                 </div>
               </ScrollArea>
 
-              <div className="p-3 border-t">
+              <div className="p-3 md:p-3 border-t">
                 {showMentions && (
                   <div className="mb-2 border rounded-lg bg-white shadow-lg max-h-40 overflow-y-auto">
                     {filteredEmployeesForMention.slice(0, 5).map(emp => (
                       <button
                         key={emp.id}
                         onClick={() => handleMentionSelect(emp)}
-                        className="w-full p-2 hover:bg-slate-50 flex items-center gap-2 text-left"
+                        className="w-full p-3 md:p-2 hover:bg-slate-50 flex items-center gap-2 text-left active:bg-slate-100"
                       >
-                        <Avatar className="h-6 w-6">
+                        <Avatar className="h-8 w-8 md:h-6 md:w-6">
                           <AvatarImage src={emp.avatar_url} />
                           <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs">
                             {emp.full_name?.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm">{emp.full_name}</span>
+                        <span className="text-sm md:text-sm">{emp.full_name}</span>
                       </button>
                     ))}
                   </div>
@@ -348,9 +349,9 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
                     variant="ghost"
                     size="icon"
                     onClick={() => setShowMentions(!showMentions)}
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 h-10 w-10 md:h-9 md:w-9"
                   >
-                    <AtSign className="w-4 h-4" />
+                    <AtSign className="w-5 h-5 md:w-4 md:h-4" />
                   </Button>
                   <Input
                     placeholder="Type a message..."
@@ -362,14 +363,14 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
                         handleSendMessage();
                       }
                     }}
-                    className="flex-1"
+                    className="flex-1 h-10 md:h-9 text-base md:text-sm"
                   />
                   <Button
                     onClick={handleSendMessage}
                     disabled={!message.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700 flex-shrink-0"
+                    className="bg-indigo-600 hover:bg-indigo-700 flex-shrink-0 h-10 w-10 md:h-9 md:w-auto md:px-4"
                   >
-                    <Send className="w-4 h-4" />
+                    <Send className="w-5 h-5 md:w-4 md:h-4" />
                   </Button>
                 </div>
               </div>

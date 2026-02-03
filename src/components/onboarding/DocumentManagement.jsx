@@ -124,8 +124,8 @@ export default function DocumentManagement({ employeeId, isManager = false }) {
 
             return (
               <Card key={doc.id} className={`border-slate-200 ${isOverdue ? "border-red-200 bg-red-50" : ""}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
+                <CardContent className="p-4 md:p-4">
+                  <div className="flex flex-col md:flex-row items-start md:justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1">
                       <Icon className={`w-5 h-5 mt-0.5 ${isOverdue ? "text-red-600" : "text-slate-400"}`} />
                       <div className="flex-1">
@@ -161,10 +161,10 @@ export default function DocumentManagement({ employeeId, isManager = false }) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                       {doc.file_url && (
                         <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" className="h-9">
                             <Download className="w-4 h-4 mr-1" />
                             View
                           </Button>
@@ -173,7 +173,7 @@ export default function DocumentManagement({ employeeId, isManager = false }) {
                       
                       {!isManager && doc.status !== "approved" && (
                         <label>
-                          <Button size="sm" variant="outline" disabled={uploadingDoc === doc.id} asChild>
+                          <Button size="sm" variant="outline" disabled={uploadingDoc === doc.id} asChild className="h-9">
                             <span>
                               <Upload className="w-4 h-4 mr-1" />
                               {uploadingDoc === doc.id ? "Uploading..." : doc.file_url ? "Replace" : "Upload"}
@@ -192,14 +192,14 @@ export default function DocumentManagement({ employeeId, isManager = false }) {
                       )}
 
                       {isManager && doc.status === "submitted" && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 w-full md:w-auto">
                           <Button
                             size="sm"
                             onClick={() => handleReview(doc, "approved")}
-                            className="bg-emerald-600 hover:bg-emerald-700"
+                            className="bg-emerald-600 hover:bg-emerald-700 flex-1 md:flex-none h-9"
                           >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Approve
+                            <CheckCircle className="w-4 h-4 md:mr-1" />
+                            <span className="hidden md:inline">Approve</span>
                           </Button>
                           <Button
                             size="sm"
@@ -208,9 +208,9 @@ export default function DocumentManagement({ employeeId, isManager = false }) {
                               const notes = prompt("Revision notes:");
                               if (notes) handleReview(doc, "requires_revision", notes);
                             }}
-                            className="text-amber-600 hover:bg-amber-50"
+                            className="text-amber-600 hover:bg-amber-50 flex-1 md:flex-none h-9"
                           >
-                            Request Changes
+                            <span className="text-xs md:text-sm">Request Changes</span>
                           </Button>
                         </div>
                       )}

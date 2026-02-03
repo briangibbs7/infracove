@@ -362,8 +362,8 @@ export default function Onboarding() {
 
       {!canManage && currentEmployee?.status === "onboarding" ? (
         <Tabs defaultValue="checklist" className="w-full">
-          <TabsList>
-            <TabsTrigger value="checklist">My Checklist</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="checklist">Checklist</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
           </TabsList>
 
@@ -387,10 +387,10 @@ export default function Onboarding() {
         </Card>
       ) : (
         <Tabs defaultValue="tasks" className="w-full">
-          <TabsList>
-            <TabsTrigger value="tasks">Task Management</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="dashboard">Progress Dashboard</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="tasks" className="text-xs md:text-sm">Tasks</TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs md:text-sm">Docs</TabsTrigger>
+            <TabsTrigger value="dashboard" className="text-xs md:text-sm">Progress</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tasks" className="space-y-6 mt-6">

@@ -346,7 +346,7 @@ export default function Layout({ children, currentPageName }) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-8">
+        <main className="p-3 sm:p-4 lg:p-8">
           {children}
         </main>
 
