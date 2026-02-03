@@ -59,6 +59,7 @@ import Expenses from './pages/Expenses';
 import HRContracts from './pages/HRContracts';
 import Invoices from './pages/Invoices';
 import NDAs from './pages/NDAs';
+import Offboarding from './pages/Offboarding';
 import Onboarding from './pages/Onboarding';
 import Performance from './pages/Performance';
 import Support from './pages/Support';
@@ -66,7 +67,6 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Offboarding from './pages/Offboarding';
 import __Layout from './Layout.jsx';
 
 
@@ -83,6 +83,7 @@ export const PAGES = {
     "HRContracts": HRContracts,
     "Invoices": Invoices,
     "NDAs": NDAs,
+    "Offboarding": Offboarding,
     "Onboarding": Onboarding,
     "Performance": Performance,
     "Support": Support,
@@ -90,7 +91,6 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Offboarding": Offboarding,
 }
 
 export const pagesConfig = {

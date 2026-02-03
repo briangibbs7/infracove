@@ -357,6 +357,23 @@ export default function Dashboard() {
             </Card>
           </div>
 
+          {currentEmployee?.skills && currentEmployee.skills.length > 0 && (
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">My Skills</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {currentEmployee.skills.map((skill, index) => (
+                    <Badge key={index} className="bg-indigo-100 text-indigo-700 text-sm">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {myPendingReviews.length > 0 && (
             <Card className="border-0 shadow-sm border-amber-200 bg-amber-50">
               <CardHeader>
@@ -439,6 +456,37 @@ export default function Dashboard() {
       {/* Admin/HR View */}
       {isAdmin && (
         <>
+          {/* Top Skills Across Organization */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Top Skills in Organization</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const skillCounts = {};
+                employees.forEach(emp => {
+                  emp.skills?.forEach(skill => {
+                    skillCounts[skill] = (skillCounts[skill] || 0) + 1;
+                  });
+                });
+                const topSkills = Object.entries(skillCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 10);
+
+                return topSkills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {topSkills.map(([skill, count]) => (
+                      <Badge key={skill} className="bg-indigo-100 text-indigo-700">
+                        {skill} ({count})
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">No skills data available</p>
+                );
+              })()}
+            </CardContent>
+          </Card>
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
