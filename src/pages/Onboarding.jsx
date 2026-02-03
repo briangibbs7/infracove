@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NewHireChecklist from "@/components/onboarding/NewHireChecklist";
 import OnboardingProgressDashboard from "@/components/onboarding/OnboardingProgressDashboard";
+import DocumentManagement from "@/components/onboarding/DocumentManagement";
+import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
 import {
   Select,
   SelectContent,
@@ -64,6 +66,8 @@ export default function Onboarding() {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [scheduleData, setScheduleData] = useState({});
+  const [isInitiateDialogOpen, setIsInitiateDialogOpen] = useState(false);
+  const [selectedNewHire, setSelectedNewHire] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -93,6 +97,11 @@ export default function Onboarding() {
   const { data: companyDocuments = [] } = useQuery({
     queryKey: ["companyDocuments"],
     queryFn: () => base44.entities.CompanyDocument.filter({ status: "active" }),
+  });
+
+  const { data: onboardingDocuments = [] } = useQuery({
+    queryKey: ["onboardingDocuments"],
+    queryFn: () => base44.entities.OnboardingDocument.list("-created_date"),
   });
 
   useEffect(() => {
@@ -326,14 +335,37 @@ export default function Onboarding() {
         }
         action={canManage ? () => setIsCreateDialogOpen(true) : undefined}
         actionLabel={canManage ? "Create Task" : undefined}
-      />
+      >
+        {canManage && (
+          <Button
+            onClick={() => setIsInitiateDialogOpen(true)}
+            variant="outline"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Initiate Onboarding
+          </Button>
+        )}
+      </PageHeader>
 
       {!canManage && currentEmployee?.status === "onboarding" ? (
-        <NewHireChecklist
-          tasks={myTasks}
-          documents={myDocuments}
-          onTaskComplete={handleTaskComplete}
-        />
+        <Tabs defaultValue="checklist" className="w-full">
+          <TabsList>
+            <TabsTrigger value="checklist">My Checklist</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="checklist" className="mt-6">
+            <NewHireChecklist
+              tasks={myTasks}
+              documents={myDocuments}
+              onTaskComplete={handleTaskComplete}
+            />
+          </TabsContent>
+
+          <TabsContent value="documents" className="mt-6">
+            <DocumentManagement employeeId={currentEmployee.id} />
+          </TabsContent>
+        </Tabs>
       ) : !canManage ? (
         <Card className="border-0 shadow-sm">
           <CardContent className="py-12 text-center">
@@ -344,6 +376,7 @@ export default function Onboarding() {
         <Tabs defaultValue="tasks" className="w-full">
           <TabsList>
             <TabsTrigger value="tasks">Task Management</TabsTrigger>
+            <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="dashboard">Progress Dashboard</TabsTrigger>
           </TabsList>
 
@@ -557,8 +590,52 @@ export default function Onboarding() {
           )}
           </TabsContent>
 
+          <TabsContent value="documents" className="space-y-6 mt-6">
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                <SelectTrigger className="w-full sm:w-64">
+                  <SelectValue placeholder="Filter by employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {uniqueEmployees.map(name => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedEmployee === "all" ? (
+              <div className="space-y-6">
+                {uniqueEmployees.map(empName => {
+                  const emp = employees.find(e => e.full_name === empName);
+                  if (!emp) return null;
+                  
+                  const empDocs = onboardingDocuments.filter(d => d.employee_id === emp.id);
+                  if (empDocs.length === 0) return null;
+
+                  return (
+                    <Card key={emp.id} className="border-slate-200">
+                      <CardHeader>
+                        <CardTitle className="text-lg">{empName}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <DocumentManagement employeeId={emp.id} isManager={true} />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              (() => {
+                const emp = employees.find(e => e.full_name === selectedEmployee);
+                return emp ? <DocumentManagement employeeId={emp.id} isManager={true} /> : null;
+              })()
+            )}
+          </TabsContent>
+
           <TabsContent value="dashboard" className="mt-6">
-            <OnboardingProgressDashboard employees={employees} tasks={tasks} />
+            <OnboardingProgressDashboard employees={employees} tasks={tasks} documents={onboardingDocuments} />
           </TabsContent>
         </Tabs>
       )}
@@ -798,6 +875,43 @@ export default function Onboarding() {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Initiate Onboarding Dialog */}
+      <Dialog open={isInitiateDialogOpen} onOpenChange={setIsInitiateDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Initiate Employee Onboarding</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Select New Hire</Label>
+              <Select value={selectedNewHire?.id} onValueChange={(id) => setSelectedNewHire(employees.find(e => e.id === id))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.filter(e => e.status === "active" || !e.status).map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedNewHire && (
+              <OnboardingWizard
+                employee={selectedNewHire}
+                onComplete={() => {
+                  queryClient.invalidateQueries({ queryKey: ["onboardingTasks"] });
+                  queryClient.invalidateQueries({ queryKey: ["onboardingDocuments"] });
+                  queryClient.invalidateQueries({ queryKey: ["employees"] });
+                  setIsInitiateDialogOpen(false);
+                  setSelectedNewHire(null);
+                }}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

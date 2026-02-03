@@ -7,7 +7,7 @@ import { CheckCircle2, AlertCircle, Clock, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 
-export default function OnboardingProgressDashboard({ employees, tasks }) {
+export default function OnboardingProgressDashboard({ employees, tasks, documents = [] }) {
   // Group tasks by employee
   const employeeProgress = employees
     .filter(emp => emp.status === "onboarding" || emp.status === "active")
