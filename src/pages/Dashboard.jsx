@@ -257,7 +257,7 @@ export default function Dashboard() {
       {/* Employee Personal Dashboard */}
       {!isAdmin && currentEmployee && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <StatCard
               title="Upcoming Time Off"
               value={myUpcomingTimeOff.length}
@@ -559,7 +559,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {departmentData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={200} className="md:!h-[250px]">
                 <BarChart data={departmentData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
@@ -588,7 +588,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {leadStatusData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={200} className="md:!h-[250px]">
                 <PieChart>
                   <Pie
                     data={leadStatusData}
