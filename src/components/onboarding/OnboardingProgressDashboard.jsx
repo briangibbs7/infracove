@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertCircle, Clock, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
+import { format } from "date-fns";
 
 export default function OnboardingProgressDashboard({ employees, tasks, documents = [] }) {
   // Group tasks by employee
@@ -119,27 +120,63 @@ export default function OnboardingProgressDashboard({ employees, tasks, document
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-indigo-600">{emp.progressPercentage}%</p>
-                      <p className="text-xs text-slate-500">
-                        {emp.completedTasks} / {emp.totalTasks} tasks
-                      </p>
                     </div>
                   </div>
-                  
-                  <Progress value={emp.progressPercentage} className="h-2 mb-3" />
+
+                  <div className="space-y-2 mb-3">
+                    <div>
+                      <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
+                        <span>Tasks</span>
+                        <span>{emp.completedTasks}/{emp.totalTasks}</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2">
+                        <div
+                          className="h-2 bg-indigo-600 rounded-full transition-all"
+                          style={{ width: `${emp.progressPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                    {(() => {
+                      const empDocs = documents.filter(d => d.employee_id === emp.id);
+                      const requiredDocs = empDocs.filter(d => d.is_required);
+                      const approvedDocs = requiredDocs.filter(d => d.status === "approved");
+                      const docProgress = requiredDocs.length > 0 ? Math.round((approvedDocs.length / requiredDocs.length) * 100) : 0;
+
+                      return requiredDocs.length > 0 ? (
+                        <div>
+                          <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
+                            <span>Documents</span>
+                            <span>{approvedDocs.length}/{requiredDocs.length}</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2">
+                            <div
+                              className="h-2 bg-emerald-600 rounded-full transition-all"
+                              style={{ width: `${docProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
                   
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 text-xs">
                       {emp.overdueTasks > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-red-600">
+                        <div className="flex items-center gap-1 text-red-600">
                           <AlertCircle className="w-3 h-3" />
                           {emp.overdueTasks} overdue
                         </div>
                       )}
                       {emp.progressPercentage === 100 && (
-                        <div className="flex items-center gap-1 text-xs text-emerald-600">
+                        <div className="flex items-center gap-1 text-emerald-600">
                           <CheckCircle2 className="w-3 h-3" />
                           Complete!
                         </div>
+                      )}
+                      {emp.start_date && (
+                        <span className="text-slate-500">
+                          Started: {format(new Date(emp.start_date), "MMM d")}
+                        </span>
                       )}
                     </div>
                     <Link to={createPageUrl("Onboarding")}>
