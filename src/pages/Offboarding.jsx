@@ -41,8 +41,10 @@ export default function Offboarding() {
   const [user, setUser] = useState(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isInitiateDialogOpen, setIsInitiateDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [lastWorkingDay, setLastWorkingDay] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const queryClient = useQueryClient();
@@ -88,44 +90,27 @@ export default function Offboarding() {
     },
   });
 
-  const createTasksFromTemplate = () => {
-    if (!selectedEmployee) return;
+  const initiateOffboarding = async () => {
+    if (!selectedEmployee || !lastWorkingDay) {
+      alert("Please select an employee and set a last working day");
+      return;
+    }
 
-    const templates = [
-      // IT Tasks
-      { title: "Revoke system access", task_type: "revoke_access", department: "IT", priority: "urgent", description: "Disable all system accounts and access credentials" },
-      { title: "Collect laptop and equipment", task_type: "return_equipment", department: "IT", priority: "high", description: "Retrieve company laptop, monitors, peripherals" },
-      { title: "Deactivate email account", task_type: "deactivate_accounts", department: "IT", priority: "urgent", description: "Deactivate email and forward to manager" },
-      { title: "Remove from shared drives", task_type: "revoke_access", department: "IT", priority: "medium", description: "Remove access to shared folders and cloud storage" },
-      
-      // HR Tasks
-      { title: "Conduct exit interview", task_type: "exit_interview", department: "HR", priority: "high", description: "Schedule and conduct exit interview" },
-      { title: "Process benefits termination", task_type: "benefits_termination", department: "HR", priority: "high", description: "Terminate health insurance and other benefits" },
-      { title: "Collect company ID badge", task_type: "collect_company_property", department: "HR", priority: "medium", description: "Retrieve employee ID badge and access cards" },
-      { title: "Update employee status", task_type: "other", department: "HR", priority: "urgent", description: "Update employee status to terminated in system" },
-      
-      // Finance Tasks
-      { title: "Process final paycheck", task_type: "final_paycheck", department: "Finance", priority: "urgent", description: "Calculate and process final paycheck including unused PTO" },
-      { title: "Collect corporate credit card", task_type: "collect_company_property", department: "Finance", priority: "high", description: "Retrieve and cancel corporate credit card" },
-      { title: "Clear expense reports", task_type: "other", department: "Finance", priority: "medium", description: "Process any pending expense reimbursements" },
-      
-      // Department-specific
-      { title: "Knowledge transfer session", task_type: "knowledge_transfer", department: "HR", priority: "high", description: "Facilitate knowledge transfer to team members" },
-      { title: "Collect company documents", task_type: "collect_company_property", department: "Legal", priority: "medium", description: "Retrieve any confidential documents or files" },
-    ];
-
-    templates.forEach((template, index) => {
-      createTaskMutation.mutate({
-        ...template,
-        employee_id: selectedEmployee,
-        employee_name: employees.find(e => e.id === selectedEmployee)?.full_name,
-        status: "pending",
-        order: index + 1,
+    try {
+      const response = await base44.functions.invoke('initiateOffboarding', {
+        employeeId: selectedEmployee,
+        lastWorkingDay: lastWorkingDay
       });
-    });
 
-    setIsTemplateDialogOpen(false);
-    setSelectedEmployee(null);
+      alert(`Offboarding initiated successfully! ${response.data.tasks_created} tasks created and notifications sent to departments.`);
+      queryClient.invalidateQueries({ queryKey: ["offboardingTasks"] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      setIsInitiateDialogOpen(false);
+      setSelectedEmployee(null);
+      setLastWorkingDay("");
+    } catch (error) {
+      alert("Failed to initiate offboarding: " + error.message);
+    }
   };
 
   const handleSubmitTask = (e) => {
@@ -193,17 +178,18 @@ export default function Offboarding() {
       >
         <div className="flex gap-2">
           <Button
-            variant="outline"
-            onClick={() => setIsTemplateDialogOpen(true)}
+            onClick={() => setIsInitiateDialogOpen(true)}
+            className="bg-red-600 hover:bg-red-700"
           >
-            Use Template
+            <UserMinus className="w-4 h-4 mr-2" />
+            Initiate Offboarding
           </Button>
           <Button
+            variant="outline"
             onClick={() => {
               setSelectedTask(null);
               setIsTaskDialogOpen(true);
             }}
-            className="bg-red-600 hover:bg-red-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Task
@@ -589,50 +575,83 @@ export default function Offboarding() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+      <Dialog open={isInitiateDialogOpen} onOpenChange={setIsInitiateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Tasks from Template</DialogTitle>
+            <DialogTitle>Initiate Employee Offboarding</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-slate-600">
-              This will create a comprehensive set of offboarding tasks across all departments for the selected employee.
-            </p>
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+              <p className="text-sm text-blue-900 font-medium mb-2">🤖 Automated Workflow</p>
+              <p className="text-xs text-blue-800">
+                This will automatically create 13 offboarding tasks across IT, HR, Finance, and Legal departments with smart due dates and send email notifications to department heads.
+              </p>
+            </div>
             
             <div className="space-y-2">
-              <Label htmlFor="template_employee">Select Employee *</Label>
+              <Label htmlFor="offboarding_employee">Select Employee *</Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
+                  {employees.filter(e => e.status === "active").map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.full_name} - {emp.job_title}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="last_working_day">Last Working Day *</Label>
+              <Input
+                id="last_working_day"
+                type="date"
+                value={lastWorkingDay}
+                onChange={(e) => setLastWorkingDay(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+
             <div className="bg-slate-50 p-4 rounded-lg space-y-2 text-sm">
-              <p className="font-medium text-slate-900">Template includes:</p>
-              <ul className="list-disc list-inside space-y-1 text-slate-600">
-                <li>IT: Access revocation, equipment collection (4 tasks)</li>
-                <li>HR: Exit interview, benefits termination (4 tasks)</li>
-                <li>Finance: Final paycheck, expense clearance (3 tasks)</li>
-                <li>Legal: Document collection (1 task)</li>
+              <p className="font-medium text-slate-900">What happens next:</p>
+              <ul className="space-y-1 text-slate-600">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                  <span>13 department-specific tasks created automatically</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                  <span>Due dates set based on last working day (urgent: 1 day before, high: 3 days, medium: 7 days)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Package className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" />
+                  <span>Email notifications sent to IT, HR, Finance, and Legal department heads</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <span>Employee status updated in system</span>
+                </li>
               </ul>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsTemplateDialogOpen(false)}>
+              <Button variant="outline" onClick={() => {
+                setIsInitiateDialogOpen(false);
+                setSelectedEmployee(null);
+                setLastWorkingDay("");
+              }}>
                 Cancel
               </Button>
               <Button 
-                onClick={createTasksFromTemplate}
-                disabled={!selectedEmployee}
+                onClick={initiateOffboarding}
+                disabled={!selectedEmployee || !lastWorkingDay}
                 className="bg-red-600 hover:bg-red-700"
               >
-                Create Tasks
+                <UserMinus className="w-4 h-4 mr-2" />
+                Initiate Offboarding
               </Button>
             </DialogFooter>
           </div>
