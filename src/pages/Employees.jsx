@@ -23,9 +23,12 @@ import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { format } from "date-fns";
-import { Users, Mail, Phone, MapPin, Calendar, Search, Filter, MoreVertical, Pencil, Trash2, Award, Network, Grid3x3, MessageCircle, Shield, Heart, History, Star } from "lucide-react";
+import { Users, Mail, Phone, MapPin, Calendar, Search, Filter, MoreVertical, Pencil, Trash2, Award, Network, Grid3x3, MessageCircle, Shield, Heart, History } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OrgChart from "@/components/employees/OrgChart";
 import MessagingDialog from "@/components/communications/MessagingDialog";
+import EmployeeDetailsDialog from "@/components/employees/EmployeeDetailsDialog";
+import PerformanceReviewSummary from "@/components/employees/PerformanceReviewSummary";
 import {
   DropdownMenu,
   DropdownMenuContent,
