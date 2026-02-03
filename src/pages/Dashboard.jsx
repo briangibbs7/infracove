@@ -244,12 +244,12 @@ export default function Dashboard() {
   const isManager = myTeam.length > 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">
           Welcome back, {user?.full_name || "User"}
         </h1>
-        <p className="text-slate-500 mt-1">
+        <p className="text-sm md:text-base text-slate-500 mt-1">
           {isAdmin ? "Here's your organization overview" : "Here's your personalized dashboard"}
         </p>
       </div>
@@ -292,21 +292,21 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">My Time Off Requests</CardTitle>
               </CardHeader>
               <CardContent>
                 {myTimeOffRequests.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 md:space-y-3">
                     {myTimeOffRequests.slice(0, 5).map((request) => (
-                      <div key={request.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-slate-900 capitalize">
+                      <div key={request.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900 text-sm md:text-base capitalize">
                             {request.type?.replace(/_/g, " ")}
                           </p>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-xs md:text-sm text-slate-500">
                             {request.start_date && format(parseISO(request.start_date), "MMM d")} - {request.end_date && format(parseISO(request.end_date), "MMM d")}
                           </p>
                         </div>
@@ -329,12 +329,12 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 {myPendingTasks.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 md:space-y-3">
                     {myPendingTasks.slice(0, 5).map((task) => (
-                      <div key={task.id} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium text-slate-900">{task.title}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                      <div key={task.id} className="flex flex-col sm:flex-row items-start justify-between gap-2 p-3 bg-slate-50 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 text-sm md:text-base">{task.title}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <StatusBadge status={task.priority} />
                             {task.due_date && (
                               <span className={`text-xs ${isPast(parseISO(task.due_date)) ? "text-red-600" : "text-slate-500"}`}>
@@ -413,35 +413,35 @@ export default function Dashboard() {
             <CardTitle className="text-lg font-semibold">Team Management</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div>
-                <h3 className="font-medium text-slate-900 mb-3">Pending Approvals</h3>
+                <h3 className="font-medium text-slate-900 mb-3 text-sm md:text-base">Pending Approvals</h3>
                 {pendingApprovals.length > 0 ? (
                   <div className="space-y-2">
                     {pendingApprovals.map((request) => (
-                      <div key={request.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
-                        <div>
-                          <p className="font-medium text-slate-900">{request.employee_name}</p>
-                          <p className="text-sm text-slate-500 capitalize">
+                      <div key={request.id} className="flex items-start sm:items-center justify-between gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 text-sm md:text-base truncate">{request.employee_name}</p>
+                          <p className="text-xs md:text-sm text-slate-500 capitalize">
                             {request.type?.replace(/_/g, " ")} • {request.days_requested} days
                           </p>
                         </div>
-                        <AlertCircle className="w-5 h-5 text-amber-600" />
+                        <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-amber-600 flex-shrink-0" />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500">No pending approvals</p>
+                  <p className="text-xs md:text-sm text-slate-500">No pending approvals</p>
                 )}
               </div>
               <div>
-                <h3 className="font-medium text-slate-900 mb-3">Your Team ({myTeam.length})</h3>
+                <h3 className="font-medium text-slate-900 mb-3 text-sm md:text-base">Your Team ({myTeam.length})</h3>
                 <div className="space-y-2">
                   {myTeam.slice(0, 5).map((emp) => (
-                    <div key={emp.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-slate-900">{emp.full_name}</p>
-                        <p className="text-sm text-slate-500">{emp.job_title}</p>
+                    <div key={emp.id} className="flex items-start sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 text-sm md:text-base truncate">{emp.full_name}</p>
+                        <p className="text-xs md:text-sm text-slate-500 truncate">{emp.job_title}</p>
                       </div>
                       <StatusBadge status={emp.status} />
                     </div>
@@ -489,7 +489,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <StatCard
               title="Active Employees"
               value={activeEmployees}
@@ -524,7 +524,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <StatCard
               title="Active NDAs"
               value={activeNDAs}
@@ -552,7 +552,7 @@ export default function Dashboard() {
           </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card className="border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Employees by Department</CardTitle>
@@ -617,22 +617,22 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <Card className="border-0 shadow-sm lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             {recentActivities.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {recentActivities.map((activity, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between p-4 bg-slate-50 rounded-xl"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 bg-slate-50 rounded-xl"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-start sm:items-center gap-3 md:gap-4 flex-1 min-w-0">
                       <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        className={`w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                           activity.type === "expense" ? "bg-amber-100 text-amber-600" :
                           activity.type === "timeoff" ? "bg-blue-100 text-blue-600" :
                           activity.type === "nda" ? "bg-indigo-100 text-indigo-600" :
@@ -640,18 +640,18 @@ export default function Dashboard() {
                           "bg-slate-100 text-slate-600"
                         }`}
                       >
-                        {activity.type === "expense" ? <DollarSign className="w-5 h-5" /> :
-                         activity.type === "timeoff" ? <Calendar className="w-5 h-5" /> :
-                         activity.type === "nda" ? <ShieldCheck className="w-5 h-5" /> :
-                         activity.type === "task" ? <CheckCircle2 className="w-5 h-5" /> :
-                         <FileText className="w-5 h-5" />}
+                        {activity.type === "expense" ? <DollarSign className="w-4 h-4 md:w-5 md:h-5" /> :
+                         activity.type === "timeoff" ? <Calendar className="w-4 h-4 md:w-5 md:h-5" /> :
+                         activity.type === "nda" ? <ShieldCheck className="w-4 h-4 md:w-5 md:h-5" /> :
+                         activity.type === "task" ? <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" /> :
+                         <FileText className="w-4 h-4 md:w-5 md:h-5" />}
                       </div>
-                      <div>
-                        <p className="font-medium text-slate-900">{activity.title}</p>
-                        <p className="text-sm text-slate-500">{activity.subtitle}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 text-sm md:text-base truncate">{activity.title}</p>
+                        <p className="text-xs md:text-sm text-slate-500 truncate">{activity.subtitle}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3 self-end sm:self-auto">
                       <StatusBadge status={activity.status} />
                       <span className="text-xs text-slate-400">
                         {activity.date && format(new Date(activity.date), "MMM d")}
@@ -673,44 +673,44 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 md:space-y-3">
             <Link
               to={createPageUrl("Employees")}
-              className="flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors group"
+              className="flex items-center justify-between p-3 md:p-4 bg-blue-50 rounded-xl hover:bg-blue-100 active:bg-blue-200 transition-colors group"
             >
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-900">Add Employee</span>
+              <div className="flex items-center gap-2 md:gap-3">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                <span className="font-medium text-blue-900 text-sm md:text-base">Add Employee</span>
               </div>
               <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               to={createPageUrl("Expenses")}
-              className="flex items-center justify-between p-4 bg-amber-50 rounded-xl hover:bg-amber-100 transition-colors group"
+              className="flex items-center justify-between p-3 md:p-4 bg-amber-50 rounded-xl hover:bg-amber-100 active:bg-amber-200 transition-colors group"
             >
-              <div className="flex items-center gap-3">
-                <DollarSign className="w-5 h-5 text-amber-600" />
-                <span className="font-medium text-amber-900">Submit Expense</span>
+              <div className="flex items-center gap-2 md:gap-3">
+                <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
+                <span className="font-medium text-amber-900 text-sm md:text-base">Submit Expense</span>
               </div>
               <ArrowRight className="w-4 h-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               to={createPageUrl("TimeOff")}
-              className="flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors group"
+              className="flex items-center justify-between p-3 md:p-4 bg-blue-50 rounded-xl hover:bg-blue-100 active:bg-blue-200 transition-colors group"
             >
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-900">Request Time Off</span>
+              <div className="flex items-center gap-2 md:gap-3">
+                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                <span className="font-medium text-blue-900 text-sm md:text-base">Request Time Off</span>
               </div>
               <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               to={createPageUrl("NDAs")}
-              className="flex items-center justify-between p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors group"
+              className="flex items-center justify-between p-3 md:p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 active:bg-indigo-200 transition-colors group"
             >
-              <div className="flex items-center gap-3">
-                <ShieldCheck className="w-5 h-5 text-indigo-600" />
-                <span className="font-medium text-indigo-900">Create NDA</span>
+              <div className="flex items-center gap-2 md:gap-3">
+                <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" />
+                <span className="font-medium text-indigo-900 text-sm md:text-base">Create NDA</span>
               </div>
               <ArrowRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform" />
             </Link>
