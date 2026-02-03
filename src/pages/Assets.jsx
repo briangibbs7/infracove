@@ -29,8 +29,13 @@ import PageHeader from "@/components/ui/PageHeader";
 import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
-import { format, isPast, parseISO } from "date-fns";
-import { Package, MoreVertical, Pencil, Trash2, Search, AlertTriangle, Laptop, Monitor, Smartphone, Server, HardDrive } from "lucide-react";
+import { format, isPast, parseISO, differenceInDays } from "date-fns";
+import { Package, MoreVertical, Pencil, Trash2, Search, AlertTriangle, Laptop, Monitor, Smartphone, Server, HardDrive, TrendingDown, Key, FileText, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import AssetDepreciationCard from "@/components/assets/AssetDepreciationCard";
+import LicenseManagementCard from "@/components/assets/LicenseManagementCard";
+import AssetRequestForm from "@/components/assets/AssetRequestForm";
 
 const ASSET_TYPES = ["laptop", "desktop", "monitor", "phone", "tablet", "software_license", "server", "network_equipment", "other"];
 const STATUSES = ["available", "assigned", "maintenance", "retired"];
@@ -51,6 +56,10 @@ export default function Assets() {
   const [editingAsset, setEditingAsset] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [viewAsset, setViewAsset] = useState(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("assets");
   const queryClient = useQueryClient();
 
   const { data: assets = [], isLoading } = useQuery({
@@ -61,6 +70,11 @@ export default function Assets() {
   const { data: employees = [] } = useQuery({
     queryKey: ["employees"],
     queryFn: () => base44.entities.Employee.list(),
+  });
+
+  const { data: assetRequests = [] } = useQuery({
+    queryKey: ["assetRequests"],
+    queryFn: () => base44.entities.AssetRequest.list("-created_date"),
   });
 
   const createMutation = useMutation({
@@ -90,11 +104,12 @@ export default function Assets() {
     e.preventDefault();
     const formData = new FormData(e.target);
     const assignee = employees.find((emp) => emp.id === formData.get("assigned_to"));
+    const assetType = formData.get("type");
     
     const data = {
       name: formData.get("name"),
       asset_tag: formData.get("asset_tag"),
-      type: formData.get("type"),
+      type: assetType,
       manufacturer: formData.get("manufacturer"),
       model: formData.get("model"),
       serial_number: formData.get("serial_number"),
@@ -107,13 +122,64 @@ export default function Assets() {
       status: formData.get("assigned_to") ? "assigned" : (formData.get("status") || "available"),
       location: formData.get("location"),
       notes: formData.get("notes"),
+      depreciation_method: formData.get("depreciation_method") || "straight_line",
+      useful_life_years: formData.get("useful_life_years") ? parseInt(formData.get("useful_life_years")) : 3,
+      salvage_value: formData.get("salvage_value") ? parseFloat(formData.get("salvage_value")) : 0,
     };
+
+    // Add software license fields if applicable
+    if (assetType === "software_license") {
+      data.license_key = formData.get("license_key");
+      data.license_expiry_date = formData.get("license_expiry_date");
+      data.total_seats = formData.get("total_seats") ? parseInt(formData.get("total_seats")) : undefined;
+      data.seats_in_use = formData.get("seats_in_use") ? parseInt(formData.get("seats_in_use")) : 0;
+      data.renewal_cost = formData.get("renewal_cost") ? parseFloat(formData.get("renewal_cost")) : undefined;
+    }
 
     if (editingAsset) {
       updateMutation.mutate({ id: editingAsset.id, data });
     } else {
       createMutation.mutate(data);
     }
+  };
+
+  const updateRequestMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.AssetRequest.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assetRequests"] });
+    },
+  });
+
+  const handleApproveRequest = async (request) => {
+    await updateRequestMutation.mutateAsync({
+      id: request.id,
+      data: { status: "approved", approved_by: user?.id, approved_by_name: user?.full_name, approved_date: new Date().toISOString().split("T")[0] }
+    });
+
+    // Notify requester
+    await base44.entities.Notification.create({
+      type: "asset_request_approved",
+      title: "Asset Request Approved",
+      message: `Your request for ${request.requested_item_name} has been approved`,
+      recipient_id: request.requested_by,
+      link: "/Assets"
+    });
+  };
+
+  const handleRejectRequest = async (request, reason) => {
+    await updateRequestMutation.mutateAsync({
+      id: request.id,
+      data: { status: "rejected", rejection_reason: reason, approved_by: user?.id, approved_by_name: user?.full_name }
+    });
+
+    // Notify requester
+    await base44.entities.Notification.create({
+      type: "asset_request_rejected",
+      title: "Asset Request Rejected",
+      message: `Your request for ${request.requested_item_name} was rejected`,
+      recipient_id: request.requested_by,
+      link: "/Assets"
+    });
   };
 
   const filteredAssets = assets.filter((asset) => {
@@ -199,6 +265,15 @@ export default function Assets() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               onClick={() => {
+                setViewAsset(row);
+                setIsViewDialogOpen(true);
+              }}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              View Details
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
                 setEditingAsset(row);
                 setIsDialogOpen(true);
               }}
@@ -220,6 +295,20 @@ export default function Assets() {
   ];
 
   const totalValue = assets.reduce((sum, a) => sum + (a.purchase_cost || 0), 0);
+  const softwareLicenses = assets.filter(a => a.type === "software_license");
+  const expiringLicenses = softwareLicenses.filter(a => {
+    if (!a.license_expiry_date) return false;
+    const days = differenceInDays(parseISO(a.license_expiry_date), new Date());
+    return days >= 0 && days <= 30;
+  });
+
+  const [user, setUser] = useState(null);
+  React.useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
+
+  const isAdmin = user?.role === "admin";
+  const pendingRequests = assetRequests.filter(r => r.status === "pending");
 
   return (
     <div>
@@ -231,10 +320,48 @@ export default function Assets() {
           setIsDialogOpen(true);
         }}
         actionLabel="Add Asset"
-      />
+      >
+        <Button
+          onClick={() => setIsRequestDialogOpen(true)}
+          variant="outline"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          Request Asset
+        </Button>
+      </PageHeader>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      {/* Alert Banners */}
+      {expiringLicenses.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+          <div>
+            <p className="font-medium text-amber-900">
+              {expiringLicenses.length} software license{expiringLicenses.length > 1 ? "s" : ""} expiring soon
+            </p>
+            <p className="text-sm text-amber-700 mt-1">
+              Review and renew licenses to avoid service interruptions
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="assets">Assets</TabsTrigger>
+          <TabsTrigger value="requests">
+            Requests
+            {pendingRequests.length > 0 && (
+              <Badge className="ml-2 bg-red-500">{pendingRequests.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {activeTab === "assets" && (
+        <>
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
@@ -257,9 +384,9 @@ export default function Assets() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+          </div>
 
-      <Card className="border-0 shadow-sm">
+          <Card className="border-0 shadow-sm">
         {filteredAssets.length === 0 && !isLoading ? (
           <EmptyState
             icon={Package}
@@ -269,17 +396,163 @@ export default function Assets() {
             actionLabel="Add Asset"
           />
         ) : (
-          <DataTable columns={columns} data={filteredAssets} isLoading={isLoading} />
-        )}
-      </Card>
+            <DataTable columns={columns} data={filteredAssets} isLoading={isLoading} />
+          )}
+          </Card>
+        </>
+      )}
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {activeTab === "requests" && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            {assetRequests.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title="No asset requests"
+                description="Submitted requests will appear here"
+              />
+            ) : (
+              <div className="space-y-4">
+                {assetRequests.map((request) => (
+                  <Card key={request.id} className="border-slate-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-slate-900">{request.requested_item_name}</h3>
+                            <StatusBadge status={request.status} />
+                            <Badge variant="outline" className="capitalize">{request.priority}</Badge>
+                          </div>
+                          <p className="text-sm text-slate-600 mb-2">{request.justification}</p>
+                          <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <span>Requested by: {request.requested_by_name}</span>
+                            <span>Date: {request.requested_date && format(parseISO(request.requested_date), "MMM d, yyyy")}</span>
+                            {request.needed_by_date && (
+                              <span>Needed by: {format(parseISO(request.needed_by_date), "MMM d, yyyy")}</span>
+                            )}
+                            {request.estimated_cost && (
+                              <span>Est. Cost: ${request.estimated_cost.toLocaleString()}</span>
+                            )}
+                          </div>
+                        </div>
+                        {isAdmin && request.status === "pending" && (
+                          <div className="flex gap-2 ml-4">
+                            <Button
+                              size="sm"
+                              onClick={() => handleApproveRequest(request)}
+                              className="bg-emerald-600 hover:bg-emerald-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const reason = prompt("Rejection reason:");
+                                if (reason) handleRejectRequest(request, reason);
+                              }}
+                              className="text-red-600 hover:bg-red-50"
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {request.rejection_reason && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-red-600">Rejection reason: {request.rejection_reason}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* View Asset Details Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewAsset?.name}</DialogTitle>
+          </DialogHeader>
+          {viewAsset && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-slate-500">Asset Tag</span>
+                  <p className="font-medium">{viewAsset.asset_tag}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Type</span>
+                  <p className="font-medium capitalize">{viewAsset.type?.replace(/_/g, " ")}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Status</span>
+                  <StatusBadge status={viewAsset.status} />
+                </div>
+                <div>
+                  <span className="text-slate-500">Assigned To</span>
+                  <p className="font-medium">{viewAsset.assigned_to_name || "Unassigned"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <AssetDepreciationCard asset={viewAsset} />
+                <LicenseManagementCard asset={viewAsset} />
+              </div>
+
+              <div className="flex justify-end pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    setEditingAsset(viewAsset);
+                    setIsViewDialogOpen(false);
+                    setIsDialogOpen(true);
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Asset
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Asset Request Dialog */}
+      <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Request New Asset</DialogTitle>
+          </DialogHeader>
+          <AssetRequestForm
+            onSuccess={() => setIsRequestDialogOpen(false)}
+            onCancel={() => setIsRequestDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Asset Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingAsset ? "Edit Asset" : "Add New Asset"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="financial">Financial</TabsTrigger>
+                <TabsTrigger value="license">License</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="basic" className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Asset Name *</Label>
                 <Input
@@ -420,15 +693,119 @@ export default function Assets() {
                   placeholder="e.g., HQ - Floor 2"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                name="notes"
-                defaultValue={editingAsset?.notes}
-              />
-            </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    defaultValue={editingAsset?.notes}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="financial" className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="depreciation_method">Depreciation Method</Label>
+                    <Select name="depreciation_method" defaultValue={editingAsset?.depreciation_method || "straight_line"}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="straight_line">Straight Line</SelectItem>
+                        <SelectItem value="declining_balance">Declining Balance</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="useful_life_years">Useful Life (Years)</Label>
+                    <Input
+                      id="useful_life_years"
+                      name="useful_life_years"
+                      type="number"
+                      defaultValue={editingAsset?.useful_life_years || 3}
+                      min="1"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="salvage_value">Salvage Value ($)</Label>
+                    <Input
+                      id="salvage_value"
+                      name="salvage_value"
+                      type="number"
+                      defaultValue={editingAsset?.salvage_value || 0}
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="license" className="space-y-4 mt-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-blue-800">
+                    These fields are only applicable for software licenses
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="license_key">License Key</Label>
+                    <Input
+                      id="license_key"
+                      name="license_key"
+                      defaultValue={editingAsset?.license_key}
+                      placeholder="XXXX-XXXX-XXXX-XXXX"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="license_expiry_date">License Expiry Date</Label>
+                    <Input
+                      id="license_expiry_date"
+                      name="license_expiry_date"
+                      type="date"
+                      defaultValue={editingAsset?.license_expiry_date}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="renewal_cost">Annual Renewal Cost ($)</Label>
+                    <Input
+                      id="renewal_cost"
+                      name="renewal_cost"
+                      type="number"
+                      defaultValue={editingAsset?.renewal_cost}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="total_seats">Total Seats/Licenses</Label>
+                    <Input
+                      id="total_seats"
+                      name="total_seats"
+                      type="number"
+                      defaultValue={editingAsset?.total_seats}
+                      min="0"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="seats_in_use">Seats Currently In Use</Label>
+                    <Input
+                      id="seats_in_use"
+                      name="seats_in_use"
+                      type="number"
+                      defaultValue={editingAsset?.seats_in_use || 0}
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
