@@ -44,6 +44,9 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { BadgeCard } from "@/components/gamification/BadgeDisplay";
 import Leaderboard from "@/components/gamification/Leaderboard";
+import MaterialUploader from "@/components/training/MaterialUploader";
+import BulkAssignDialog from "@/components/training/BulkAssignDialog";
+import TrainingRequestForm from "@/components/training/TrainingRequestForm";
 
 const DEPARTMENTS = ["HR", "Finance", "Sales", "Legal", "IT", "Marketing", "Operations", "Executive"];
 
@@ -52,6 +55,7 @@ export default function Training() {
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [isCourseDialogOpen, setIsCourseDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [materials, setMaterials] = useState([]);
@@ -74,6 +78,11 @@ export default function Training() {
   const { data: assignments = [] } = useQuery({
     queryKey: ["trainingAssignments"],
     queryFn: () => base44.entities.TrainingAssignment.list("-created_date"),
+  });
+
+  const { data: trainingRequests = [] } = useQuery({
+    queryKey: ["trainingRequests"],
+    queryFn: () => base44.entities.TrainingRequest.list("-created_date"),
   });
 
   const { data: achievements = [] } = useQuery({
@@ -132,6 +141,21 @@ export default function Training() {
     mutationFn: (data) => base44.entities.Notification.create(data),
   });
 
+  const createRequestMutation = useMutation({
+    mutationFn: (data) => base44.entities.TrainingRequest.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trainingRequests"] });
+      setIsRequestDialogOpen(false);
+    },
+  });
+
+  const updateRequestMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.TrainingRequest.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trainingRequests"] });
+    },
+  });
+
   const createAchievementMutation = useMutation({
     mutationFn: (data) => base44.entities.Achievement.create(data),
     onSuccess: () => {
@@ -154,19 +178,7 @@ export default function Training() {
     }
   };
 
-  const handleAddMaterial = () => {
-    setMaterials([...materials, { title: "", type: "document", file_url: "", order: materials.length }]);
-  };
 
-  const handleUpdateMaterial = (index, field, value) => {
-    const updated = [...materials];
-    updated[index][field] = value;
-    setMaterials(updated);
-  };
-
-  const handleRemoveMaterial = (index) => {
-    setMaterials(materials.filter((_, i) => i !== index));
-  };
 
   const handleSubmitCourse = (e) => {
     e.preventDefault();
@@ -193,13 +205,9 @@ export default function Training() {
     }
   };
 
-  const handleAssignCourse = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const employeeIds = formData.get("employee_ids").split(",");
-    
+  const handleBulkAssign = (employeeIds, dueDate) => {
     employeeIds.forEach(empId => {
-      const emp = employees.find(e => e.id === empId.trim());
+      const emp = employees.find(e => e.id === empId);
       if (emp) {
         createAssignmentMutation.mutate({
           course_id: selectedCourse.id,
@@ -209,7 +217,7 @@ export default function Training() {
           assigned_by: currentEmployee?.id,
           assigned_by_name: currentEmployee?.full_name,
           assigned_date: new Date().toISOString().split('T')[0],
-          due_date: formData.get("due_date"),
+          due_date: dueDate,
           status: "not_started",
           progress: 0,
         });
@@ -228,6 +236,18 @@ export default function Training() {
 
     setIsAssignDialogOpen(false);
     setSelectedCourse(null);
+  };
+
+  const handleRequestTraining = (data) => {
+    createRequestMutation.mutate(data);
+    createNotificationMutation.mutate({
+      recipient_id: "admin",
+      type: "info",
+      title: "New Training Request",
+      message: `${data.employee_name} requested: ${data.topic}`,
+      link: "/Training",
+      priority: data.priority === "urgent" ? "high" : "normal",
+    });
   };
 
   const isAdmin = user?.role === "admin";
@@ -264,11 +284,22 @@ export default function Training() {
           {!canManage && <TabsTrigger value="my-training">My Training</TabsTrigger>}
           <TabsTrigger value="courses">All Courses</TabsTrigger>
           {canManage && <TabsTrigger value="assignments">Assignments</TabsTrigger>}
+          {canManage && <TabsTrigger value="requests">Requests</TabsTrigger>}
         </TabsList>
 
         {/* My Training Tab */}
         {!canManage && (
           <TabsContent value="my-training" className="space-y-6">
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setIsRequestDialogOpen(true)}
+                className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Request New Training
+              </Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-6 text-center">
@@ -609,6 +640,96 @@ export default function Training() {
             </Card>
           </TabsContent>
         )}
+
+        {/* Requests Tab (Admin/HR only) */}
+        {canManage && (
+          <TabsContent value="requests" className="space-y-6">
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle>Training Requests from Employees</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {trainingRequests.length > 0 ? (
+                  <div className="space-y-3">
+                    {trainingRequests.map((request) => (
+                      <div key={request.id} className="p-4 bg-slate-50 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="font-semibold text-slate-900">{request.topic}</h4>
+                              <StatusBadge status={request.status} />
+                            </div>
+                            <p className="text-sm text-slate-600 mb-2">{request.description}</p>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm text-slate-500">Requested by: {request.employee_name}</span>
+                              <Badge variant="outline" className="capitalize">
+                                {request.category?.replace(/_/g, " ")}
+                              </Badge>
+                              <Badge variant="outline" className="capitalize">
+                                {request.priority} priority
+                              </Badge>
+                            </div>
+                          </div>
+                          {request.status === "pending" && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                onClick={() => {
+                                  updateRequestMutation.mutate({
+                                    id: request.id,
+                                    data: {
+                                      status: "approved",
+                                      reviewed_by: currentEmployee?.id,
+                                      reviewed_by_name: currentEmployee?.full_name,
+                                      reviewed_date: new Date().toISOString().split('T')[0]
+                                    }
+                                  });
+                                }}
+                              >
+                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => {
+                                  const reason = prompt("Rejection reason:");
+                                  if (reason) {
+                                    updateRequestMutation.mutate({
+                                      id: request.id,
+                                      data: {
+                                        status: "rejected",
+                                        reviewed_by: currentEmployee?.id,
+                                        reviewed_by_name: currentEmployee?.full_name,
+                                        reviewed_date: new Date().toISOString().split('T')[0],
+                                        rejection_reason: reason
+                                      }
+                                    });
+                                  }
+                                }}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="No training requests"
+                    description="Employees can request new training topics"
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Course Dialog */}
@@ -719,54 +840,10 @@ export default function Training() {
             </div>
 
             <div className="border-t pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <Label>Training Materials</Label>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddMaterial}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Material
-                </Button>
-              </div>
-              {materials.map((material, index) => (
-                <div key={index} className="p-3 bg-slate-50 rounded-lg mb-2">
-                  <div className="grid grid-cols-12 gap-2">
-                    <Input
-                      placeholder="Material title"
-                      value={material.title}
-                      onChange={(e) => handleUpdateMaterial(index, "title", e.target.value)}
-                      className="col-span-4"
-                    />
-                    <Select
-                      value={material.type}
-                      onValueChange={(value) => handleUpdateMaterial(index, "type", value)}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="video">Video</SelectItem>
-                        <SelectItem value="document">Document</SelectItem>
-                        <SelectItem value="link">Link</SelectItem>
-                        <SelectItem value="quiz">Quiz</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      placeholder="URL"
-                      value={material.file_url}
-                      onChange={(e) => handleUpdateMaterial(index, "file_url", e.target.value)}
-                      className="col-span-4"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveMaterial(index)}
-                      className="col-span-1 text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              <MaterialUploader
+                materials={materials}
+                onMaterialsChange={setMaterials}
+              />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
@@ -787,47 +864,35 @@ export default function Training() {
 
       {/* Assign Course Dialog */}
       <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Assign Course: {selectedCourse?.title}</DialogTitle>
+            <DialogTitle>Assign Training Course</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAssignCourse} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="employee_ids">Employees *</Label>
-              <Select name="employee_ids" required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.filter(e => e.status === "active").map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-500">Note: For multiple assignments, select one at a time</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="due_date">Due Date</Label>
-              <Input
-                id="due_date"
-                name="due_date"
-                type="date"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => {
+          {selectedCourse && (
+            <BulkAssignDialog
+              course={selectedCourse}
+              employees={employees}
+              onSubmit={handleBulkAssign}
+              onCancel={() => {
                 setIsAssignDialogOpen(false);
                 setSelectedCourse(null);
-              }}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                Assign Course
-              </Button>
-            </div>
-          </form>
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Request Training Dialog */}
+      <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Request New Training</DialogTitle>
+          </DialogHeader>
+          <TrainingRequestForm
+            currentEmployee={currentEmployee}
+            onSubmit={handleRequestTraining}
+            onCancel={() => setIsRequestDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>
