@@ -322,6 +322,13 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
           </TabsContent>
 
           <TabsContent value="interviews" className="space-y-4">
+            <div className="mb-4">
+              <Button onClick={() => setShowScheduleDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
+                <Calendar className="w-4 h-4 mr-2" />
+                Schedule Interview
+              </Button>
+            </div>
+
             {candidate.interview_dates && candidate.interview_dates.length > 0 ? (
               candidate.interview_dates.map((interview, idx) => (
                 <div key={idx} className="p-4 bg-slate-50 rounded-lg">

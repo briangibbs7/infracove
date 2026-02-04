@@ -129,7 +129,7 @@ export default function Hiring() {
         </div>
       </PageHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -162,6 +162,20 @@ export default function Hiring() {
                 <p className="text-3xl font-bold text-blue-600 mt-2">{activeCandidates}</p>
               </div>
               <TrendingUp className="w-10 h-10 text-blue-200" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-600">Interviews Scheduled</p>
+                <p className="text-3xl font-bold text-amber-600 mt-2">
+                  {candidates.reduce((acc, c) => acc + (c.interview_dates?.length || 0), 0)}
+                </p>
+              </div>
+              <Calendar className="w-10 h-10 text-amber-200" />
             </div>
           </CardContent>
         </Card>
