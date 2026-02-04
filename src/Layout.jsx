@@ -54,6 +54,8 @@ const navigation = [
       { name: "Time Off", href: "TimeOff", icon: FileText },
       { name: "Performance", href: "Performance", icon: TrendingUp },
       { name: "Training", href: "Training", icon: TrendingUp },
+      { name: "Mentorship", href: "MentorshipProgram", icon: Users },
+      { name: "Internships", href: "InternshipProgram", icon: Users },
       { name: "Career Paths", href: "CareerPathing", icon: TrendingUp },
       { name: "Contracts", href: "HRContracts", icon: ShieldCheck },
       { name: "Onboarding", href: "Onboarding", icon: UserCircle },
