@@ -1,19 +1,27 @@
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Phone, Linkedin, Globe, Briefcase, Calendar, Star, FileText, Download, CheckCircle, XCircle, Sparkles } from "lucide-react";
+import { Mail, Phone, Linkedin, Globe, Briefcase, Calendar, Star, FileText, Download, CheckCircle, XCircle, Sparkles, Send } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import AIAnalysisCard from "./AIAnalysisCard";
+import SendEmailDialog from "./SendEmailDialog";
 
 export default function CandidateDetailsDialog({ isOpen, onClose, candidate, jobOpenings }) {
   const [note, setNote] = useState("");
   const [rating, setRating] = useState(0);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const queryClient = useQueryClient();
+
+  const { data: communicationHistory = [] } = useQuery({
+    queryKey: ["candidateEmails", candidate?.id],
+    queryFn: () => base44.entities.CandidateEmail.filter({ candidate_id: candidate.id }, "-sent_date"),
+    enabled: !!candidate && isOpen
+  });
 
   if (!candidate) return null;
 
@@ -127,6 +135,10 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
             <TabsTrigger value="ai-analysis">
               <Sparkles className="w-3 h-3 mr-1" />
               AI Analysis
+            </TabsTrigger>
+            <TabsTrigger value="communication">
+              <Mail className="w-3 h-3 mr-1" />
+              Communication ({communicationHistory.length})
             </TabsTrigger>
             <TabsTrigger value="notes">Notes ({candidate.stage_notes?.length || 0})</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
@@ -245,6 +257,39 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
             <AIAnalysisCard analysis={candidate.ai_analysis} />
           </TabsContent>
 
+          <TabsContent value="communication" className="space-y-4">
+            <Button onClick={() => setShowEmailDialog(true)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Send className="w-4 h-4 mr-2" />
+              Send Email
+            </Button>
+
+            <div className="space-y-3">
+              {communicationHistory.map((email) => (
+                <div key={email.id} className="p-4 bg-slate-50 rounded-lg">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-medium text-sm">{email.subject}</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {format(parseISO(email.sent_date), "MMM d, yyyy 'at' h:mm a")}
+                      </p>
+                    </div>
+                    {email.template_name && (
+                      <Badge variant="outline" className="text-xs">
+                        {email.template_name}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{email.body}</p>
+                  <p className="text-xs text-slate-500 mt-2">Sent by {email.sent_by_name}</p>
+                </div>
+              ))}
+
+              {communicationHistory.length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-8">No emails sent yet</p>
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="notes" className="space-y-4">
             <div>
               <Textarea
@@ -325,6 +370,12 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
             )}
           </div>
         </div>
+
+        <SendEmailDialog
+          isOpen={showEmailDialog}
+          onClose={() => setShowEmailDialog(false)}
+          candidate={candidate}
+        />
       </DialogContent>
     </Dialog>
   );
