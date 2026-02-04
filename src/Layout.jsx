@@ -134,6 +134,9 @@ export default function Layout({ children, currentPageName }) {
     group.children?.some((child) => currentPageName === child.href);
 
   const isAdmin = user?.role === "admin";
+  const myTeam = currentEmployee
+    ? employees.filter(e => e.manager_id === currentEmployee.id)
+    : [];
   const isManager = myTeam.length > 0;
   
   // RBAC: Filter navigation based on department and role
