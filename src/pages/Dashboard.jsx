@@ -2,8 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import StatCard from "@/components/ui/StatCard";
 import StatusBadge from "@/components/ui/StatusBadge";
+import RecognitionFeed from "@/components/recognition/RecognitionFeed";
+import GiveRecognitionDialog from "@/components/recognition/GiveRecognitionDialog";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 import {
   Users,
@@ -20,7 +23,9 @@ import {
   AlertCircle,
   ShieldCheck,
   GraduationCap,
-  Target
+  Target,
+  Award,
+  Trophy
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -42,6 +47,8 @@ const COLORS = ["#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"];
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [currentEmployee, setCurrentEmployee] = useState(null);
+  const [isGiveRecognitionOpen, setIsGiveRecognitionOpen] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -119,6 +126,16 @@ export default function Dashboard() {
     queryFn: () => base44.entities.TrainingAssignment.list(),
   });
 
+  const { data: recognitions = [] } = useQuery({
+    queryKey: ["recognitions"],
+    queryFn: () => base44.entities.Recognition.list("-created_date"),
+  });
+
+  const { data: employeePoints = [] } = useQuery({
+    queryKey: ["employeePoints"],
+    queryFn: () => base44.entities.EmployeePoints.list(),
+  });
+
   // Personal data for employee
   const myTimeOffRequests = currentEmployee 
     ? timeOffRequests.filter(r => r.employee_id === currentEmployee.id)
@@ -187,6 +204,12 @@ export default function Dashboard() {
   const completedTraining = currentEmployee
     ? trainingAssignments.filter(t => t.employee_id === currentEmployee.id && t.status === "completed").length
     : 0;
+
+  const myPoints = currentEmployee
+    ? employeePoints.find(ep => ep.employee_id === currentEmployee.id)
+    : null;
+
+  const recentRecognitions = recognitions.filter(r => r.is_public).slice(0, 5);
 
   const departmentData = employees.reduce((acc, emp) => {
     const dept = emp.department || "Other";
@@ -283,12 +306,12 @@ export default function Dashboard() {
               change={`${completedTraining} completed`}
             />
             <StatCard
-              title="Contract Status"
-              value={myContract ? myContract.status.replace(/_/g, " ") : "No Contract"}
-              icon={Briefcase}
-              iconBg="bg-emerald-100"
-              iconColor="text-emerald-600"
-              change={myContract?.end_date ? `Expires ${format(parseISO(myContract.end_date), "MMM d, yyyy")}` : ""}
+              title="My Points"
+              value={myPoints?.total_points || 0}
+              icon={Trophy}
+              iconBg="bg-amber-100"
+              iconColor="text-amber-600"
+              change={`Rank: ${myPoints?.rank || "bronze"}`}
             />
           </div>
 
@@ -357,22 +380,60 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {currentEmployee?.skills && currentEmployee.skills.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold">My Skills</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold">Recent Recognition</CardTitle>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.location.href = createPageUrl("Recognition")}
+                  >
+                    View All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {currentEmployee.skills.map((skill, index) => (
-                    <Badge key={index} className="bg-indigo-100 text-indigo-700 text-sm">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
+                <RecognitionFeed
+                  recognitions={recentRecognitions}
+                  currentUser={user}
+                  employees={employees}
+                />
               </CardContent>
             </Card>
-          )}
+
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">My Recognitions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {myRecognitions.length > 0 ? (
+                  <div className="space-y-3">
+                    {myRecognitions.slice(0, 3).map((rec) => (
+                      <div key={rec.id} className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="font-semibold text-slate-900">{rec.title}</p>
+                          <Badge className="bg-amber-100 text-amber-700">
+                            +{rec.points_awarded} pts
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-700 mb-2">{rec.message}</p>
+                        <p className="text-xs text-slate-500">
+                          From {rec.giver_name} • {format(parseISO(rec.created_date), "MMM d")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-slate-400">
+                    <Award className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No recognitions yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {myPendingReviews.length > 0 && (
             <Card className="border-0 shadow-sm border-amber-200 bg-amber-50">

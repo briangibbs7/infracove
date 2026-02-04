@@ -22,14 +22,18 @@ import {
   MessageCircle,
   Briefcase,
   Users,
-  Target
+  Target,
+  Award,
+  Trophy
 } from "lucide-react";
 import SkillMatrixDisplay from "@/components/skills/SkillMatrixDisplay";
 import SkillMatrixEditor from "@/components/skills/SkillMatrixEditor";
+import GiveRecognitionDialog from "@/components/recognition/GiveRecognitionDialog";
 
 export default function EmployeeProfile({ employee, onMessage, onEdit, employees }) {
   const [user, setUser] = React.useState(null);
   const [isSkillEditorOpen, setIsSkillEditorOpen] = React.useState(false);
+  const [isGiveRecognitionOpen, setIsGiveRecognitionOpen] = React.useState(false);
 
   React.useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -80,6 +84,18 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
     enabled: !!employee?.id,
   });
 
+  const { data: employeePoints = [] } = useQuery({
+    queryKey: ["employeePoints", employee?.id],
+    queryFn: () => base44.entities.EmployeePoints.filter({ employee_id: employee.id }),
+    enabled: !!employee?.id,
+  });
+
+  const { data: recognitions = [] } = useQuery({
+    queryKey: ["recognitions", employee?.id],
+    queryFn: () => base44.entities.Recognition.filter({ recipient_id: employee.id }),
+    enabled: !!employee?.id,
+  });
+
   if (!employee) return null;
 
   const allTasks = [...onboardingTasks, ...offboardingTasks];
@@ -116,7 +132,14 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={() => setIsGiveRecognitionOpen(true)}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    <Award className="w-4 h-4 mr-2" />
+                    Recognize
+                  </Button>
                   <Button
                     onClick={() => onMessage(employee)}
                     className="bg-indigo-600 hover:bg-indigo-700"
@@ -162,11 +185,41 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
         </CardContent>
       </Card>
 
+      {/* Points & Rank Banner */}
+      {employeePoints.length > 0 && (
+        <Card className="border-0 shadow-sm bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Total Points</p>
+                  <p className="text-3xl font-bold text-amber-900">{employeePoints[0]?.total_points || 0}</p>
+                </div>
+                <div className="h-12 w-px bg-slate-300" />
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Rank</p>
+                  <Badge className="bg-amber-600 text-white capitalize text-lg px-3 py-1">
+                    {employeePoints[0]?.rank || "bronze"}
+                  </Badge>
+                </div>
+                <div className="h-12 w-px bg-slate-300" />
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Recognition Count</p>
+                  <p className="text-2xl font-bold text-slate-900">{recognitions.length}</p>
+                </div>
+              </div>
+              <Trophy className="w-12 h-12 text-amber-400" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabbed Content */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="skills">Skills</TabsTrigger>
+          <TabsTrigger value="recognition">Recognition</TabsTrigger>
           <TabsTrigger value="tasks">
             Tasks
             {pendingTasks.length > 0 && (
@@ -324,6 +377,57 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
             onEdit={() => setIsSkillEditorOpen(true)}
             canEdit={true}
           />
+        </TabsContent>
+
+        {/* Recognition Tab */}
+        <TabsContent value="recognition" className="space-y-4 mt-6">
+          {recognitions.length > 0 ? (
+            <div className="space-y-4">
+              {recognitions.map((rec) => (
+                <Card key={rec.id} className="border-slate-200">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-slate-900 text-lg">{rec.title}</h4>
+                        <p className="text-sm text-slate-600 mt-1">
+                          From <span className="font-medium">{rec.giver_name}</span>
+                        </p>
+                      </div>
+                      <Badge className="bg-amber-100 text-amber-700 text-base">
+                        +{rec.points_awarded} pts
+                      </Badge>
+                    </div>
+                    <p className="text-slate-700 mb-4">{rec.message}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="capitalize">
+                        {rec.type.replace(/_/g, " ")}
+                      </Badge>
+                      {rec.related_skill_name && (
+                        <Badge className="bg-purple-100 text-purple-700">
+                          🎯 {rec.related_skill_name}
+                        </Badge>
+                      )}
+                      {rec.related_training_name && (
+                        <Badge className="bg-green-100 text-green-700">
+                          📚 {rec.related_training_name}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-slate-400 ml-auto">
+                        {format(parseISO(rec.created_date), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="border-slate-200">
+              <CardContent className="py-12 text-center">
+                <Award className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-500">No recognitions received yet</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Tasks Tab */}
@@ -548,6 +652,15 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
           )}
         </DialogContent>
       </Dialog>
+
+      {user && (
+        <GiveRecognitionDialog
+          isOpen={isGiveRecognitionOpen}
+          onClose={() => setIsGiveRecognitionOpen(false)}
+          recipient={employee}
+          currentUser={user}
+        />
+      )}
     </div>
   );
 }

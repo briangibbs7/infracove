@@ -70,6 +70,7 @@ import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
 import CompanySkills from './pages/CompanySkills';
+import Recognition from './pages/Recognition';
 import __Layout from './Layout.jsx';
 
 
@@ -97,6 +98,7 @@ export const PAGES = {
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
     "CompanySkills": CompanySkills,
+    "Recognition": Recognition,
 }
 
 export const pagesConfig = {
