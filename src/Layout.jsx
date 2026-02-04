@@ -25,7 +25,9 @@ import {
   HeadphonesIcon,
   Package,
   UserCircle,
-  User
+  User,
+  Award,
+  Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,6 +62,8 @@ const navigation = [
       { name: "Contracts", href: "HRContracts", icon: ShieldCheck },
       { name: "Onboarding", href: "Onboarding", icon: UserCircle },
       { name: "Offboarding", href: "Offboarding", icon: UserCircle },
+      { name: "Company Skills", href: "CompanySkills", icon: Target },
+      { name: "Recognition", href: "Recognition", icon: Award },
     ],
   },
   {
@@ -90,6 +94,7 @@ const navigation = [
       { name: "Assets", href: "Assets", icon: Package },
     ],
   },
+  { name: "Documents", href: "Documents", icon: FileText, color: "slate" },
 ];
 
 export default function Layout({ children, currentPageName }) {
