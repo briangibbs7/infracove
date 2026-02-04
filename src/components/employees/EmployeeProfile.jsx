@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, parseISO, isPast } from "date-fns";
 import {
   Mail,
@@ -23,8 +24,16 @@ import {
   Users,
   Target
 } from "lucide-react";
+import SkillMatrixDisplay from "@/components/skills/SkillMatrixDisplay";
+import SkillMatrixEditor from "@/components/skills/SkillMatrixEditor";
 
 export default function EmployeeProfile({ employee, onMessage, onEdit, employees }) {
+  const [user, setUser] = React.useState(null);
+  const [isSkillEditorOpen, setIsSkillEditorOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
   const { data: onboardingTasks = [] } = useQuery({
     queryKey: ["onboardingTasks", employee?.id],
     queryFn: () => base44.entities.OnboardingTask.filter({
@@ -62,6 +71,12 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
   const { data: assetAssignments = [] } = useQuery({
     queryKey: ["assets", employee?.id],
     queryFn: () => base44.entities.Asset.filter({ assigned_to: employee.id }),
+    enabled: !!employee?.id,
+  });
+
+  const { data: employeeSkills = [] } = useQuery({
+    queryKey: ["employeeSkills", employee?.id],
+    queryFn: () => base44.entities.EmployeeSkill.filter({ employee_id: employee.id }),
     enabled: !!employee?.id,
   });
 
@@ -149,8 +164,9 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
 
       {/* Tabbed Content */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="skills">Skills</TabsTrigger>
           <TabsTrigger value="tasks">
             Tasks
             {pendingTasks.length > 0 && (
@@ -299,6 +315,15 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Skills Tab */}
+        <TabsContent value="skills" className="space-y-4 mt-6">
+          <SkillMatrixDisplay
+            employeeSkills={employeeSkills}
+            onEdit={() => setIsSkillEditorOpen(true)}
+            canEdit={true}
+          />
         </TabsContent>
 
         {/* Tasks Tab */}
@@ -507,6 +532,22 @@ export default function EmployeeProfile({ employee, onMessage, onEdit, employees
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isSkillEditorOpen} onOpenChange={setIsSkillEditorOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Skill Matrix - {employee.full_name}</DialogTitle>
+          </DialogHeader>
+          {user && (
+            <SkillMatrixEditor
+              employee={employee}
+              currentUser={user}
+              onSave={() => setIsSkillEditorOpen(false)}
+              onCancel={() => setIsSkillEditorOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
