@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +8,28 @@ import ChatPanel from "./ChatPanel";
 
 export default function ChatButton({ currentUser, currentEmployee }) {
   const [isOpen, setIsOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: messages = [] } = useQuery({
     queryKey: ["chatMessages"],
     queryFn: () => base44.entities.ChatMessage.list("-created_date", 200),
-    refetchInterval: 30000, // Refetch every 30 seconds
   });
+
+  // Real-time subscription for new messages
+  React.useEffect(() => {
+    const unsubscribe = base44.entities.ChatMessage.subscribe((event) => {
+      // Refetch on any message change
+      if (event.type === 'create' || event.type === 'update') {
+        // Force immediate refetch
+        base44.entities.ChatMessage.list("-created_date", 200).then(newMessages => {
+          // Update the query cache directly
+          queryClient.setQueryData(["chatMessages"], newMessages);
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   const unreadCount = messages.filter(
     m => !m.is_read && m.recipient_id === currentUser?.id

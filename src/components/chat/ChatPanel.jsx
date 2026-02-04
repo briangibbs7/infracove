@@ -7,17 +7,24 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Send, X, Search, Paperclip, AtSign } from "lucide-react";
+import { MessageSquare, Send, X, Search, Paperclip, AtSign, Smile, Image as ImageIcon, FileText, Download, Users, Plus } from "lucide-react";
 import { format, parseISO, isToday, isYesterday } from "date-fns";
+import GroupChatDialog from "./GroupChatDialog";
+
+const QUICK_REACTIONS = ["👍", "❤️", "😊", "🎉", "👏", "🔥"];
 
 export default function ChatPanel({ currentUser, currentEmployee }) {
+  const [isGroupChatOpen, setIsGroupChatOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [showReactions, setShowReactions] = useState(null);
   const messageEndRef = useRef(null);
+  const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
 
   const { data: employees = [] } = useQuery({
@@ -53,6 +60,35 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
       queryClient.invalidateQueries({ queryKey: ["chatMessages"] });
       setMessage("");
       setTimeout(() => messageEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    },
+  });
+
+  const addReactionMutation = useMutation({
+    mutationFn: async ({ messageId, emoji }) => {
+      const msg = messages.find(m => m.id === messageId);
+      const reactions = msg.reactions || [];
+      
+      // Check if user already reacted with this emoji
+      const existingReaction = reactions.find(r => r.user_id === currentUser.id && r.emoji === emoji);
+      
+      let newReactions;
+      if (existingReaction) {
+        // Remove reaction
+        newReactions = reactions.filter(r => !(r.user_id === currentUser.id && r.emoji === emoji));
+      } else {
+        // Add reaction
+        newReactions = [...reactions, {
+          emoji,
+          user_id: currentUser.id,
+          user_name: currentEmployee?.full_name || currentUser.full_name
+        }];
+      }
+      
+      return base44.entities.ChatMessage.update(messageId, { reactions: newReactions });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chatMessages"] });
+      setShowReactions(null);
     },
   });
 
@@ -104,6 +140,40 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
   }, [messages, currentUser]);
 
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      const attachmentData = {
+        conversation_id: selectedConversation.userId,
+        sender_id: currentUser.id,
+        sender_name: currentEmployee?.full_name || currentUser.full_name,
+        sender_avatar: currentEmployee?.avatar_url,
+        recipient_id: selectedConversation.userId,
+        recipient_name: selectedConversation.userName,
+        message: `📎 Shared a file: ${file.name}`,
+        attachments: [{
+          file_name: file.name,
+          file_url: file_url,
+          file_type: file.type,
+          file_size: file.size
+        }],
+        is_read: false,
+      };
+
+      await sendMessageMutation.mutateAsync(attachmentData);
+    } catch (error) {
+      console.error('File upload error:', error);
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!message.trim() || !selectedConversation) return;
@@ -209,14 +279,24 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
               <MessageSquare className="w-5 h-5" />
               Messages
             </CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-indigo-700 h-9 w-9"
-            >
-              <X className="w-5 h-5 md:w-4 md:h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsGroupChatOpen(true)}
+                className="text-white hover:bg-indigo-700 h-9 w-9"
+              >
+                <Users className="w-5 h-5 md:w-4 md:h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-indigo-700 h-9 w-9"
+              >
+                <X className="w-5 h-5 md:w-4 md:h-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -301,18 +381,88 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
                     .sort((a, b) => new Date(a.created_date) - new Date(b.created_date))
                     .map((msg) => {
                       const isMine = msg.sender_id === currentUser?.id;
+                      const hasAttachments = msg.attachments && msg.attachments.length > 0;
+                      const reactions = msg.reactions || [];
+                      const groupedReactions = reactions.reduce((acc, r) => {
+                        acc[r.emoji] = acc[r.emoji] || [];
+                        acc[r.emoji].push(r.user_name);
+                        return acc;
+                      }, {});
+                      
                       return (
-                        <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                        <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"} group`}>
                           <div className={`max-w-[85%] md:max-w-[80%] ${isMine ? "order-2" : ""}`}>
-                            <div className={`rounded-lg p-2.5 md:p-3 ${
+                            <div className={`rounded-lg p-2.5 md:p-3 relative ${
                               isMine 
                                 ? "bg-indigo-600 text-white" 
                                 : "bg-slate-100 text-slate-900"
                             }`}>
                               <p className="text-sm md:text-sm whitespace-pre-wrap break-words">{msg.message}</p>
+                              
+                              {hasAttachments && (
+                                <div className="mt-2 space-y-2">
+                                  {msg.attachments.map((att, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={att.file_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`flex items-center gap-2 p-2 rounded ${
+                                        isMine ? "bg-indigo-700" : "bg-slate-200"
+                                      } hover:opacity-80 transition-opacity`}
+                                    >
+                                      {att.file_type?.startsWith('image/') ? (
+                                        <ImageIcon className="w-4 h-4" />
+                                      ) : (
+                                        <FileText className="w-4 h-4" />
+                                      )}
+                                      <span className="text-xs truncate flex-1">{att.file_name}</span>
+                                      <Download className="w-3 h-3" />
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+
+                              <button
+                                onClick={() => setShowReactions(showReactions === msg.id ? null : msg.id)}
+                                className={`absolute -bottom-2 ${isMine ? "left-2" : "right-2"} opacity-0 group-hover:opacity-100 transition-opacity bg-white rounded-full p-1 shadow-md`}
+                              >
+                                <Smile className="w-3 h-3 text-slate-600" />
+                              </button>
                             </div>
+
+                            {Object.keys(groupedReactions).length > 0 && (
+                              <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? "justify-end" : ""}`}>
+                                {Object.entries(groupedReactions).map(([emoji, users]) => (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => addReactionMutation.mutate({ messageId: msg.id, emoji })}
+                                    className="bg-white border border-slate-200 rounded-full px-2 py-0.5 text-xs hover:border-indigo-300 transition-colors"
+                                    title={users.join(", ")}
+                                  >
+                                    {emoji} {users.length}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {showReactions === msg.id && (
+                              <div className="absolute z-10 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 p-2 flex gap-1">
+                                {QUICK_REACTIONS.map(emoji => (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => addReactionMutation.mutate({ messageId: msg.id, emoji })}
+                                    className="hover:bg-slate-100 rounded p-1 text-lg transition-colors"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            
                             <p className={`text-xs text-slate-400 mt-1 ${isMine ? "text-right" : ""}`}>
                               {formatMessageTime(msg.created_date)}
+                              {msg.is_read && isMine && <span className="ml-2">✓✓</span>}
                             </p>
                           </div>
                         </div>
@@ -343,7 +493,29 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
                   </div>
                 )}
                 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                />
+                
                 <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFile}
+                    className="flex-shrink-0 h-10 w-10 md:h-9 md:w-9"
+                  >
+                    {uploadingFile ? (
+                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Paperclip className="w-5 h-5 md:w-4 md:h-4" />
+                    )}
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -367,7 +539,7 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
                   />
                   <Button
                     onClick={handleSendMessage}
-                    disabled={!message.trim()}
+                    disabled={!message.trim() || sendMessageMutation.isPending}
                     className="bg-indigo-600 hover:bg-indigo-700 flex-shrink-0 h-10 w-10 md:h-9 md:w-auto md:px-4"
                   >
                     <Send className="w-5 h-5 md:w-4 md:h-4" />
@@ -378,6 +550,13 @@ export default function ChatPanel({ currentUser, currentEmployee }) {
           )}
         </CardContent>
       </Card>
+
+      <GroupChatDialog
+        isOpen={isGroupChatOpen}
+        onClose={() => setIsGroupChatOpen(false)}
+        currentUser={currentUser}
+        currentEmployee={currentEmployee}
+      />
     </div>
   );
 }
