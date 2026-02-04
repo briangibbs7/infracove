@@ -69,12 +69,13 @@ import Offboarding from './pages/Offboarding';
 import Onboarding from './pages/Onboarding';
 import Performance from './pages/Performance';
 import Recognition from './pages/Recognition';
+import Settings from './pages/Settings';
 import Support from './pages/Support';
 import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Settings from './pages/Settings';
+import Admin from './pages/Admin';
 import __Layout from './Layout.jsx';
 
 
@@ -101,12 +102,13 @@ export const PAGES = {
     "Onboarding": Onboarding,
     "Performance": Performance,
     "Recognition": Recognition,
+    "Settings": Settings,
     "Support": Support,
     "TimeOff": TimeOff,
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Settings": Settings,
+    "Admin": Admin,
 }
 
 export const pagesConfig = {

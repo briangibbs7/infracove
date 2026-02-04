@@ -27,7 +27,8 @@ import {
   UserCircle,
   User,
   Award,
-  Target
+  Target,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,7 @@ const navigation = [
   { name: "My Portal", href: "EmployeePortal", icon: User, color: "blue" },
   { name: "Announcements", href: "Announcements", icon: Building2, color: "purple" },
   { name: "Analytics", href: "Analytics", icon: TrendingUp, color: "emerald" },
+  { name: "Admin", href: "Admin", icon: Shield, color: "purple" },
   {
     name: "HR",
     icon: Users,
