@@ -10,7 +10,8 @@ import JobOpeningDialog from "@/components/hiring/JobOpeningDialog";
 import CandidateDetailsDialog from "@/components/hiring/CandidateDetailsDialog";
 import AddCandidateDialog from "@/components/hiring/AddCandidateDialog";
 import CandidateCard from "@/components/hiring/CandidateCard";
-import { Plus, Briefcase, Users, TrendingUp, CheckCircle, UserPlus } from "lucide-react";
+import QuickScreeningView from "@/components/hiring/QuickScreeningView";
+import { Plus, Briefcase, Users, TrendingUp, CheckCircle, UserPlus, Zap } from "lucide-react";
 
 const WORKFLOW_STAGES = [
   { id: "applied", label: "Applied", color: "bg-slate-100 text-slate-700" },
@@ -29,6 +30,8 @@ export default function Hiring() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [selectedJobFilter, setSelectedJobFilter] = useState("all");
+  const [scoreFilter, setScoreFilter] = useState("all");
+  const [selectedCandidates, setSelectedCandidates] = useState([]);
   const queryClient = useQueryClient();
 
   const { data: jobOpenings = [] } = useQuery({
@@ -65,10 +68,43 @@ export default function Hiring() {
     });
   };
 
+  const handleBulkAction = async (action) => {
+    if (selectedCandidates.length === 0) return;
+    
+    for (const candidateId of selectedCandidates) {
+      await updateCandidateMutation.mutateAsync({
+        id: candidateId,
+        data: { status: action }
+      });
+    }
+    
+    setSelectedCandidates([]);
+  };
+
+  const toggleCandidateSelection = (candidateId) => {
+    setSelectedCandidates(prev => 
+      prev.includes(candidateId) 
+        ? prev.filter(id => id !== candidateId)
+        : [...prev, candidateId]
+    );
+  };
+
   const openJobs = jobOpenings.filter(j => j.status === "open");
-  const filteredCandidates = selectedJobFilter === "all" 
+  
+  let filteredCandidates = selectedJobFilter === "all" 
     ? candidates.filter(c => !["hired", "rejected", "withdrawn"].includes(c.status))
     : candidates.filter(c => c.job_opening_id === selectedJobFilter && !["hired", "rejected", "withdrawn"].includes(c.status));
+
+  // Apply AI score filter
+  if (scoreFilter !== "all") {
+    filteredCandidates = filteredCandidates.filter(c => {
+      const score = c.ai_analysis?.match_score || 0;
+      if (scoreFilter === "high") return score >= 80;
+      if (scoreFilter === "medium") return score >= 60 && score < 80;
+      if (scoreFilter === "low") return score < 60;
+      return true;
+    });
+  }
 
   const totalCandidates = candidates.length;
   const activeCandidates = candidates.filter(c => !["hired", "rejected", "withdrawn"].includes(c.status)).length;
@@ -145,22 +181,74 @@ export default function Hiring() {
       <Tabs defaultValue="pipeline" className="w-full">
         <TabsList>
           <TabsTrigger value="pipeline">Candidate Pipeline</TabsTrigger>
+          <TabsTrigger value="screening">
+            <Zap className="w-3 h-3 mr-1" />
+            Quick Screening
+          </TabsTrigger>
           <TabsTrigger value="jobs">Job Openings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pipeline" className="space-y-6">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-sm text-slate-600">Filter by job:</span>
-            <select
-              value={selectedJobFilter}
-              onChange={(e) => setSelectedJobFilter(e.target.value)}
-              className="border border-slate-200 rounded-md px-3 py-1 text-sm"
-            >
-              <option value="all">All Jobs</option>
-              {openJobs.map(job => (
-                <option key={job.id} value={job.id}>{job.title}</option>
-              ))}
-            </select>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Job:</span>
+                <select
+                  value={selectedJobFilter}
+                  onChange={(e) => setSelectedJobFilter(e.target.value)}
+                  className="border border-slate-200 rounded-md px-3 py-1 text-sm"
+                >
+                  <option value="all">All Jobs</option>
+                  {openJobs.map(job => (
+                    <option key={job.id} value={job.id}>{job.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">AI Score:</span>
+                <select
+                  value={scoreFilter}
+                  onChange={(e) => setScoreFilter(e.target.value)}
+                  className="border border-slate-200 rounded-md px-3 py-1 text-sm"
+                >
+                  <option value="all">All Scores</option>
+                  <option value="high">High Match (80+)</option>
+                  <option value="medium">Medium Match (60-79)</option>
+                  <option value="low">Needs Review (&lt;60)</option>
+                </select>
+              </div>
+            </div>
+
+            {selectedCandidates.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Badge className="bg-indigo-100 text-indigo-700">
+                  {selectedCandidates.length} selected
+                </Badge>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleBulkAction("screening")}
+                >
+                  Move to Screening
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleBulkAction("rejected")}
+                  className="text-red-600"
+                >
+                  Reject Selected
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  onClick={() => setSelectedCandidates([])}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
@@ -182,6 +270,8 @@ export default function Hiring() {
                         onView={handleViewCandidate}
                         onMove={handleMoveStage}
                         stages={WORKFLOW_STAGES}
+                        isSelected={selectedCandidates.includes(candidate.id)}
+                        onToggleSelect={toggleCandidateSelection}
                       />
                     ))}
                   </div>
@@ -189,6 +279,15 @@ export default function Hiring() {
               );
             })}
           </div>
+        </TabsContent>
+
+        <TabsContent value="screening">
+          <QuickScreeningView
+            candidates={candidates.filter(c => c.status === "applied")}
+            onApprove={(candidate) => handleMoveStage(candidate, "screening")}
+            onReject={(candidate) => handleMoveStage(candidate, "rejected")}
+            onSkip={(candidate) => {}}
+          />
         </TabsContent>
 
         <TabsContent value="jobs">

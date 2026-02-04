@@ -2,18 +2,25 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Mail, Phone, FileText, Star, Sparkles } from "lucide-react";
 
-export default function CandidateCard({ candidate, onView, onMove, stages }) {
+export default function CandidateCard({ candidate, onView, onMove, stages, isSelected, onToggleSelect }) {
   const currentStageIndex = stages.findIndex(s => s.id === candidate.status);
   const nextStage = stages[currentStageIndex + 1];
   const prevStage = stages[currentStageIndex - 1];
 
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+    <Card className={`border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer group ${isSelected ? "ring-2 ring-indigo-500" : ""}`}>
       <CardContent className="p-3">
-        <div className="flex items-start justify-between mb-2">
+        <div className="flex items-start gap-2 mb-2">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onToggleSelect(candidate.id)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1"
+          />
           <div className="flex-1" onClick={() => onView(candidate)}>
             <p className="font-semibold text-sm text-slate-900">{candidate.first_name} {candidate.last_name}</p>
             <p className="text-xs text-slate-500 truncate">{candidate.job_title}</p>
