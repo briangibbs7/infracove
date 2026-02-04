@@ -43,7 +43,6 @@ import ChatButton from "@/components/chat/ChatButton";
 const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard, color: "slate" },
   { name: "My Portal", href: "EmployeePortal", icon: User, color: "blue" },
-  { name: "Projects", href: "Projects", icon: Briefcase, color: "violet" },
   { name: "Announcements", href: "Announcements", icon: Building2, color: "purple" },
   { name: "Analytics", href: "Analytics", icon: TrendingUp, color: "emerald" },
   {
