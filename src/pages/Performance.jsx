@@ -35,14 +35,20 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import ThreeSixtyFeedbackDialog from "@/components/performance/ThreeSixtyFeedbackDialog";
+import AISummaryCard from "@/components/performance/AISummaryCard";
+import GoalProgressTracker from "@/components/performance/GoalProgressTracker";
 
 export default function Performance() {
   const [user, setUser] = useState(null);
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
+  const [is360DialogOpen, setIs360DialogOpen] = useState(false);
+  const [viewingReview, setViewingReview] = useState(null);
   const [selectedReview, setSelectedReview] = useState(null);
   const [selectedGoal, setSelectedGoal] = useState(null);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -196,11 +202,38 @@ export default function Performance() {
     }
   };
 
-  const handleUpdateGoalProgress = (goalId, newProgress, newStatus) => {
+  const handleUpdateGoalProgress = (goalId, updatedData) => {
     updateGoalMutation.mutate({
       id: goalId,
-      data: { progress: newProgress, status: newStatus },
+      data: updatedData,
     });
+  };
+
+  const handleSubmit360Feedback = async (feedbackData) => {
+    const existing360 = selectedReview.feedback_360 || [];
+    existing360.push(feedbackData);
+
+    await updateReviewMutation.mutateAsync({
+      id: selectedReview.id,
+      data: {
+        feedback_360: existing360
+      }
+    });
+
+    setIs360DialogOpen(false);
+    setSelectedReview(null);
+  };
+
+  const handleGenerateAISummary = async (reviewId) => {
+    setGeneratingSummary(true);
+    try {
+      await base44.functions.invoke('summarizePerformanceReview', { review_id: reviewId });
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+    } catch (error) {
+      console.error("Error generating summary:", error);
+    } finally {
+      setGeneratingSummary(false);
+    }
   };
 
   const isAdmin = user?.role === "admin";
@@ -224,9 +257,10 @@ export default function Performance() {
       />
 
       <Tabs defaultValue="reviews" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
+          <TabsTrigger value="360feedback">360° Feedback</TabsTrigger>
         </TabsList>
 
         <TabsContent value="reviews" className="space-y-6">
@@ -307,18 +341,27 @@ export default function Performance() {
                           </div>
                         )}
                       </div>
-                      {review.status === "pending_self_assessment" && (
+                      <div className="flex gap-2">
+                        {review.status === "pending_self_assessment" && (
+                          <Button
+                            onClick={() => {
+                              setSelectedReview(review);
+                              setIsReviewDialogOpen(true);
+                            }}
+                            size="sm"
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                          >
+                            Complete Self-Assessment
+                          </Button>
+                        )}
                         <Button
-                          onClick={() => {
-                            setSelectedReview(review);
-                            setIsReviewDialogOpen(true);
-                          }}
+                          size="sm"
                           variant="outline"
-                          className="text-indigo-600"
+                          onClick={() => setViewingReview(review)}
                         >
-                          Complete Self-Assessment
+                          View Details
                         </Button>
-                      )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -354,18 +397,27 @@ export default function Performance() {
                             )}
                           </div>
                         </div>
-                        {review.status === "pending_manager_review" && review.reviewer_id === currentEmployee?.id && (
+                        <div className="flex gap-2">
+                          {review.status === "pending_manager_review" && review.reviewer_id === currentEmployee?.id && (
+                            <Button
+                              onClick={() => {
+                                setSelectedReview(review);
+                                setIsReviewDialogOpen(true);
+                              }}
+                              size="sm"
+                              className="bg-indigo-600 hover:bg-indigo-700"
+                            >
+                              Complete Review
+                            </Button>
+                          )}
                           <Button
-                            onClick={() => {
-                              setSelectedReview(review);
-                              setIsReviewDialogOpen(true);
-                            }}
+                            size="sm"
                             variant="outline"
-                            className="text-indigo-600"
+                            onClick={() => setViewingReview(review)}
                           >
-                            Complete Review
+                            View Details
                           </Button>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -379,6 +431,63 @@ export default function Performance() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* 360 Feedback Tab */}
+        <TabsContent value="360feedback" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">360° Feedback</h2>
+              <p className="text-sm text-slate-500">Provide feedback for your colleagues</p>
+            </div>
+          </div>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Available Reviews for Feedback</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {reviews.filter(r => 
+                r.status === "pending_360_feedback" && r.employee_id !== currentEmployee?.id
+              ).length > 0 ? (
+                <div className="space-y-3">
+                  {reviews.filter(r => 
+                    r.status === "pending_360_feedback" && r.employee_id !== currentEmployee?.id
+                  ).map((review) => {
+                    const alreadyProvided = review.feedback_360?.some(f => f.reviewer_id === currentEmployee?.id);
+                    return (
+                      <div key={review.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                        <div>
+                          <h3 className="font-semibold text-slate-900">{review.employee_name}</h3>
+                          <p className="text-sm text-slate-500">{review.review_period}</p>
+                        </div>
+                        {alreadyProvided ? (
+                          <Badge className="bg-emerald-100 text-emerald-700">Feedback Submitted</Badge>
+                        ) : (
+                          <Button
+                            onClick={() => {
+                              setSelectedReview(review);
+                              setIs360DialogOpen(true);
+                            }}
+                            size="sm"
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                          >
+                            Provide Feedback
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Users}
+                  title="No reviews available"
+                  description="No colleagues currently need your feedback"
+                />
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="goals" className="space-y-6">
@@ -437,26 +546,10 @@ export default function Performance() {
                       </p>
                     )}
 
-                    {goal.status !== "completed" && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUpdateGoalProgress(goal.id, Math.min((goal.progress || 0) + 25, 100), goal.progress >= 75 ? "completed" : "in_progress")}
-                        >
-                          +25% Progress
-                        </Button>
-                        {goal.progress >= 100 && (
-                          <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                            onClick={() => handleUpdateGoalProgress(goal.id, 100, "completed")}
-                          >
-                            Mark Complete
-                          </Button>
-                        )}
-                      </div>
-                    )}
+                    <GoalProgressTracker
+                     goal={goal}
+                     onUpdate={(goalId, data) => handleUpdateGoalProgress(goalId, data)}
+                    />
                   </CardContent>
                 </Card>
               ))}
@@ -710,6 +803,168 @@ export default function Performance() {
                 </form>
               )}
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 360 Feedback Dialog */}
+      <Dialog open={is360DialogOpen} onOpenChange={setIs360DialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Provide 360° Feedback</DialogTitle>
+          </DialogHeader>
+          {selectedReview && (
+            <ThreeSixtyFeedbackDialog
+              review={selectedReview}
+              currentEmployee={currentEmployee}
+              onSubmit={handleSubmit360Feedback}
+              onCancel={() => {
+                setIs360DialogOpen(false);
+                setSelectedReview(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Review Details Dialog */}
+      <Dialog open={!!viewingReview} onOpenChange={(open) => !open && setViewingReview(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review Details - {viewingReview?.employee_name}</DialogTitle>
+          </DialogHeader>
+          {viewingReview && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <h3 className="font-semibold text-slate-900">{viewingReview.review_period}</h3>
+                  <p className="text-sm text-slate-500 capitalize">{viewingReview.review_type} Review</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={viewingReview.status} />
+                  {viewingReview.overall_rating && (
+                    <div className="flex items-center gap-1">
+                      <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                      <span className="text-xl font-bold">{viewingReview.overall_rating}/5</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewingReview.ai_summary ? (
+                <AISummaryCard aiSummary={viewingReview.ai_summary} />
+              ) : viewingReview.status === "completed" && (
+                <Button
+                  onClick={() => handleGenerateAISummary(viewingReview.id)}
+                  disabled={generatingSummary}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {generatingSummary ? "Generating AI Summary..." : "Generate AI Summary"}
+                </Button>
+              )}
+
+              {viewingReview.self_assessment && (
+                <Card className="border-slate-200">
+                  <CardHeader>
+                    <CardTitle className="text-base">Self-Assessment</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">Achievements:</p>
+                      <p className="text-sm text-slate-600 mt-1">{viewingReview.self_assessment.achievements}</p>
+                    </div>
+                    {viewingReview.self_assessment.challenges && (
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">Challenges:</p>
+                        <p className="text-sm text-slate-600 mt-1">{viewingReview.self_assessment.challenges}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-slate-700">Self Rating:</p>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                        <span className="font-medium">{viewingReview.self_assessment.self_rating}/5</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {viewingReview.manager_review && (
+                <Card className="border-slate-200">
+                  <CardHeader>
+                    <CardTitle className="text-base">Manager Review</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">Strengths:</p>
+                      <p className="text-sm text-slate-600 mt-1">{viewingReview.manager_review.strengths}</p>
+                    </div>
+                    {viewingReview.manager_review.areas_for_improvement && (
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">Areas for Improvement:</p>
+                        <p className="text-sm text-slate-600 mt-1">{viewingReview.manager_review.areas_for_improvement}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-slate-700">Performance Rating:</p>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                        <span className="font-medium">{viewingReview.manager_review.performance_rating}/5</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {viewingReview.feedback_360 && viewingReview.feedback_360.length > 0 && (
+                <Card className="border-slate-200">
+                  <CardHeader>
+                    <CardTitle className="text-base">360° Feedback ({viewingReview.feedback_360.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {viewingReview.feedback_360.map((feedback, idx) => (
+                      <div key={idx} className="p-4 bg-slate-50 rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-slate-900">{feedback.reviewer_name}</p>
+                            <Badge variant="outline" className="capitalize mt-1">
+                              {feedback.relationship?.replace(/_/g, " ")}
+                            </Badge>
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="text-center">
+                              <p className="text-xs text-slate-500">Collab</p>
+                              <p className="text-sm font-bold text-indigo-600">{feedback.collaboration_rating}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-slate-500">Comm</p>
+                              <p className="text-sm font-bold text-indigo-600">{feedback.communication_rating}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-slate-500">Tech</p>
+                              <p className="text-sm font-bold text-indigo-600">{feedback.technical_skills_rating}</p>
+                            </div>
+                          </div>
+                        </div>
+                        {feedback.strengths && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-700">Strengths:</p>
+                            <p className="text-sm text-slate-600">{feedback.strengths}</p>
+                          </div>
+                        )}
+                        {feedback.areas_for_improvement && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-700">Areas for Improvement:</p>
+                            <p className="text-sm text-slate-600">{feedback.areas_for_improvement}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
