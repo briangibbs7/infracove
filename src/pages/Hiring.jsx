@@ -11,7 +11,8 @@ import CandidateDetailsDialog from "@/components/hiring/CandidateDetailsDialog";
 import AddCandidateDialog from "@/components/hiring/AddCandidateDialog";
 import CandidateCard from "@/components/hiring/CandidateCard";
 import QuickScreeningView from "@/components/hiring/QuickScreeningView";
-import { Plus, Briefcase, Users, TrendingUp, CheckCircle, UserPlus, Zap } from "lucide-react";
+import UpcomingInterviews from "@/components/hiring/UpcomingInterviews";
+import { Plus, Briefcase, Users, TrendingUp, CheckCircle, UserPlus, Zap, Calendar } from "lucide-react";
 
 const WORKFLOW_STAGES = [
   { id: "applied", label: "Applied", color: "bg-slate-100 text-slate-700" },
@@ -176,6 +177,12 @@ export default function Hiring() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2">
+          <UpcomingInterviews candidates={candidates} />
+        </div>
       </div>
 
       <Tabs defaultValue="pipeline" className="w-full">

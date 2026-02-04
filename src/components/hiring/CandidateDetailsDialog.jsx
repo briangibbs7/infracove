@@ -10,11 +10,13 @@ import { Mail, Phone, Linkedin, Globe, Briefcase, Calendar, Star, FileText, Down
 import { format, parseISO } from "date-fns";
 import AIAnalysisCard from "./AIAnalysisCard";
 import SendEmailDialog from "./SendEmailDialog";
+import ScheduleInterviewDialog from "./ScheduleInterviewDialog";
 
 export default function CandidateDetailsDialog({ isOpen, onClose, candidate, jobOpenings }) {
   const [note, setNote] = useState("");
   const [rating, setRating] = useState(0);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: communicationHistory = [] } = useQuery({
@@ -374,6 +376,12 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
         <SendEmailDialog
           isOpen={showEmailDialog}
           onClose={() => setShowEmailDialog(false)}
+          candidate={candidate}
+        />
+
+        <ScheduleInterviewDialog
+          isOpen={showScheduleDialog}
+          onClose={() => setShowScheduleDialog(false)}
           candidate={candidate}
         />
       </DialogContent>
