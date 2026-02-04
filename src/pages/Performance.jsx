@@ -31,7 +31,8 @@ import {
   CheckCircle2,
   Plus,
   Edit,
-  AlertCircle
+  AlertCircle,
+  Users
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
