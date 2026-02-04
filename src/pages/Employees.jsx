@@ -29,6 +29,7 @@ import OrgChart from "@/components/employees/OrgChart";
 import MessagingDialog from "@/components/communications/MessagingDialog";
 import EmployeeDetailsDialog from "@/components/employees/EmployeeDetailsDialog";
 import PerformanceReviewSummary from "@/components/employees/PerformanceReviewSummary";
+import EmployeeProfile from "@/components/employees/EmployeeProfile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +47,9 @@ export default function Employees() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [messagingRecipient, setMessagingRecipient] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
@@ -447,190 +450,23 @@ export default function Employees() {
 
       {/* View Full Profile Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedEmployee?.full_name}</DialogTitle>
+            <DialogTitle>Employee Profile</DialogTitle>
           </DialogHeader>
           {selectedEmployee && (
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="skills">Skills & History</TabsTrigger>
-                <TabsTrigger value="contacts">Emergency</TabsTrigger>
-                <TabsTrigger value="performance">Performance</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="space-y-4 mt-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={selectedEmployee.avatar_url} />
-                    <AvatarFallback className="bg-indigo-100 text-indigo-700 text-2xl font-semibold">
-                      {selectedEmployee.full_name?.split(" ").map((n) => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-900">{selectedEmployee.full_name}</h3>
-                    <p className="text-slate-600">{selectedEmployee.job_title}</p>
-                    <div className="flex gap-2 mt-2">
-                      <StatusBadge status={selectedEmployee.status} />
-                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">{selectedEmployee.department}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-900">{selectedEmployee.email}</span>
-                  </div>
-                  {selectedEmployee.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-900">{selectedEmployee.phone}</span>
-                    </div>
-                  )}
-                  {selectedEmployee.location && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-900">{selectedEmployee.location}</span>
-                    </div>
-                  )}
-                  {selectedEmployee.start_date && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-900">Started {format(new Date(selectedEmployee.start_date), "MMM d, yyyy")}</span>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="skills" className="space-y-4 mt-6">
-                <Card className="border-slate-200">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-slate-400" />
-                        <span className="font-semibold">Skills & Competencies</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setIsViewDialogOpen(false);
-                          setIsDetailsDialogOpen(true);
-                        }}
-                      >
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedEmployee.skills && selectedEmployee.skills.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedEmployee.skills.map((skill, index) => (
-                          <span key={index} className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-medium">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-6 text-center text-slate-400">
-                        <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No skills added yet</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {selectedEmployee.job_history && selectedEmployee.job_history.length > 0 && (
-                  <Card className="border-slate-200">
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <History className="w-4 h-4 text-slate-400" />
-                        <span className="font-semibold">Job History</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {selectedEmployee.job_history.map((job, index) => (
-                          <div key={index} className="relative pl-6 pb-4 border-l-2 border-indigo-200 last:pb-0">
-                            <div className="absolute left-0 top-1 -translate-x-[9px] w-4 h-4 rounded-full bg-indigo-600"></div>
-                            <p className="font-semibold text-slate-900">{job.title}</p>
-                            <p className="text-sm text-slate-600">{job.department}</p>
-                            <p className="text-xs text-slate-500 mt-1">
-                              {job.start_date && format(parseISO(job.start_date), "MMM yyyy")} - {job.end_date ? format(parseISO(job.end_date), "MMM yyyy") : "Present"}
-                            </p>
-                            {job.notes && (
-                              <p className="text-sm text-slate-600 mt-2 italic">{job.notes}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              <TabsContent value="contacts" className="space-y-4 mt-6">
-                <Card className="border-slate-200">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Heart className="w-4 h-4 text-red-400" />
-                        <span className="font-semibold">Emergency Contacts</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setIsViewDialogOpen(false);
-                          setIsDetailsDialogOpen(true);
-                        }}
-                      >
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedEmployee.emergency_contacts && selectedEmployee.emergency_contacts.length > 0 ? (
-                      <div className="space-y-3">
-                        {selectedEmployee.emergency_contacts.map((contact, index) => (
-                          <div key={index} className="flex items-start justify-between p-4 bg-slate-50 rounded-lg">
-                            <div className="flex items-start gap-3">
-                              <Heart className={`w-5 h-5 mt-0.5 ${contact.is_primary ? "text-red-500 fill-red-500" : "text-slate-400"}`} />
-                              <div>
-                                <p className="font-semibold text-slate-900">{contact.name}</p>
-                                <p className="text-sm text-slate-600">{contact.relationship}</p>
-                                <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                                  <Phone className="w-3 h-3" />
-                                  {contact.phone}
-                                </p>
-                              </div>
-                            </div>
-                            {contact.is_primary && (
-                              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">Primary</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-8 text-center text-slate-400">
-                        <Heart className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No emergency contacts added yet</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="performance" className="space-y-4 mt-6">
-                <PerformanceReviewSummary 
-                  reviews={performanceReviews.filter(r => r.employee_id === selectedEmployee.id)}
-                />
-              </TabsContent>
-            </Tabs>
+            <EmployeeProfile
+              employee={selectedEmployee}
+              employees={employees}
+              onMessage={(emp) => {
+                setMessagingRecipient(emp);
+                setIsMessagingOpen(true);
+              }}
+              onEdit={(emp) => {
+                setEditingEmployee(emp);
+                setIsDetailsDialogOpen(true);
+              }}
+            />
           )}
         </DialogContent>
       </Dialog>
