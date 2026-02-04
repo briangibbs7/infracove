@@ -14,7 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, GripVertical } from "lucide-react";
-import { v4 as uuidv4 } from "crypto";
+
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function SurveyBuilder({ initialSurvey, onSave, isLoading }) {
   const [survey, setSurvey] = useState(
@@ -35,7 +36,7 @@ export default function SurveyBuilder({ initialSurvey, onSave, isLoading }) {
       questions: [
         ...survey.questions,
         {
-          id: uuidv4(),
+          id: generateId(),
           question_text: "",
           question_type: "text",
           is_required: true,
