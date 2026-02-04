@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
+import ExitInterviewForm from "@/components/offboarding/ExitInterviewForm";
 import {
   UserMinus,
   Plus,
@@ -34,16 +35,20 @@ import {
   FileText,
   DollarSign,
   Filter,
+  MessageSquare,
 } from "lucide-react";
 import { format, parseISO, isPast } from "date-fns";
+import { Star } from "lucide-react";
 
 export default function Offboarding() {
   const [user, setUser] = useState(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isInitiateDialogOpen, setIsInitiateDialogOpen] = useState(false);
+  const [isExitInterviewDialogOpen, setIsExitInterviewDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [exitInterviewEmployee, setExitInterviewEmployee] = useState(null);
   const [lastWorkingDay, setLastWorkingDay] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -61,6 +66,11 @@ export default function Offboarding() {
   const { data: offboardingTasks = [] } = useQuery({
     queryKey: ["offboardingTasks"],
     queryFn: () => base44.entities.OffboardingTask.list("-created_date"),
+  });
+
+  const { data: exitInterviews = [] } = useQuery({
+    queryKey: ["exitInterviews"],
+    queryFn: () => base44.entities.ExitInterview.list("-created_date"),
   });
 
   const createTaskMutation = useMutation({
@@ -87,6 +97,15 @@ export default function Offboarding() {
       queryClient.invalidateQueries({ queryKey: ["offboardingTasks"] });
       setIsTaskDialogOpen(false);
       setSelectedTask(null);
+    },
+  });
+
+  const createExitInterviewMutation = useMutation({
+    mutationFn: (data) => base44.entities.ExitInterview.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exitInterviews"] });
+      setIsExitInterviewDialogOpen(false);
+      setExitInterviewEmployee(null);
     },
   });
 
@@ -279,6 +298,7 @@ export default function Offboarding() {
         <TabsList>
           <TabsTrigger value="by-employee">By Employee</TabsTrigger>
           <TabsTrigger value="all-tasks">All Tasks</TabsTrigger>
+          <TabsTrigger value="exit-interviews">Exit Interviews</TabsTrigger>
         </TabsList>
 
         <TabsContent value="by-employee" className="space-y-6 mt-6">
@@ -296,16 +316,30 @@ export default function Offboarding() {
               const completed = tasks.filter(t => t.status === "completed").length;
               const total = tasks.length;
               const progress = (completed / total) * 100;
+              const hasExitInterview = exitInterviews.some(ei => ei.employee_id === empId && ei.status === "completed");
 
               return (
                 <Card key={empId} className="border-0 shadow-sm">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{tasks[0].employee_name}</CardTitle>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <CardTitle className="text-lg">{tasks[0].employee_name}</CardTitle>
+                          {hasExitInterview && (
+                            <Badge className="bg-emerald-100 text-emerald-700">
+                              <MessageSquare className="w-3 h-3 mr-1" />
+                              Exit Interview Done
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-slate-500 mt-1">
                           {employee?.job_title} • {employee?.department}
                         </p>
+                        {tasks[0].last_working_day && (
+                          <p className="text-xs text-amber-700 mt-1">
+                            Last Day: {format(parseISO(tasks[0].last_working_day), "MMM d, yyyy")}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-slate-900">{completed} / {total} tasks</p>
@@ -315,6 +349,21 @@ export default function Offboarding() {
                             style={{ width: `${progress}%` }}
                           />
                         </div>
+                        {!hasExitInterview && employee && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExitInterviewEmployee(employee);
+                              setIsExitInterviewDialogOpen(true);
+                            }}
+                          >
+                            <MessageSquare className="w-3 h-3 mr-1" />
+                            Exit Interview
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -385,6 +434,90 @@ export default function Offboarding() {
                       <StatusBadge status={task.status} />
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="exit-interviews" className="mt-6">
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Exit Interviews</CardTitle>
+                <Button
+                  onClick={() => {
+                    const activeEmp = employees.find(e => e.status === "active");
+                    if (activeEmp) {
+                      setExitInterviewEmployee(activeEmp);
+                      setIsExitInterviewDialogOpen(true);
+                    } else {
+                      alert("No active employees to interview");
+                    }
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  New Exit Interview
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {exitInterviews.length > 0 ? (
+                <div className="space-y-4">
+                  {exitInterviews.map((interview) => (
+                    <div key={interview.id} className="p-4 bg-slate-50 rounded-lg">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-slate-900">{interview.employee_name}</h4>
+                          <p className="text-sm text-slate-500">
+                            {format(parseISO(interview.interview_date), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                            <span className="font-semibold">{interview.overall_satisfaction}/5</span>
+                          </div>
+                          <StatusBadge status={interview.status} className="mt-2" />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-slate-500">Reason:</p>
+                          <p className="font-medium text-slate-900 capitalize">
+                            {interview.reason_for_leaving?.replace(/_/g, " ")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500">Would Recommend:</p>
+                          <p className="font-medium text-slate-900">
+                            {interview.would_recommend_company ? "Yes" : "No"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {interview.what_went_well && (
+                        <div className="mt-3 p-3 bg-emerald-50 rounded border border-emerald-200">
+                          <p className="text-xs font-medium text-emerald-900 mb-1">What Went Well:</p>
+                          <p className="text-sm text-emerald-800">{interview.what_went_well}</p>
+                        </div>
+                      )}
+
+                      {interview.areas_for_improvement && (
+                        <div className="mt-2 p-3 bg-amber-50 rounded border border-amber-200">
+                          <p className="text-xs font-medium text-amber-900 mb-1">Areas for Improvement:</p>
+                          <p className="text-sm text-amber-800">{interview.areas_for_improvement}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-500">No exit interviews conducted yet</p>
                 </div>
               )}
             </CardContent>
@@ -655,6 +788,24 @@ export default function Offboarding() {
               </Button>
             </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isExitInterviewDialogOpen} onOpenChange={setIsExitInterviewDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Conduct Exit Interview</DialogTitle>
+          </DialogHeader>
+          {exitInterviewEmployee && (
+            <ExitInterviewForm
+              employee={exitInterviewEmployee}
+              onSubmit={(data) => createExitInterviewMutation.mutate(data)}
+              onCancel={() => {
+                setIsExitInterviewDialogOpen(false);
+                setExitInterviewEmployee(null);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

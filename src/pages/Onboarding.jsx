@@ -11,6 +11,7 @@ import NewHireChecklist from "@/components/onboarding/NewHireChecklist";
 import OnboardingProgressDashboard from "@/components/onboarding/OnboardingProgressDashboard";
 import DocumentManagement from "@/components/onboarding/DocumentManagement";
 import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
+import OnboardingTemplateSelector from "@/components/onboarding/OnboardingTemplateSelector";
 import {
   Select,
   SelectContent,
@@ -913,12 +914,13 @@ export default function Onboarding() {
             </div>
 
             {selectedNewHire && (
-              <OnboardingWizard
+              <OnboardingTemplateSelector
                 employee={selectedNewHire}
                 onComplete={() => {
                   queryClient.invalidateQueries({ queryKey: ["onboardingTasks"] });
                   queryClient.invalidateQueries({ queryKey: ["onboardingDocuments"] });
                   queryClient.invalidateQueries({ queryKey: ["employees"] });
+                  queryClient.invalidateQueries({ queryKey: ["trainingAssignments"] });
                   setIsInitiateDialogOpen(false);
                   setSelectedNewHire(null);
                 }}

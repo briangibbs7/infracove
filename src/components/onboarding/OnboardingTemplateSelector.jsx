@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { base44 } from "@/api/base44Client";
 import { 
   CheckCircle2, 
   Laptop, 
@@ -13,7 +14,8 @@ import {
   Shield, 
   FileText, 
   Users,
-  GraduationCap 
+  GraduationCap,
+  Heart 
 } from "lucide-react";
 
 const ONBOARDING_TEMPLATES = {
