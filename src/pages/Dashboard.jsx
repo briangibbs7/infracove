@@ -8,6 +8,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import RecognitionFeed from "@/components/recognition/RecognitionFeed";
 import GiveRecognitionDialog from "@/components/recognition/GiveRecognitionDialog";
 import { format, parseISO, isFuture, isPast } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 import {
   Users,
   DollarSign,
@@ -208,6 +209,10 @@ export default function Dashboard() {
   const myPoints = currentEmployee
     ? employeePoints.find(ep => ep.employee_id === currentEmployee.id)
     : null;
+
+  const myRecognitions = currentEmployee
+    ? recognitions.filter(r => r.recipient_id === currentEmployee.id)
+    : [];
 
   const recentRecognitions = recognitions.filter(r => r.is_public).slice(0, 5);
 

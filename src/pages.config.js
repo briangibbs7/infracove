@@ -55,10 +55,12 @@ import CompanySkills from './pages/CompanySkills';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
+import EmailTemplates from './pages/EmailTemplates';
 import EmployeePortal from './pages/EmployeePortal';
 import Employees from './pages/Employees';
 import Expenses from './pages/Expenses';
 import HRContracts from './pages/HRContracts';
+import Hiring from './pages/Hiring';
 import InternshipProgram from './pages/InternshipProgram';
 import Invoices from './pages/Invoices';
 import MentorshipProgram from './pages/MentorshipProgram';
@@ -72,8 +74,6 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Hiring from './pages/Hiring';
-import EmailTemplates from './pages/EmailTemplates';
 import __Layout from './Layout.jsx';
 
 
@@ -86,10 +86,12 @@ export const PAGES = {
     "Contracts": Contracts,
     "Dashboard": Dashboard,
     "Documents": Documents,
+    "EmailTemplates": EmailTemplates,
     "EmployeePortal": EmployeePortal,
     "Employees": Employees,
     "Expenses": Expenses,
     "HRContracts": HRContracts,
+    "Hiring": Hiring,
     "InternshipProgram": InternshipProgram,
     "Invoices": Invoices,
     "MentorshipProgram": MentorshipProgram,
@@ -103,8 +105,6 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Hiring": Hiring,
-    "EmailTemplates": EmailTemplates,
 }
 
 export const pagesConfig = {
