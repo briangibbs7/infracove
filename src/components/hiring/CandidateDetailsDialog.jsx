@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Phone, Linkedin, Globe, Briefcase, Calendar, Star, FileText, Download, CheckCircle, XCircle } from "lucide-react";
+import { Mail, Phone, Linkedin, Globe, Briefcase, Calendar, Star, FileText, Download, CheckCircle, XCircle, Sparkles } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import AIAnalysisCard from "./AIAnalysisCard";
 
 export default function CandidateDetailsDialog({ isOpen, onClose, candidate, jobOpenings }) {
   const [note, setNote] = useState("");
@@ -123,6 +124,10 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
         <Tabs defaultValue="details" className="w-full">
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="ai-analysis">
+              <Sparkles className="w-3 h-3 mr-1" />
+              AI Analysis
+            </TabsTrigger>
             <TabsTrigger value="notes">Notes ({candidate.stage_notes?.length || 0})</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
           </TabsList>
@@ -234,6 +239,10 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="ai-analysis">
+            <AIAnalysisCard analysis={candidate.ai_analysis} />
           </TabsContent>
 
           <TabsContent value="notes" className="space-y-4">

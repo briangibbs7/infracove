@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/ui/PageHeader";
 import JobOpeningDialog from "@/components/hiring/JobOpeningDialog";
 import CandidateDetailsDialog from "@/components/hiring/CandidateDetailsDialog";
+import AddCandidateDialog from "@/components/hiring/AddCandidateDialog";
 import CandidateCard from "@/components/hiring/CandidateCard";
-import { Plus, Briefcase, Users, TrendingUp, CheckCircle } from "lucide-react";
+import { Plus, Briefcase, Users, TrendingUp, CheckCircle, UserPlus } from "lucide-react";
 
 const WORKFLOW_STAGES = [
   { id: "applied", label: "Applied", color: "bg-slate-100 text-slate-700" },
@@ -24,6 +25,7 @@ const WORKFLOW_STAGES = [
 export default function Hiring() {
   const [showJobDialog, setShowJobDialog] = useState(false);
   const [showCandidateDialog, setShowCandidateDialog] = useState(false);
+  const [showAddCandidateDialog, setShowAddCandidateDialog] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [selectedJobFilter, setSelectedJobFilter] = useState("all");
@@ -78,10 +80,16 @@ export default function Hiring() {
         title="Hiring & Recruitment"
         subtitle="Manage job openings and candidate pipeline"
       >
-        <Button onClick={() => { setSelectedJob(null); setShowJobDialog(true); }} className="bg-indigo-600 hover:bg-indigo-700">
-          <Plus className="w-4 h-4 mr-2" />
-          New Job Opening
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowAddCandidateDialog(true)} variant="outline">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add Candidate
+          </Button>
+          <Button onClick={() => { setSelectedJob(null); setShowJobDialog(true); }} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="w-4 h-4 mr-2" />
+            New Job Opening
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -249,6 +257,12 @@ export default function Hiring() {
         isOpen={showCandidateDialog}
         onClose={() => { setShowCandidateDialog(false); setSelectedCandidate(null); }}
         candidate={selectedCandidate}
+        jobOpenings={jobOpenings}
+      />
+
+      <AddCandidateDialog
+        isOpen={showAddCandidateDialog}
+        onClose={() => setShowAddCandidateDialog(false)}
         jobOpenings={jobOpenings}
       />
     </div>

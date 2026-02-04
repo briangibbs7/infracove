@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Mail, Phone, FileText, Star } from "lucide-react";
+import { MoreVertical, Mail, Phone, FileText, Star, Sparkles } from "lucide-react";
 
 export default function CandidateCard({ candidate, onView, onMove, stages }) {
   const currentStageIndex = stages.findIndex(s => s.id === candidate.status);
@@ -46,16 +46,28 @@ export default function CandidateCard({ candidate, onView, onMove, stages }) {
           </DropdownMenu>
         </div>
 
-        {candidate.overall_rating && (
-          <div className="flex items-center gap-1 mb-2">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                className={`w-3 h-3 ${i < candidate.overall_rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`}
-              />
-            ))}
-          </div>
-        )}
+        <div className="flex items-center justify-between mb-2">
+          {candidate.overall_rating && (
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-3 h-3 ${i < candidate.overall_rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`}
+                />
+              ))}
+            </div>
+          )}
+          {candidate.ai_analysis?.match_score && (
+            <Badge className={`text-xs ${
+              candidate.ai_analysis.match_score >= 80 ? "bg-green-100 text-green-700" :
+              candidate.ai_analysis.match_score >= 60 ? "bg-amber-100 text-amber-700" :
+              "bg-red-100 text-red-700"
+            }`}>
+              <Sparkles className="w-2 h-2 mr-1" />
+              {candidate.ai_analysis.match_score}%
+            </Badge>
+          )}
+        </div>
 
         <div className="space-y-1">
           {candidate.email && (

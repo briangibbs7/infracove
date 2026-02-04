@@ -54,6 +54,7 @@ import CareerPathing from './pages/CareerPathing';
 import CompanySkills from './pages/CompanySkills';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
+import Documents from './pages/Documents';
 import EmployeePortal from './pages/EmployeePortal';
 import Employees from './pages/Employees';
 import Expenses from './pages/Expenses';
@@ -71,7 +72,6 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Documents from './pages/Documents';
 import Hiring from './pages/Hiring';
 import __Layout from './Layout.jsx';
 
@@ -84,6 +84,7 @@ export const PAGES = {
     "CompanySkills": CompanySkills,
     "Contracts": Contracts,
     "Dashboard": Dashboard,
+    "Documents": Documents,
     "EmployeePortal": EmployeePortal,
     "Employees": Employees,
     "Expenses": Expenses,
@@ -101,7 +102,6 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Documents": Documents,
     "Hiring": Hiring,
 }
 
