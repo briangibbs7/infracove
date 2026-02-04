@@ -58,6 +58,7 @@ export default function Employees() {
   const [filterManager, setFilterManager] = useState("all");
   const [filterSkill, setFilterSkill] = useState("");
   const [filterProject, setFilterProject] = useState("");
+  const [filterProficiency, setFilterProficiency] = useState("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const queryClient = useQueryClient();
@@ -79,6 +80,16 @@ export default function Employees() {
   const { data: timeOffRequests = [] } = useQuery({
     queryKey: ["timeOffRequests"],
     queryFn: () => base44.entities.TimeOffRequest.list(),
+  });
+
+  const { data: companySkills = [] } = useQuery({
+    queryKey: ["companySkills"],
+    queryFn: () => base44.entities.CompanySkill.filter({ status: "active" }),
+  });
+
+  const { data: allEmployeeSkills = [] } = useQuery({
+    queryKey: ["allEmployeeSkills"],
+    queryFn: () => base44.entities.EmployeeSkill.list(),
   });
 
   useEffect(() => {
@@ -167,10 +178,19 @@ export default function Employees() {
     const matchesStatus = filterStatus === "all" || emp.status === filterStatus;
     const matchesEmploymentType = filterEmploymentType === "all" || emp.employment_type === filterEmploymentType;
     const matchesManager = filterManager === "all" || emp.manager_id === filterManager;
-    const matchesSkill = !filterSkill || (emp.skills && emp.skills.some(s => s.toLowerCase().includes(filterSkill.toLowerCase())));
-    const matchesProject = !filterProject; // Projects search will be enhanced when project data is available
+    
+    // Skill matrix filtering
+    const empSkills = allEmployeeSkills.filter(es => es.employee_id === emp.id);
+    const matchesSkill = !filterSkill || empSkills.some(es => 
+      es.skill_name.toLowerCase().includes(filterSkill.toLowerCase())
+    );
+    const matchesProficiency = filterProficiency === "all" || empSkills.some(es => 
+      es.skill_name.toLowerCase().includes(filterSkill.toLowerCase()) && es.proficiency_level === filterProficiency
+    );
+    
+    const matchesProject = !filterProject;
 
-    return matchesSearch && matchesDepartment && matchesStatus && matchesEmploymentType && matchesManager && matchesSkill && matchesProject;
+    return matchesSearch && matchesDepartment && matchesStatus && matchesEmploymentType && matchesManager && matchesSkill && matchesProficiency && matchesProject;
   });
 
   const managers = employees.filter(e => 
@@ -188,11 +208,12 @@ export default function Employees() {
     setFilterEmploymentType("all");
     setFilterManager("all");
     setFilterSkill("");
+    setFilterProficiency("all");
     setFilterProject("");
   };
 
   const hasActiveFilters = searchQuery || filterDepartment !== "all" || filterStatus !== "all" || 
-    filterEmploymentType !== "all" || filterManager !== "all" || filterSkill || filterProject;
+    filterEmploymentType !== "all" || filterManager !== "all" || filterSkill || filterProficiency !== "all" || filterProject;
 
   return (
     <div>
@@ -397,6 +418,12 @@ export default function Employees() {
                       <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
                         Skill: {filterSkill}
                         <button onClick={() => setFilterSkill("")} className="hover:text-indigo-900">×</button>
+                      </span>
+                    )}
+                    {filterProficiency !== "all" && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+                        Level: {filterProficiency}
+                        <button onClick={() => setFilterProficiency("all")} className="hover:text-indigo-900">×</button>
                       </span>
                     )}
                     {filterProject && (
