@@ -67,6 +67,8 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
+import MentorshipProgram from './pages/MentorshipProgram';
+import InternshipProgram from './pages/InternshipProgram';
 import __Layout from './Layout.jsx';
 
 
@@ -91,6 +93,8 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
+    "MentorshipProgram": MentorshipProgram,
+    "InternshipProgram": InternshipProgram,
 }
 
 export const pagesConfig = {
