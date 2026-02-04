@@ -51,6 +51,7 @@ import Analytics from './pages/Analytics';
 import Announcements from './pages/Announcements';
 import Assets from './pages/Assets';
 import CareerPathing from './pages/CareerPathing';
+import CompanySkills from './pages/CompanySkills';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
 import EmployeePortal from './pages/EmployeePortal';
@@ -64,13 +65,13 @@ import NDAs from './pages/NDAs';
 import Offboarding from './pages/Offboarding';
 import Onboarding from './pages/Onboarding';
 import Performance from './pages/Performance';
+import Recognition from './pages/Recognition';
 import Support from './pages/Support';
 import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import CompanySkills from './pages/CompanySkills';
-import Recognition from './pages/Recognition';
+import Documents from './pages/Documents';
 import __Layout from './Layout.jsx';
 
 
@@ -79,6 +80,7 @@ export const PAGES = {
     "Announcements": Announcements,
     "Assets": Assets,
     "CareerPathing": CareerPathing,
+    "CompanySkills": CompanySkills,
     "Contracts": Contracts,
     "Dashboard": Dashboard,
     "EmployeePortal": EmployeePortal,
@@ -92,13 +94,13 @@ export const PAGES = {
     "Offboarding": Offboarding,
     "Onboarding": Onboarding,
     "Performance": Performance,
+    "Recognition": Recognition,
     "Support": Support,
     "TimeOff": TimeOff,
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "CompanySkills": CompanySkills,
-    "Recognition": Recognition,
+    "Documents": Documents,
 }
 
 export const pagesConfig = {
