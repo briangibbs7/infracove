@@ -76,6 +76,7 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
+import Surveys from './pages/Surveys';
 import __Layout from './Layout.jsx';
 
 
@@ -109,6 +110,7 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
+    "Surveys": Surveys,
 }
 
 export const pagesConfig = {
