@@ -52,6 +52,7 @@ const navigation = [
     icon: Users,
     color: "indigo",
     children: [
+      { name: "Hiring", href: "Hiring", icon: Briefcase },
       { name: "Employees", href: "Employees", icon: Users },
       { name: "Time Off", href: "TimeOff", icon: FileText },
       { name: "Performance", href: "Performance", icon: TrendingUp },

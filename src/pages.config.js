@@ -72,6 +72,7 @@ import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
 import Documents from './pages/Documents';
+import Hiring from './pages/Hiring';
 import __Layout from './Layout.jsx';
 
 
@@ -101,6 +102,7 @@ export const PAGES = {
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
     "Documents": Documents,
+    "Hiring": Hiring,
 }
 
 export const pagesConfig = {
