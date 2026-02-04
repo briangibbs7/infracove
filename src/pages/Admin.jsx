@@ -41,6 +41,11 @@ import {
   Mail,
   CheckCircle2,
   XCircle,
+  Search,
+  Filter,
+  Archive,
+  UserX,
+  Edit2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,6 +55,14 @@ export default function Admin() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("user");
   const [editingUser, setEditingUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [userToDeactivate, setUserToDeactivate] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -106,6 +119,73 @@ export default function Admin() {
       data: { role },
     });
   };
+
+  const handleDeactivateUser = async () => {
+    if (!userToDeactivate) return;
+    updateEmployeeMutation.mutate({
+      id: userToDeactivate.id,
+      data: { status: "inactive" },
+    });
+    setDeactivateDialogOpen(false);
+    setUserToDeactivate(null);
+  };
+
+  const handleReactivateUser = (employeeId) => {
+    updateEmployeeMutation.mutate({
+      id: employeeId,
+      data: { status: "active" },
+    });
+  };
+
+  const handleBulkUpdate = (field, value) => {
+    if (selectedUsers.length === 0) {
+      toast.error("No users selected");
+      return;
+    }
+
+    selectedUsers.forEach((userId) => {
+      updateEmployeeMutation.mutate({
+        id: userId,
+        data: { [field]: value },
+      });
+    });
+
+    setSelectedUsers([]);
+    setBulkEditDialogOpen(false);
+    toast.success(`Updated ${selectedUsers.length} users`);
+  };
+
+  const toggleUserSelection = (userId) => {
+    setSelectedUsers((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.length === filteredEmployees.length) {
+      setSelectedUsers([]);
+    } else {
+      setSelectedUsers(filteredEmployees.map((emp) => emp.id));
+    }
+  };
+
+  // Filter employees
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesSearch =
+      searchQuery === "" ||
+      emp.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.job_title?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" || emp.status === statusFilter || (!emp.status && statusFilter === "active");
+
+    const matchesDepartment = departmentFilter === "all" || emp.department === departmentFilter;
+
+    const matchesRole = roleFilter === "all" || emp.role === roleFilter || (!emp.role && roleFilter === "user");
+
+    return matchesSearch && matchesStatus && matchesDepartment && matchesRole;
+  });
 
   // Check if user is admin
   if (user?.role !== "admin") {
@@ -222,25 +302,110 @@ export default function Admin() {
 
         {/* User Management Tab */}
         <TabsContent value="users" className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Users</h2>
-              <p className="text-sm text-muted-foreground">Manage user accounts and invitations</p>
+              <p className="text-sm text-muted-foreground">
+                Manage user accounts and invitations ({filteredEmployees.length} of {employees.length})
+              </p>
             </div>
-            <Button
-              onClick={() => setInviteDialogOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Invite User
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {selectedUsers.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setBulkEditDialogOpen(true)}
+                >
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Bulk Edit ({selectedUsers.length})
+                </Button>
+              )}
+              <Button
+                onClick={() => setInviteDialogOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Invite User
+              </Button>
+            </div>
           </div>
+
+          {/* Search and Filters */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="relative md:col-span-2">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, email, or title..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    <SelectItem value="HR">HR</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Legal">Legal</SelectItem>
+                    <SelectItem value="IT">IT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="user">Employee</SelectItem>
+                    <SelectItem value="admin">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(searchQuery || statusFilter !== "all" || departmentFilter !== "all" || roleFilter !== "all") && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setStatusFilter("all");
+                      setDepartmentFilter("all");
+                      setRoleFilter("all");
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.length === filteredEmployees.length && filteredEmployees.length > 0}
+                        onChange={toggleSelectAll}
+                        className="rounded border-slate-300"
+                      />
+                    </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
@@ -250,40 +415,83 @@ export default function Admin() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employees.map((emp) => (
-                    <TableRow key={emp.id}>
-                      <TableCell className="font-medium">{emp.full_name}</TableCell>
-                      <TableCell>{emp.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={emp.role === "admin" ? "default" : "secondary"}>
-                          {emp.role || "user"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{emp.department || "Unassigned"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            emp.status === "active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }
-                        >
-                          {emp.status || "active"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingUser(emp)}
-                        >
-                          Edit
-                        </Button>
+                  {filteredEmployees.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        No users found matching your filters
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredEmployees.map((emp) => (
+                      <TableRow key={emp.id}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(emp.id)}
+                            onChange={() => toggleUserSelection(emp.id)}
+                            className="rounded border-slate-300"
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{emp.full_name}</TableCell>
+                        <TableCell>{emp.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={emp.role === "admin" ? "default" : "secondary"}>
+                            {emp.role || "user"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{emp.department || "Unassigned"}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              (emp.status === "active" || !emp.status)
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }
+                          >
+                            {emp.status || "active"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingUser(emp)}
+                            >
+                              <Edit2 className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                            {(emp.status === "active" || !emp.status) ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setUserToDeactivate(emp);
+                                  setDeactivateDialogOpen(true);
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Archive className="w-3 h-3 mr-1" />
+                                Deactivate
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleReactivateUser(emp.id)}
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Reactivate
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -598,11 +806,118 @@ export default function Admin() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={editingUser.status || "active"}
+                  onValueChange={(status) =>
+                    updateEmployeeMutation.mutate({ id: editingUser.id, data: { status } })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={bulkEditDialogOpen} onOpenChange={setBulkEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Edit Users ({selectedUsers.length} selected)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Update Department</Label>
+              <Select onValueChange={(dept) => handleBulkUpdate("department", dept)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HR">HR</SelectItem>
+                  <SelectItem value="Finance">Finance</SelectItem>
+                  <SelectItem value="Legal">Legal</SelectItem>
+                  <SelectItem value="IT">IT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Update Role</Label>
+              <Select onValueChange={(role) => handleBulkUpdate("role", role)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Employee</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Update Status</Label>
+              <Select onValueChange={(status) => handleBulkUpdate("status", status)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkEditDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deactivate User Confirmation Dialog */}
+      <Dialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Deactivate User</DialogTitle>
+          </DialogHeader>
+          {userToDeactivate && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg">
+                <UserX className="w-5 h-5 text-red-600" />
+                <div>
+                  <p className="font-medium text-slate-900">
+                    Are you sure you want to deactivate {userToDeactivate.full_name}?
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    This will restrict their access to the system. You can reactivate them later.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeactivateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeactivateUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              Deactivate User
             </Button>
           </DialogFooter>
         </DialogContent>
