@@ -133,6 +133,38 @@ export default function Layout({ children, currentPageName }) {
   const isActiveGroup = (group) => 
     group.children?.some((child) => currentPageName === child.href);
 
+  const isAdmin = user?.role === "admin";
+  const isManager = myTeam.length > 0;
+  
+  // RBAC: Filter navigation based on department and role
+  const filteredNavigation = navigation.filter(item => {
+    // Admins see everything
+    if (isAdmin) return true;
+    
+    // Employee Portal is for all employees
+    if (item.href === "EmployeePortal") return true;
+    
+    // Dashboard and Announcements are for everyone
+    if (item.href === "Dashboard" || item.href === "Announcements") return true;
+    
+    // Analytics is admin only
+    if (item.href === "Analytics") return false;
+    
+    // Department-specific access
+    if (item.name === "HR" && currentEmployee?.department === "HR") return true;
+    if (item.name === "Finance" && currentEmployee?.department === "Finance") return true;
+    if (item.name === "Legal" && currentEmployee?.department === "Legal") return true;
+    if (item.name === "IT" && currentEmployee?.department === "IT") return true;
+    
+    // Documents are for everyone
+    if (item.href === "Documents") return true;
+    
+    // Hide department sections if not in that department
+    if (["HR", "Finance", "Legal", "IT"].includes(item.name)) return false;
+    
+    return true;
+  });
+
   const getColorClasses = (color, isActive) => {
     const colors = {
       slate: isActive ? "bg-slate-600 text-white shadow-lg shadow-slate-200" : "bg-slate-50 hover:bg-slate-100 border-l-4 border-slate-600",
