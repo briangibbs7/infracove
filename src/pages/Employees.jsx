@@ -57,6 +57,8 @@ export default function Employees() {
   const [filterEmploymentType, setFilterEmploymentType] = useState("all");
   const [filterManager, setFilterManager] = useState("all");
   const [filterSkill, setFilterSkill] = useState("");
+  const [filterProject, setFilterProject] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const queryClient = useQueryClient();
 
@@ -72,6 +74,11 @@ export default function Employees() {
   const { data: performanceReviews = [] } = useQuery({
     queryKey: ["performanceReviews"],
     queryFn: () => base44.entities.PerformanceReview.list(),
+  });
+
+  const { data: timeOffRequests = [] } = useQuery({
+    queryKey: ["timeOffRequests"],
+    queryFn: () => base44.entities.TimeOffRequest.list(),
   });
 
   useEffect(() => {
@@ -146,22 +153,46 @@ export default function Employees() {
   };
 
   const filteredEmployees = employees.filter((emp) => {
+    // Enhanced search - name, email, title, location, skills, projects
     const matchesSearch =
       emp.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.job_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.location?.toLowerCase().includes(searchQuery.toLowerCase());
+      emp.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (emp.skills && emp.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()))) ||
+      (emp.employee_id && emp.employee_id.toLowerCase().includes(searchQuery.toLowerCase()));
+
     const matchesDepartment = filterDepartment === "all" || emp.department === filterDepartment;
     const matchesStatus = filterStatus === "all" || emp.status === filterStatus;
     const matchesEmploymentType = filterEmploymentType === "all" || emp.employment_type === filterEmploymentType;
     const matchesManager = filterManager === "all" || emp.manager_id === filterManager;
     const matchesSkill = !filterSkill || (emp.skills && emp.skills.some(s => s.toLowerCase().includes(filterSkill.toLowerCase())));
-    return matchesSearch && matchesDepartment && matchesStatus && matchesEmploymentType && matchesManager && matchesSkill;
+    const matchesProject = !filterProject; // Projects search will be enhanced when project data is available
+
+    return matchesSearch && matchesDepartment && matchesStatus && matchesEmploymentType && matchesManager && matchesSkill && matchesProject;
   });
 
   const managers = employees.filter(e => 
     employees.some(emp => emp.manager_id === e.id)
   );
+
+  // Extract all unique skills
+  const allSkills = [...new Set(employees.flatMap(e => e.skills || []))].sort();
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setFilterDepartment("all");
+    setFilterStatus("all");
+    setFilterEmploymentType("all");
+    setFilterManager("all");
+    setFilterSkill("");
+    setFilterProject("");
+  };
+
+  const hasActiveFilters = searchQuery || filterDepartment !== "all" || filterStatus !== "all" || 
+    filterEmploymentType !== "all" || filterManager !== "all" || filterSkill || filterProject;
 
   return (
     <div>
@@ -200,77 +231,186 @@ export default function Employees() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
-              placeholder="Search by name, email, title, or location..."
+              placeholder="Search by name, email, job title, location, department, skills, or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
-          <Button variant="outline" className="sm:w-auto">
+          <Button 
+            variant={showAdvancedFilters ? "default" : "outline"}
+            className="sm:w-auto"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter className="w-4 h-4 mr-2" />
-            Advanced Filters
+            {showAdvancedFilters ? "Hide" : "Show"} Filters
           </Button>
+          {hasActiveFilters && (
+            <Button 
+              variant="ghost"
+              className="sm:w-auto text-slate-600"
+              onClick={handleClearFilters}
+            >
+              Clear All
+            </Button>
+          )}
         </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-            <SelectTrigger>
-              <SelectValue placeholder="Department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {DEPARTMENTS.map((dept) => (
-                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              {STATUSES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {showAdvancedFilters && (
+          <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">Department</Label>
+                  <Select value={filterDepartment} onValueChange={setFilterDepartment}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {DEPARTMENTS.map((dept) => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">Status</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      {STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <Select value={filterEmploymentType} onValueChange={setFilterEmploymentType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Employment Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {EMPLOYMENT_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">Employment Type</Label>
+                  <Select value={filterEmploymentType} onValueChange={setFilterEmploymentType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {EMPLOYMENT_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <Select value={filterManager} onValueChange={setFilterManager}>
-            <SelectTrigger>
-              <SelectValue placeholder="Manager" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Managers</SelectItem>
-              {managers.map((mgr) => (
-                <SelectItem key={mgr.id} value={mgr.id}>{mgr.full_name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">Manager</Label>
+                  <Select value={filterManager} onValueChange={setFilterManager}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Managers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Managers</SelectItem>
+                      {managers.map((mgr) => (
+                        <SelectItem key={mgr.id} value={mgr.id}>{mgr.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <Input
-            placeholder="Filter by skill..."
-            value={filterSkill}
-            onChange={(e) => setFilterSkill(e.target.value)}
-          />
-        </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">Skills</Label>
+                  <Select value={filterSkill} onValueChange={setFilterSkill}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Skills" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value={null}>All Skills</SelectItem>
+                      {allSkills.map((skill) => (
+                        <SelectItem key={skill} value={skill}>{skill}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">Project Search</Label>
+                  <Input
+                    placeholder="Search by project..."
+                    value={filterProject}
+                    onChange={(e) => setFilterProject(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleClearFilters}
+                  >
+                    Reset Filters
+                  </Button>
+                </div>
+              </div>
+
+              {/* Active Filters Summary */}
+              {hasActiveFilters && (
+                <div className="mt-4 pt-4 border-t border-indigo-100">
+                  <div className="flex flex-wrap gap-2">
+                    {searchQuery && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+                        Search: "{searchQuery}"
+                        <button onClick={() => setSearchQuery("")} className="hover:text-indigo-900">×</button>
+                      </span>
+                    )}
+                    {filterDepartment !== "all" && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+                        Dept: {filterDepartment}
+                        <button onClick={() => setFilterDepartment("all")} className="hover:text-indigo-900">×</button>
+                      </span>
+                    )}
+                    {filterStatus !== "all" && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+                        Status: {filterStatus.replace(/_/g, " ")}
+                        <button onClick={() => setFilterStatus("all")} className="hover:text-indigo-900">×</button>
+                      </span>
+                    )}
+                    {filterEmploymentType !== "all" && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+                        Type: {filterEmploymentType.replace(/_/g, " ")}
+                        <button onClick={() => setFilterEmploymentType("all")} className="hover:text-indigo-900">×</button>
+                      </span>
+                    )}
+                    {filterManager !== "all" && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+                        Manager: {managers.find(m => m.id === filterManager)?.full_name}
+                        <button onClick={() => setFilterManager("all")} className="hover:text-indigo-900">×</button>
+                      </span>
+                    )}
+                    {filterSkill && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+                        Skill: {filterSkill}
+                        <button onClick={() => setFilterSkill("")} className="hover:text-indigo-900">×</button>
+                      </span>
+                    )}
+                    {filterProject && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
+                        Project: {filterProject}
+                        <button onClick={() => setFilterProject("")} className="hover:text-indigo-900">×</button>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* View Content */}
