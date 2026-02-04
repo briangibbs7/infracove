@@ -39,6 +39,10 @@ import { Progress } from "@/components/ui/progress";
 import ThreeSixtyFeedbackDialog from "@/components/performance/ThreeSixtyFeedbackDialog";
 import AISummaryCard from "@/components/performance/AISummaryCard";
 import GoalProgressTracker from "@/components/performance/GoalProgressTracker";
+import GiveFeedbackDialog from "@/components/performance/GiveFeedbackDialog";
+import RequestFeedbackDialog from "@/components/performance/RequestFeedbackDialog";
+import FeedbackDashboard from "@/components/performance/FeedbackDashboard";
+import FeedbackTimeline from "@/components/performance/FeedbackTimeline";
 
 export default function Performance() {
   const [user, setUser] = useState(null);
@@ -50,6 +54,10 @@ export default function Performance() {
   const [selectedReview, setSelectedReview] = useState(null);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [isRequestFeedbackOpen, setIsRequestFeedbackOpen] = useState(false);
+  const [feedbackRecipient, setFeedbackRecipient] = useState(null);
+  const [feedbackFilter, setFeedbackFilter] = useState("all");
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -74,6 +82,11 @@ export default function Performance() {
   const { data: trainingAssignments = [] } = useQuery({
     queryKey: ["trainingAssignments"],
     queryFn: () => base44.entities.TrainingAssignment.list("-created_date"),
+  });
+
+  const { data: continuousFeedback = [] } = useQuery({
+    queryKey: ["continuous-feedback"],
+    queryFn: () => base44.entities.ContinuousFeedback.list("-created_date"),
   });
 
   useEffect(() => {
@@ -250,6 +263,10 @@ export default function Performance() {
 
   const pendingReviews = myReviews.filter(r => r.status !== "completed");
 
+  const myFeedbackRequests = currentEmployee
+    ? continuousFeedback.filter(f => f.giver_id === currentEmployee.id && f.type === "request" && f.status === "pending")
+    : [];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -258,10 +275,18 @@ export default function Performance() {
       />
 
       <Tabs defaultValue="reviews" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="360feedback">360° Feedback</TabsTrigger>
+          <TabsTrigger value="continuous" className="relative">
+            Continuous Feedback
+            {myFeedbackRequests.length > 0 && (
+              <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs">
+                {myFeedbackRequests.length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="reviews" className="space-y-6">
@@ -489,6 +514,91 @@ export default function Performance() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Continuous Feedback Tab */}
+        <TabsContent value="continuous" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Continuous Feedback</h2>
+              <p className="text-sm text-slate-500">Give and receive feedback anytime</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setIsRequestFeedbackOpen(true)}
+                variant="outline"
+                className="border-indigo-600 text-indigo-600 hover:bg-indigo-50"
+              >
+                <AlertCircle className="w-4 h-4 mr-2" />
+                Request Feedback
+              </Button>
+              <Button
+                onClick={() => {
+                  setFeedbackRecipient(null);
+                  setIsFeedbackDialogOpen(true);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Give Feedback
+              </Button>
+            </div>
+          </div>
+
+          {/* Feedback Dashboard */}
+          {currentEmployee && (
+            <FeedbackDashboard
+              feedback={continuousFeedback}
+              employeeId={currentEmployee.id}
+            />
+          )}
+
+          {/* Feedback Filter */}
+          <div className="flex gap-2">
+            <Button
+              variant={feedbackFilter === "all" ? "default" : "outline"}
+              onClick={() => setFeedbackFilter("all")}
+              size="sm"
+            >
+              All Feedback
+            </Button>
+            <Button
+              variant={feedbackFilter === "received" ? "default" : "outline"}
+              onClick={() => setFeedbackFilter("received")}
+              size="sm"
+            >
+              Received
+            </Button>
+            <Button
+              variant={feedbackFilter === "given" ? "default" : "outline"}
+              onClick={() => setFeedbackFilter("given")}
+              size="sm"
+            >
+              Given
+            </Button>
+            <Button
+              variant={feedbackFilter === "requests" ? "default" : "outline"}
+              onClick={() => setFeedbackFilter("requests")}
+              size="sm"
+              className="relative"
+            >
+              Requests
+              {myFeedbackRequests.length > 0 && (
+                <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs">
+                  {myFeedbackRequests.length}
+                </Badge>
+              )}
+            </Button>
+          </div>
+
+          {/* Feedback Timeline */}
+          {currentEmployee && (
+            <FeedbackTimeline
+              feedback={continuousFeedback}
+              currentUser={currentEmployee}
+              filter={feedbackFilter}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="goals" className="space-y-6">
@@ -969,6 +1079,30 @@ export default function Performance() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Give Feedback Dialog */}
+      {currentEmployee && (
+        <GiveFeedbackDialog
+          open={isFeedbackDialogOpen}
+          onClose={() => {
+            setIsFeedbackDialogOpen(false);
+            setFeedbackRecipient(null);
+          }}
+          recipientId={feedbackRecipient?.id || currentEmployee.id}
+          recipientName={feedbackRecipient?.full_name || currentEmployee.full_name}
+          currentUser={currentEmployee}
+        />
+      )}
+
+      {/* Request Feedback Dialog */}
+      {currentEmployee && (
+        <RequestFeedbackDialog
+          open={isRequestFeedbackOpen}
+          onClose={() => setIsRequestFeedbackOpen(false)}
+          currentEmployee={currentEmployee}
+          currentUser={user}
+        />
+      )}
 
       {/* Goal Dialog */}
       <Dialog open={isGoalDialogOpen} onOpenChange={setIsGoalDialogOpen}>
