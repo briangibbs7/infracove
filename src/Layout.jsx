@@ -286,14 +286,12 @@ export default function Layout({ children, currentPageName }) {
   const Sidebar = () => (
     <div className="flex flex-col h-full bg-white">
       <div className="p-6 border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">InfraCove</h1>
-            <p className="text-xs text-slate-500">Enterprise Operations</p>
-          </div>
+        <div className="flex items-center">
+          <img 
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/696869f57e5cb5c947b8db17/9fa12f207_infracove.png"
+            alt="InfraCove"
+            className="h-8 w-auto"
+          />
         </div>
       </div>
 
