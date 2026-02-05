@@ -72,11 +72,13 @@ import Performance from './pages/Performance';
 import Recognition from './pages/Recognition';
 import Settings from './pages/Settings';
 import Support from './pages/Support';
+import Surveys from './pages/Surveys';
 import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Surveys from './pages/Surveys';
+import Payroll from './pages/Payroll';
+import Benefits from './pages/Benefits';
 import __Layout from './Layout.jsx';
 
 
@@ -106,11 +108,13 @@ export const PAGES = {
     "Recognition": Recognition,
     "Settings": Settings,
     "Support": Support,
+    "Surveys": Surveys,
     "TimeOff": TimeOff,
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Surveys": Surveys,
+    "Payroll": Payroll,
+    "Benefits": Benefits,
 }
 
 export const pagesConfig = {

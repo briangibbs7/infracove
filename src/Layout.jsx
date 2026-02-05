@@ -68,6 +68,9 @@ const navigation = [
       { name: "Offboarding", href: "Offboarding", icon: UserCircle },
       { name: "Company Skills", href: "CompanySkills", icon: Target },
       { name: "Recognition", href: "Recognition", icon: Award },
+      { name: "Payroll", href: "Payroll", icon: DollarSign },
+      { name: "Benefits", href: "Benefits", icon: Shield },
+      { name: "Surveys", href: "Surveys", icon: FileText },
     ],
   },
   {
