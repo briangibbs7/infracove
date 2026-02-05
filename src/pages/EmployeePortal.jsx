@@ -819,6 +819,55 @@ export default function EmployeePortal() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Leave Balances */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Leave Balances
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-600 mb-1 font-medium">Vacation</p>
+                  <p className="text-3xl font-bold text-blue-700">
+                    {currentEmployee?.vacation_balance || 0}
+                  </p>
+                  <p className="text-xs text-blue-500 mt-1">days remaining</p>
+                </div>
+                <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                  <p className="text-sm text-red-600 mb-1 font-medium">Sick</p>
+                  <p className="text-3xl font-bold text-red-700">
+                    {currentEmployee?.sick_balance || 0}
+                  </p>
+                  <p className="text-xs text-red-500 mt-1">days remaining</p>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1 font-medium">Personal</p>
+                  <p className="text-3xl font-bold text-purple-700">
+                    {currentEmployee?.personal_balance || 0}
+                  </p>
+                  <p className="text-xs text-purple-500 mt-1">days remaining</p>
+                </div>
+                <div className="text-center p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <p className="text-sm text-slate-600 mb-1 font-medium">Bereavement</p>
+                  <p className="text-3xl font-bold text-slate-700">
+                    {currentEmployee?.bereavement_balance || 0}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">days remaining</p>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-600 mb-1 font-medium">Parental</p>
+                  <p className="text-3xl font-bold text-green-700">
+                    {currentEmployee?.parental_balance || 0}
+                  </p>
+                  <p className="text-xs text-green-500 mt-1">days remaining</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
