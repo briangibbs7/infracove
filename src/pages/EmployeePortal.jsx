@@ -43,7 +43,11 @@ import {
   Download,
   CheckCircle2,
   Plus,
-  Award
+  Award,
+  MessageCircle,
+  Cloud,
+  Video,
+  Star
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
@@ -56,6 +60,7 @@ export default function EmployeePortal() {
   const [payrollDialogOpen, setPayrollDialogOpen] = useState(false);
   const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
   const [trainingDialogOpen, setTrainingDialogOpen] = useState(false);
+  const [marketplaceDialogOpen, setMarketplaceDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -191,6 +196,22 @@ export default function EmployeePortal() {
       e.job_title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const getIconComponent = (iconName) => {
+    const icons = {
+      Mail: <Mail className="w-5 h-5" />,
+      Calendar: <Calendar className="w-5 h-5" />,
+      Briefcase: <Briefcase className="w-5 h-5" />,
+      MessageCircle: <MessageCircle className="w-5 h-5" />,
+      Cloud: <Cloud className="w-5 h-5" />,
+      Video: <Video className="w-5 h-5" />,
+      Users: <Users className="w-5 h-5" />,
+      FileText: <FileText className="w-5 h-5" />,
+      BookOpen: <BookOpen className="w-5 h-5" />,
+      Grid: <Grid className="w-5 h-5" />,
+    };
+    return icons[iconName] || <Grid className="w-5 h-5" />;
+  };
+
   const getCategoryIcon = (category) => {
     const icons = {
       productivity: <Briefcase className="w-5 h-5" />,
@@ -272,10 +293,47 @@ export default function EmployeePortal() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {/* Quick Links */}
+          {/* My Apps Shortcuts */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Links</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>My Apps</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMarketplaceDialogOpen(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Apps
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                {appLinks
+                  .filter((app) => app.is_featured)
+                  .map((app) => (
+                    <button
+                      key={app.id}
+                      onClick={() => window.open(app.url, "_blank")}
+                      className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-slate-50 transition-colors group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white group-hover:shadow-lg transition-shadow">
+                        {getIconComponent(app.icon)}
+                      </div>
+                      <span className="text-xs font-medium text-center text-slate-700">
+                        {app.name}
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -321,39 +379,6 @@ export default function EmployeePortal() {
             </CardContent>
           </Card>
 
-          {/* Featured Apps */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Featured Applications</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {appLinks
-                  .filter((app) => app.is_featured)
-                  .slice(0, 6)
-                  .map((app) => (
-                    <div
-                      key={app.id}
-                      className="p-4 border rounded-lg hover:shadow-lg transition-shadow cursor-pointer"
-                      onClick={() => window.open(app.url, "_blank")}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`p-3 rounded-lg ${getCategoryColor(app.category)}`}>
-                          {getCategoryIcon(app.category)}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-slate-900 mb-1">{app.name}</h3>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {app.description}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Company Resources */}
           <Card>
             <CardHeader>
@@ -391,45 +416,38 @@ export default function EmployeePortal() {
         <TabsContent value="apps" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Application Repository</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>My Applications</CardTitle>
+                <Button onClick={() => setMarketplaceDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Browse Marketplace
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              {appLinks.length === 0 ? (
+              {appLinks.filter(a => a.is_featured).length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No applications available yet</p>
+                  <p>No apps added yet. Browse the marketplace to add apps.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {appLinks.map((app) => (
-                    <Card
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {appLinks.filter(a => a.is_featured).map((app) => (
+                    <div
                       key={app.id}
-                      className="hover:shadow-lg transition-shadow cursor-pointer"
+                      className="flex flex-col items-center gap-3 p-4 border rounded-lg hover:shadow-lg transition-all cursor-pointer group"
                       onClick={() => window.open(app.url, "_blank")}
                     >
-                      <CardContent className="p-5">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className={`p-3 rounded-lg ${getCategoryColor(app.category)}`}>
-                            {getCategoryIcon(app.category)}
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-slate-900 mb-1">{app.name}</h3>
-                            <Badge variant="outline" className="text-xs">
-                              {app.category}
-                            </Badge>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                        {getIconComponent(app.icon)}
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-sm">{app.name}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
                           {app.description}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {app.requires_login && (
-                            <Badge variant="outline" className="text-xs">Login Required</Badge>
-                          )}
-                          <ExternalLink className="w-3 h-3" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -866,6 +884,78 @@ export default function EmployeePortal() {
                 <p>No training assigned yet</p>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* App Marketplace Dialog */}
+      <Dialog open={marketplaceDialogOpen} onOpenChange={setMarketplaceDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>App Marketplace</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {appLinks.map((app) => {
+                const isFeatured = app.is_featured;
+                return (
+                  <div
+                    key={app.id}
+                    className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shrink-0">
+                        {getIconComponent(app.icon)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-slate-900 mb-1">{app.name}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                          {app.description}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {app.category}
+                          </Badge>
+                          {app.requires_login && (
+                            <Badge variant="outline" className="text-xs">
+                              Login Required
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {isFeatured ? (
+                          <Badge className="bg-green-100 text-green-700">
+                            <Star className="w-3 h-3 mr-1" />
+                            Added
+                          </Badge>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              await base44.entities.AppLink.update(app.id, {
+                                is_featured: true,
+                              });
+                              queryClient.invalidateQueries({ queryKey: ["appLinks"] });
+                              toast.success(`${app.name} added to your apps`);
+                            }}
+                          >
+                            Add
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(app.url, "_blank")}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
