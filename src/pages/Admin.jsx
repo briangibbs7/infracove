@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import PageHeader from "@/components/ui/PageHeader";
+import LeaveBalanceManager from "@/components/admin/LeaveBalanceManager";
 import {
   Shield,
   Users,
@@ -978,6 +979,87 @@ export default function Admin() {
                 </Select>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Leave Balance Manager (inside Edit Dialog) */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Employee - {editingUser?.full_name}</DialogTitle>
+          </DialogHeader>
+          {editingUser && (
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="leave">Leave Balances</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input value={editingUser.full_name} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input value={editingUser.email} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select
+                    value={editingUser.department}
+                    onValueChange={(dept) => handleUpdateEmployeeDepartment(editingUser.id, dept)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HR">HR</SelectItem>
+                      <SelectItem value="Finance">Finance</SelectItem>
+                      <SelectItem value="Legal">Legal</SelectItem>
+                      <SelectItem value="IT">IT</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select
+                    value={editingUser.role || "user"}
+                    onValueChange={(role) => handleUpdateEmployeeRole(editingUser.id, role)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Employee</SelectItem>
+                      <SelectItem value="admin">Administrator</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={editingUser.status || "active"}
+                    onValueChange={(status) =>
+                      updateEmployeeMutation.mutate({ id: editingUser.id, data: { status } })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="leave" className="mt-4">
+                <LeaveBalanceManager employee={editingUser} />
+              </TabsContent>
+            </Tabs>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>
