@@ -48,7 +48,9 @@ import {
   Cloud,
   Video,
   Star,
-  Building2
+  Building2,
+  Camera,
+  Edit
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
@@ -62,6 +64,9 @@ export default function EmployeePortal() {
   const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
   const [trainingDialogOpen, setTrainingDialogOpen] = useState(false);
   const [marketplaceDialogOpen, setMarketplaceDialogOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [profileFormData, setProfileFormData] = useState({});
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -233,6 +238,68 @@ export default function EmployeePortal() {
       training: <BookOpen className="w-5 h-5" />,
     };
     return icons[category] || <Grid className="w-5 h-5" />;
+  };
+
+  const getThemeGradient = (theme) => {
+    const gradients = {
+      blue: "from-blue-500 to-indigo-600",
+      purple: "from-purple-500 to-pink-600",
+      green: "from-green-500 to-emerald-600",
+      orange: "from-orange-500 to-red-600",
+      pink: "from-pink-500 to-rose-600",
+      slate: "from-slate-500 to-slate-700",
+    };
+    return gradients[theme] || gradients.blue;
+  };
+
+  const getThemeBg = (theme) => {
+    const backgrounds = {
+      blue: "bg-blue-500",
+      purple: "bg-purple-500",
+      green: "bg-green-500",
+      orange: "bg-orange-500",
+      pink: "bg-pink-500",
+      slate: "bg-slate-500",
+    };
+    return backgrounds[theme] || backgrounds.blue;
+  };
+
+  const getThemeBadge = (theme) => {
+    const badges = {
+      blue: "border-blue-200 bg-blue-50 text-blue-700",
+      purple: "border-purple-200 bg-purple-50 text-purple-700",
+      green: "border-green-200 bg-green-50 text-green-700",
+      orange: "border-orange-200 bg-orange-50 text-orange-700",
+      pink: "border-pink-200 bg-pink-50 text-pink-700",
+      slate: "border-slate-200 bg-slate-50 text-slate-700",
+    };
+    return badges[theme] || badges.blue;
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await updateEmployeeMutation.mutateAsync({
+        id: currentEmployee.id,
+        data: { profile_photo: file_url }
+      });
+      toast.success("Photo updated successfully");
+    } catch (error) {
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleSaveProfile = () => {
+    updateEmployeeMutation.mutate({
+      id: currentEmployee.id,
+      data: profileFormData
+    });
   };
 
   const getCategoryColor = (category) => {
