@@ -53,9 +53,11 @@ import Announcements from './pages/Announcements';
 import Assets from './pages/Assets';
 import Benefits from './pages/Benefits';
 import CareerPathing from './pages/CareerPathing';
+import Claims from './pages/Claims';
 import CompanySkills from './pages/CompanySkills';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
+import DirectDeposit from './pages/DirectDeposit';
 import Documents from './pages/Documents';
 import EmailTemplates from './pages/EmailTemplates';
 import EmployeePortal from './pages/EmployeePortal';
@@ -69,20 +71,18 @@ import MentorshipProgram from './pages/MentorshipProgram';
 import NDAs from './pages/NDAs';
 import Offboarding from './pages/Offboarding';
 import Onboarding from './pages/Onboarding';
+import OpenEnrollment from './pages/OpenEnrollment';
 import Payroll from './pages/Payroll';
 import Performance from './pages/Performance';
 import Recognition from './pages/Recognition';
 import Settings from './pages/Settings';
 import Support from './pages/Support';
 import Surveys from './pages/Surveys';
+import TaxDocuments from './pages/TaxDocuments';
 import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import TaxDocuments from './pages/TaxDocuments';
-import DirectDeposit from './pages/DirectDeposit';
-import OpenEnrollment from './pages/OpenEnrollment';
-import Claims from './pages/Claims';
 import __Layout from './Layout.jsx';
 
 
@@ -93,9 +93,11 @@ export const PAGES = {
     "Assets": Assets,
     "Benefits": Benefits,
     "CareerPathing": CareerPathing,
+    "Claims": Claims,
     "CompanySkills": CompanySkills,
     "Contracts": Contracts,
     "Dashboard": Dashboard,
+    "DirectDeposit": DirectDeposit,
     "Documents": Documents,
     "EmailTemplates": EmailTemplates,
     "EmployeePortal": EmployeePortal,
@@ -109,20 +111,18 @@ export const PAGES = {
     "NDAs": NDAs,
     "Offboarding": Offboarding,
     "Onboarding": Onboarding,
+    "OpenEnrollment": OpenEnrollment,
     "Payroll": Payroll,
     "Performance": Performance,
     "Recognition": Recognition,
     "Settings": Settings,
     "Support": Support,
     "Surveys": Surveys,
+    "TaxDocuments": TaxDocuments,
     "TimeOff": TimeOff,
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "TaxDocuments": TaxDocuments,
-    "DirectDeposit": DirectDeposit,
-    "OpenEnrollment": OpenEnrollment,
-    "Claims": Claims,
 }
 
 export const pagesConfig = {
