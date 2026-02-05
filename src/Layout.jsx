@@ -28,7 +28,9 @@ import {
   User,
   Award,
   Target,
-  Shield
+  Shield,
+  Heart,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,9 +70,27 @@ const navigation = [
       { name: "Offboarding", href: "Offboarding", icon: UserCircle },
       { name: "Company Skills", href: "CompanySkills", icon: Target },
       { name: "Recognition", href: "Recognition", icon: Award },
-      { name: "Payroll", href: "Payroll", icon: DollarSign },
-      { name: "Benefits", href: "Benefits", icon: Shield },
       { name: "Surveys", href: "Surveys", icon: FileText },
+    ],
+  },
+  {
+    name: "Payroll",
+    icon: DollarSign,
+    color: "green",
+    children: [
+      { name: "Payroll Runs", href: "Payroll", icon: CreditCard },
+      { name: "Tax Documents", href: "TaxDocuments", icon: FileText },
+      { name: "Direct Deposit", href: "DirectDeposit", icon: DollarSign },
+    ],
+  },
+  {
+    name: "Benefits",
+    icon: Heart,
+    color: "emerald",
+    children: [
+      { name: "Benefits Catalog", href: "Benefits", icon: Heart },
+      { name: "Open Enrollment", href: "OpenEnrollment", icon: Users },
+      { name: "Claims", href: "Claims", icon: FileText },
     ],
   },
   {

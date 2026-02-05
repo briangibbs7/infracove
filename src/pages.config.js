@@ -51,6 +51,7 @@ import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
 import Announcements from './pages/Announcements';
 import Assets from './pages/Assets';
+import Benefits from './pages/Benefits';
 import CareerPathing from './pages/CareerPathing';
 import CompanySkills from './pages/CompanySkills';
 import Contracts from './pages/Contracts';
@@ -68,6 +69,7 @@ import MentorshipProgram from './pages/MentorshipProgram';
 import NDAs from './pages/NDAs';
 import Offboarding from './pages/Offboarding';
 import Onboarding from './pages/Onboarding';
+import Payroll from './pages/Payroll';
 import Performance from './pages/Performance';
 import Recognition from './pages/Recognition';
 import Settings from './pages/Settings';
@@ -77,8 +79,10 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Payroll from './pages/Payroll';
-import Benefits from './pages/Benefits';
+import TaxDocuments from './pages/TaxDocuments';
+import DirectDeposit from './pages/DirectDeposit';
+import OpenEnrollment from './pages/OpenEnrollment';
+import Claims from './pages/Claims';
 import __Layout from './Layout.jsx';
 
 
@@ -87,6 +91,7 @@ export const PAGES = {
     "Analytics": Analytics,
     "Announcements": Announcements,
     "Assets": Assets,
+    "Benefits": Benefits,
     "CareerPathing": CareerPathing,
     "CompanySkills": CompanySkills,
     "Contracts": Contracts,
@@ -104,6 +109,7 @@ export const PAGES = {
     "NDAs": NDAs,
     "Offboarding": Offboarding,
     "Onboarding": Onboarding,
+    "Payroll": Payroll,
     "Performance": Performance,
     "Recognition": Recognition,
     "Settings": Settings,
@@ -113,8 +119,10 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Payroll": Payroll,
-    "Benefits": Benefits,
+    "TaxDocuments": TaxDocuments,
+    "DirectDeposit": DirectDeposit,
+    "OpenEnrollment": OpenEnrollment,
+    "Claims": Claims,
 }
 
 export const pagesConfig = {
