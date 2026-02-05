@@ -291,7 +291,7 @@ export default function Layout({ children, currentPageName }) {
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">OpsHub</h1>
+            <h1 className="text-lg font-bold text-slate-900">InfraCove</h1>
             <p className="text-xs text-slate-500">Enterprise Operations</p>
           </div>
         </div>
