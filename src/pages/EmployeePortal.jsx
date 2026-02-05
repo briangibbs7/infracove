@@ -4,8 +4,25 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import {
   User,
@@ -22,15 +39,24 @@ import {
   Grid,
   FileText,
   Calendar,
-  DollarSign
+  DollarSign,
+  Download,
+  CheckCircle2,
+  Plus,
+  Award
 } from "lucide-react";
-import { createPageUrl } from "../utils";
-import { Link } from "react-router-dom";
+import { format, parseISO } from "date-fns";
+import { toast } from "react-hot-toast";
 
 export default function EmployeePortal() {
   const [user, setUser] = useState(null);
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [timeOffDialogOpen, setTimeOffDialogOpen] = useState(false);
+  const [payrollDialogOpen, setPayrollDialogOpen] = useState(false);
+  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+  const [trainingDialogOpen, setTrainingDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -56,12 +82,94 @@ export default function EmployeePortal() {
     queryFn: () => base44.entities.QuickLink.filter({ is_active: true }),
   });
 
+  const { data: timeOffRequests = [] } = useQuery({
+    queryKey: ["timeOffRequests"],
+    queryFn: () => base44.entities.TimeOffRequest.list("-created_date"),
+  });
+
+  const { data: payrolls = [] } = useQuery({
+    queryKey: ["payrolls"],
+    queryFn: () => base44.entities.Payroll.list("-pay_date"),
+  });
+
+  const { data: documents = [] } = useQuery({
+    queryKey: ["companyDocuments"],
+    queryFn: () => base44.entities.CompanyDocument.filter({ status: "active" }),
+  });
+
+  const { data: trainingAssignments = [] } = useQuery({
+    queryKey: ["trainingAssignments"],
+    queryFn: () => base44.entities.TrainingAssignment.list(),
+  });
+
+  const { data: trainingCourses = [] } = useQuery({
+    queryKey: ["trainingCourses"],
+    queryFn: () => base44.entities.TrainingCourse.list(),
+  });
+
   useEffect(() => {
     if (user && employees.length > 0) {
       const emp = employees.find(e => e.email === user.email);
       setCurrentEmployee(emp);
     }
   }, [user, employees]);
+
+  const createTimeOffMutation = useMutation({
+    mutationFn: (data) => base44.entities.TimeOffRequest.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
+      setTimeOffDialogOpen(false);
+      toast.success("Time off request submitted successfully");
+    },
+  });
+
+  const acknowledgeDocumentMutation = useMutation({
+    mutationFn: ({ docId, acknowledgments }) =>
+      base44.entities.CompanyDocument.update(docId, { acknowledged_by: acknowledgments }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companyDocuments"] });
+      toast.success("Document acknowledged");
+    },
+  });
+
+  const handleSubmitTimeOff = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const startDate = formData.get("start_date");
+    const endDate = formData.get("end_date");
+    const daysDiff = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+
+    const manager = employees.find(emp => emp.id === currentEmployee.manager_id);
+
+    createTimeOffMutation.mutate({
+      employee_id: currentEmployee.id,
+      employee_name: currentEmployee.name,
+      manager_id: manager?.id,
+      manager_name: manager?.name,
+      type: formData.get("type"),
+      start_date: startDate,
+      end_date: endDate,
+      days_requested: daysDiff,
+      reason: formData.get("reason"),
+      status: "pending_approval",
+    });
+  };
+
+  const handleAcknowledgeDocument = (doc) => {
+    const alreadyAcknowledged = doc.acknowledged_by?.some(ack => ack.employee_id === currentEmployee.id);
+    if (alreadyAcknowledged) return;
+
+    const newAcknowledgment = {
+      employee_id: currentEmployee.id,
+      employee_name: currentEmployee.name,
+      acknowledged_date: new Date().toISOString().split("T")[0],
+    };
+
+    acknowledgeDocumentMutation.mutate({
+      docId: doc.id,
+      acknowledgments: [...(doc.acknowledged_by || []), newAcknowledgment],
+    });
+  };
 
   if (!currentEmployee) {
     return (
@@ -171,30 +279,34 @@ export default function EmployeePortal() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Link to={createPageUrl("TimeOff")}>
-                  <Button className="w-full h-24 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700">
-                    <Calendar className="w-6 h-6" />
-                    <span>Time Off</span>
-                  </Button>
-                </Link>
-                <Link to={createPageUrl("Payroll")}>
-                  <Button className="w-full h-24 flex flex-col gap-2 bg-green-600 hover:bg-green-700">
-                    <DollarSign className="w-6 h-6" />
-                    <span>Payroll</span>
-                  </Button>
-                </Link>
-                <Link to={createPageUrl("Documents")}>
-                  <Button className="w-full h-24 flex flex-col gap-2 bg-purple-600 hover:bg-purple-700">
-                    <FileText className="w-6 h-6" />
-                    <span>Documents</span>
-                  </Button>
-                </Link>
-                <Link to={createPageUrl("Training")}>
-                  <Button className="w-full h-24 flex flex-col gap-2 bg-indigo-600 hover:bg-indigo-700">
-                    <BookOpen className="w-6 h-6" />
-                    <span>Training</span>
-                  </Button>
-                </Link>
+                <Button 
+                  className="w-full h-24 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700"
+                  onClick={() => setTimeOffDialogOpen(true)}
+                >
+                  <Calendar className="w-6 h-6" />
+                  <span>Time Off</span>
+                </Button>
+                <Button 
+                  className="w-full h-24 flex flex-col gap-2 bg-green-600 hover:bg-green-700"
+                  onClick={() => setPayrollDialogOpen(true)}
+                >
+                  <DollarSign className="w-6 h-6" />
+                  <span>Payroll</span>
+                </Button>
+                <Button 
+                  className="w-full h-24 flex flex-col gap-2 bg-purple-600 hover:bg-purple-700"
+                  onClick={() => setDocumentsDialogOpen(true)}
+                >
+                  <FileText className="w-6 h-6" />
+                  <span>Documents</span>
+                </Button>
+                <Button 
+                  className="w-full h-24 flex flex-col gap-2 bg-indigo-600 hover:bg-indigo-700"
+                  onClick={() => setTrainingDialogOpen(true)}
+                >
+                  <BookOpen className="w-6 h-6" />
+                  <span>Training</span>
+                </Button>
                 {quickLinks.slice(0, 4).map((link) => (
                   <Button
                     key={link.id}
@@ -500,14 +612,263 @@ export default function EmployeePortal() {
               </div>
 
               <div className="mt-6 pt-6 border-t">
-                <Button className="bg-indigo-600 hover:bg-indigo-700" asChild>
-                  <Link to={createPageUrl("Settings")}>Edit Profile</Link>
-                </Button>
+                <Button className="bg-indigo-600 hover:bg-indigo-700">Edit Profile</Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Time Off Request Dialog */}
+      <Dialog open={timeOffDialogOpen} onOpenChange={setTimeOffDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Time Off</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmitTimeOff} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="type">Type of Leave *</Label>
+              <Select name="type" required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select leave type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vacation">Vacation</SelectItem>
+                  <SelectItem value="sick">Sick Leave</SelectItem>
+                  <SelectItem value="personal">Personal</SelectItem>
+                  <SelectItem value="bereavement">Bereavement</SelectItem>
+                  <SelectItem value="parental">Parental Leave</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start_date">Start Date *</Label>
+                <Input id="start_date" name="start_date" type="date" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end_date">End Date *</Label>
+                <Input id="end_date" name="end_date" type="date" required />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason (Optional)</Label>
+              <Textarea
+                id="reason"
+                name="reason"
+                placeholder="Brief description..."
+                rows={3}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTimeOffDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+                Submit Request
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payroll Dialog */}
+      <Dialog open={payrollDialogOpen} onOpenChange={setPayrollDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>My Payroll</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {payrolls.filter(p => p.employee_id === currentEmployee?.id).length > 0 ? (
+              payrolls
+                .filter(p => p.employee_id === currentEmployee?.id)
+                .map((payroll) => (
+                  <div key={payroll.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {format(parseISO(payroll.pay_period_start), "MMM d")} -{" "}
+                          {format(parseISO(payroll.pay_period_end), "MMM d, yyyy")}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Pay Date: {format(parseISO(payroll.pay_date), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                      <StatusBadge status={payroll.status} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 pt-3 border-t">
+                      <div>
+                        <p className="text-sm text-slate-500">Gross Pay</p>
+                        <p className="text-lg font-semibold text-slate-900">
+                          ${payroll.gross_pay?.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-500">Total Deductions</p>
+                        <p className="text-lg font-semibold text-red-600">
+                          -${payroll.total_deductions?.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-500">Net Pay</p>
+                        <p className="text-lg font-bold text-green-600">
+                          ${payroll.net_pay?.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No payroll records available</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Documents Dialog */}
+      <Dialog open={documentsDialogOpen} onOpenChange={setDocumentsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>My Documents</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {documents
+              .filter(d => d.department === "all" || d.department === currentEmployee?.department)
+              .map((doc) => {
+                const isAcknowledged = doc.acknowledged_by?.some(
+                  (ack) => ack.employee_id === currentEmployee?.id
+                );
+                return (
+                  <div key={doc.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <FileText className="w-5 h-5 text-indigo-600" />
+                          <h3 className="font-semibold">{doc.title}</h3>
+                          <Badge variant="outline" className="capitalize">
+                            {doc.category}
+                          </Badge>
+                          {isAcknowledged && (
+                            <Badge className="bg-emerald-100 text-emerald-700">
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Acknowledged
+                            </Badge>
+                          )}
+                        </div>
+                        {doc.description && (
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {doc.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {doc.file_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(doc.file_url, "_blank")}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        )}
+                        {doc.requires_acknowledgment && !isAcknowledged && (
+                          <Button
+                            size="sm"
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                            onClick={() => handleAcknowledgeDocument(doc)}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            Acknowledge
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            {documents.filter(d => d.department === "all" || d.department === currentEmployee?.department)
+              .length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No documents available</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Training Dialog */}
+      <Dialog open={trainingDialogOpen} onOpenChange={setTrainingDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>My Training</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {trainingAssignments
+              .filter(a => a.employee_id === currentEmployee?.id)
+              .map((assignment) => {
+                const course = trainingCourses.find(c => c.id === assignment.course_id);
+                if (!course) return null;
+                
+                return (
+                  <div key={assignment.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <BookOpen className="w-5 h-5 text-indigo-600" />
+                          <h3 className="font-semibold">{course.title}</h3>
+                          <StatusBadge status={assignment.status} />
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {course.description}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <span>Duration: {course.duration_hours}h</span>
+                          {assignment.due_date && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              Due: {format(parseISO(assignment.due_date), "MMM d, yyyy")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {assignment.certificate_url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(assignment.certificate_url, "_blank")}
+                        >
+                          <Award className="w-4 h-4 mr-2" />
+                          Certificate
+                        </Button>
+                      )}
+                    </div>
+                    {assignment.completion_date && (
+                      <div className="pt-3 border-t flex items-center gap-2 text-sm text-green-600">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Completed on {format(parseISO(assignment.completion_date), "MMM d, yyyy")}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            {trainingAssignments.filter(a => a.employee_id === currentEmployee?.id).length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No training assigned yet</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
