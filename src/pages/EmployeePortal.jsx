@@ -139,6 +139,15 @@ export default function EmployeePortal() {
     },
   });
 
+  const updateEmployeeMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Employee.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      setEditProfileOpen(false);
+      toast.success("Profile updated successfully");
+    },
+  });
+
   const acknowledgeDocumentMutation = useMutation({
     mutationFn: ({ docId, acknowledgments }) =>
       base44.entities.CompanyDocument.update(docId, { acknowledged_by: acknowledgments }),
@@ -651,59 +660,162 @@ export default function EmployeePortal() {
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-6">
+          {/* Profile Header with Theme */}
+          <Card className="overflow-hidden">
+            <div className={`h-32 bg-gradient-to-r ${getThemeGradient(currentEmployee?.profile_theme || "blue")}`} />
+            <CardContent className="relative pt-0 pb-6">
+              <div className="flex flex-col md:flex-row items-start md:items-end gap-6 -mt-16">
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden">
+                    {currentEmployee?.profile_photo ? (
+                      <img
+                        src={currentEmployee.profile_photo}
+                        alt={currentEmployee.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className={`w-full h-full flex items-center justify-center text-4xl font-bold text-white ${getThemeBg(currentEmployee?.profile_theme || "blue")}`}>
+                        {currentEmployee?.full_name?.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoUpload}
+                    />
+                    <Camera className="w-4 h-4 text-slate-600" />
+                  </label>
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-slate-900">{currentEmployee?.full_name}</h2>
+                  <p className="text-slate-600">{currentEmployee?.job_title}</p>
+                  <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
+                    <MapPin className="w-4 h-4" />
+                    {currentEmployee?.location || "Location not set"}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setEditProfileOpen(true)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* About Section */}
           <Card>
             <CardHeader>
-              <CardTitle>My Profile</CardTitle>
+              <CardTitle>About</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-6 mb-6 pb-6 border-b">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-3xl">
-                  {currentEmployee.name?.charAt(0)}
-                </div>
+              <p className="text-slate-700 whitespace-pre-wrap">
+                {currentEmployee?.bio || "No bio added yet. Click 'Edit Profile' to add your bio."}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Career Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Career</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-slate-500">Department</Label>
+                <p className="text-slate-900">{currentEmployee?.department || "Not set"}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-500">Manager</Label>
+                <p className="text-slate-900">{currentEmployee?.manager_name || "Not assigned"}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-500">Hire Date</Label>
+                <p className="text-slate-900">
+                  {currentEmployee?.start_date ? format(new Date(currentEmployee.start_date), "MMMM d, yyyy") : "Not set"}
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-500">Career Goals</Label>
+                <p className="text-slate-700">
+                  {currentEmployee?.career_goals || "No career goals set. Click 'Edit Profile' to add them."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Skills & Interests */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Skills</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {currentEmployee?.skills?.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {currentEmployee.skills.map((skill, idx) => (
+                      <Badge key={idx} variant="outline" className={`${getThemeBadge(currentEmployee?.profile_theme || "blue")}`}>
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No skills added yet</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Interests & Hobbies</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {currentEmployee?.interests?.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {currentEmployee.interests.map((interest, idx) => (
+                      <Badge key={idx} variant="outline" className={`${getThemeBadge(currentEmployee?.profile_theme || "blue")}`}>
+                        {interest}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No interests added yet</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Contact Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-slate-400" />
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900">{currentEmployee.name}</h2>
-                  <p className="text-lg text-slate-600">{currentEmployee.job_title}</p>
-                  <Badge className="mt-2">{currentEmployee.department}</Badge>
+                  <Label className="text-sm font-medium text-slate-500">Email</Label>
+                  <p className="text-slate-900">{currentEmployee?.email}</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-slate-500 mb-1">Email</p>
-                    <p className="font-medium">{currentEmployee.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 mb-1">Phone</p>
-                    <p className="font-medium">{currentEmployee.phone || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 mb-1">Location</p>
-                    <p className="font-medium">{currentEmployee.location || "Not provided"}</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-slate-500 mb-1">Employee ID</p>
-                    <p className="font-medium">{currentEmployee.employee_id || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 mb-1">Employment Type</p>
-                    <p className="font-medium capitalize">
-                      {currentEmployee.employment_type?.replace(/_/g, " ") || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 mb-1">Status</p>
-                    <Badge variant="outline" className="capitalize">
-                      {currentEmployee.status}
-                    </Badge>
-                  </div>
+              <div className="flex items-center gap-3">
+                <Phone className="w-5 h-5 text-slate-400" />
+                <div>
+                  <Label className="text-sm font-medium text-slate-500">Phone</Label>
+                  <p className="text-slate-900">{currentEmployee?.phone || "Not set"}</p>
                 </div>
               </div>
-
-              <div className="mt-6 pt-6 border-t">
-                <Button className="bg-indigo-600 hover:bg-indigo-700">Edit Profile</Button>
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5 text-slate-400" />
+                <div>
+                  <Label className="text-sm font-medium text-slate-500">Location</Label>
+                  <p className="text-slate-900">{currentEmployee?.location || "Not set"}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1030,6 +1142,108 @@ export default function EmployeePortal() {
               })}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Bio</Label>
+              <Textarea
+                placeholder="Tell us about yourself..."
+                rows={4}
+                defaultValue={currentEmployee?.bio}
+                onChange={(e) => setProfileFormData({ ...profileFormData, bio: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Career Goals</Label>
+              <Textarea
+                placeholder="What are your career aspirations?"
+                rows={3}
+                defaultValue={currentEmployee?.career_goals}
+                onChange={(e) => setProfileFormData({ ...profileFormData, career_goals: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Skills (comma separated)</Label>
+              <Input
+                placeholder="e.g., JavaScript, Project Management, Communication"
+                defaultValue={currentEmployee?.skills?.join(", ")}
+                onChange={(e) => setProfileFormData({ 
+                  ...profileFormData, 
+                  skills: e.target.value.split(",").map(s => s.trim()).filter(Boolean)
+                })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Interests & Hobbies (comma separated)</Label>
+              <Input
+                placeholder="e.g., Photography, Hiking, Reading"
+                defaultValue={currentEmployee?.interests?.join(", ")}
+                onChange={(e) => setProfileFormData({ 
+                  ...profileFormData, 
+                  interests: e.target.value.split(",").map(s => s.trim()).filter(Boolean)
+                })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  placeholder="Your phone number"
+                  defaultValue={currentEmployee?.phone}
+                  onChange={(e) => setProfileFormData({ ...profileFormData, phone: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Input
+                  placeholder="e.g., New York, NY"
+                  defaultValue={currentEmployee?.location}
+                  onChange={(e) => setProfileFormData({ ...profileFormData, location: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Profile Theme</Label>
+              <div className="grid grid-cols-3 gap-3">
+                {["blue", "purple", "green", "orange", "pink", "slate"].map((theme) => (
+                  <button
+                    key={theme}
+                    onClick={() => setProfileFormData({ ...profileFormData, profile_theme: theme })}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      (profileFormData.profile_theme || currentEmployee?.profile_theme) === theme
+                        ? "border-slate-900 ring-2 ring-slate-200"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className={`w-full h-12 rounded bg-gradient-to-r ${getThemeGradient(theme)} mb-2`} />
+                    <p className="text-sm font-medium capitalize text-center">{theme}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditProfileOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProfile} className="bg-indigo-600 hover:bg-indigo-700">
+              Save Changes
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
