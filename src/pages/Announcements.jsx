@@ -24,15 +24,18 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
 import { format, parseISO } from "date-fns";
-import { Megaphone, Plus, Edit, Trash2, AlertCircle } from "lucide-react";
+import { Megaphone, Plus, Edit, Trash2, AlertCircle, ThumbsUp, Heart, Laugh, MessageCircle, Send } from "lucide-react";
+import { toast } from "sonner";
 
-const DEPARTMENTS = ["HR", "Finance", "Sales", "Legal", "IT", "Marketing", "Operations", "Executive"];
+const DEPARTMENTS = ["HR", "Finance", "Legal", "IT"];
 
 export default function Announcements() {
   const [user, setUser] = useState(null);
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [commentText, setCommentText] = useState({});
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -108,9 +111,78 @@ export default function Announcements() {
 
   const relevantAnnouncements = announcements.filter(ann => {
     if (ann.status !== "published") return canManage;
+    
+    // Category filter
+    if (categoryFilter !== "all" && ann.category !== categoryFilter) return false;
+    
+    // Department filter
     if (!ann.target_departments || ann.target_departments.length === 0) return true;
     return ann.target_departments.includes(currentEmployee?.department);
   });
+
+  const handleReaction = async (announcementId, emoji) => {
+    const announcement = announcements.find(a => a.id === announcementId);
+    const reactions = announcement.reactions || [];
+    
+    const existingReaction = reactions.find(r => r.user_id === currentEmployee?.id);
+    
+    let newReactions;
+    if (existingReaction && existingReaction.emoji === emoji) {
+      // Remove reaction
+      newReactions = reactions.filter(r => r.user_id !== currentEmployee?.id);
+    } else if (existingReaction) {
+      // Update reaction
+      newReactions = reactions.map(r => 
+        r.user_id === currentEmployee?.id 
+          ? { ...r, emoji } 
+          : r
+      );
+    } else {
+      // Add new reaction
+      newReactions = [...reactions, {
+        user_id: currentEmployee?.id,
+        user_name: currentEmployee?.full_name,
+        emoji
+      }];
+    }
+    
+    await updateMutation.mutateAsync({ 
+      id: announcementId, 
+      data: { reactions: newReactions } 
+    });
+  };
+
+  const handleAddComment = async (announcementId) => {
+    const text = commentText[announcementId];
+    if (!text?.trim()) return;
+    
+    const announcement = announcements.find(a => a.id === announcementId);
+    const comments = announcement.comments || [];
+    
+    const newComment = {
+      id: Date.now().toString(),
+      user_id: currentEmployee?.id,
+      user_name: currentEmployee?.full_name,
+      comment: text,
+      created_date: new Date().toISOString()
+    };
+    
+    await updateMutation.mutateAsync({ 
+      id: announcementId, 
+      data: { comments: [...comments, newComment] } 
+    });
+    
+    setCommentText({ ...commentText, [announcementId]: "" });
+    toast.success("Comment added");
+  };
+
+  const getReactionCount = (reactions, emoji) => {
+    return reactions?.filter(r => r.emoji === emoji).length || 0;
+  };
+
+  const hasUserReacted = (reactions, emoji) => {
+    return reactions?.some(r => r.user_id === currentEmployee?.id && r.emoji === emoji);
+  };
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -123,14 +195,31 @@ export default function Announcements() {
   return (
     <div>
       <PageHeader
-        title="Announcements"
-        subtitle="Company-wide updates and communications"
+        title="Company News"
+        subtitle="Stay updated with company announcements and updates"
         action={canManage ? () => {
           setEditingAnnouncement(null);
           setIsDialogOpen(true);
         } : undefined}
         actionLabel={canManage ? "Create Announcement" : undefined}
-      />
+      >
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="general">General</SelectItem>
+            <SelectItem value="hr">HR</SelectItem>
+            <SelectItem value="finance">Finance</SelectItem>
+            <SelectItem value="it">IT</SelectItem>
+            <SelectItem value="legal">Legal</SelectItem>
+            <SelectItem value="events">Events</SelectItem>
+            <SelectItem value="policy">Policy</SelectItem>
+            <SelectItem value="urgent">Urgent</SelectItem>
+          </SelectContent>
+        </Select>
+      </PageHeader>
 
       {isLoading ? (
         <div className="space-y-4">
@@ -215,6 +304,80 @@ export default function Announcements() {
                     ))}
                   </div>
                 )}
+
+                {/* Reactions */}
+                <div className="mt-4 flex items-center gap-2 pb-3 border-b">
+                  {["👍", "❤️", "😊", "🎉"].map(emoji => {
+                    const count = getReactionCount(announcement.reactions, emoji);
+                    const hasReacted = hasUserReacted(announcement.reactions, emoji);
+                    return (
+                      <button
+                        key={emoji}
+                        onClick={() => handleReaction(announcement.id, emoji)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm transition-all ${
+                          hasReacted 
+                            ? "bg-indigo-100 text-indigo-700 border border-indigo-300" 
+                            : "bg-slate-50 hover:bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        <span>{emoji}</span>
+                        {count > 0 && <span className="font-medium">{count}</span>}
+                      </button>
+                    );
+                  })}
+                  <div className="ml-auto flex items-center gap-1 text-slate-500">
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="text-sm">{announcement.comments?.length || 0}</span>
+                  </div>
+                </div>
+
+                {/* Comments */}
+                <div className="mt-4 space-y-3">
+                  {announcement.comments?.map((comment) => (
+                    <div key={comment.id} className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-sm font-medium shrink-0">
+                        {comment.user_name?.charAt(0)}
+                      </div>
+                      <div className="flex-1 bg-slate-50 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">{comment.user_name}</span>
+                          <span className="text-xs text-slate-500">
+                            {format(parseISO(comment.created_date), "MMM d, h:mm a")}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-700">{comment.comment}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Add Comment */}
+                  <div className="flex gap-3 mt-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-sm font-medium shrink-0">
+                      {currentEmployee?.full_name?.charAt(0)}
+                    </div>
+                    <div className="flex-1 flex gap-2">
+                      <Input
+                        placeholder="Write a comment..."
+                        value={commentText[announcement.id] || ""}
+                        onChange={(e) => setCommentText({ ...commentText, [announcement.id]: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment(announcement.id);
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddComment(announcement.id)}
+                        disabled={!commentText[announcement.id]?.trim()}
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -263,7 +426,9 @@ export default function Announcements() {
                   <SelectContent>
                     <SelectItem value="general">General</SelectItem>
                     <SelectItem value="hr">HR</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
                     <SelectItem value="it">IT</SelectItem>
+                    <SelectItem value="legal">Legal</SelectItem>
                     <SelectItem value="events">Events</SelectItem>
                     <SelectItem value="policy">Policy</SelectItem>
                     <SelectItem value="urgent">Urgent</SelectItem>

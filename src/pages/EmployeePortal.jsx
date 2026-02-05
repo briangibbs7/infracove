@@ -47,7 +47,8 @@ import {
   MessageCircle,
   Cloud,
   Video,
-  Star
+  Star,
+  Building2
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
@@ -85,6 +86,11 @@ export default function EmployeePortal() {
   const { data: quickLinks = [] } = useQuery({
     queryKey: ["quickLinks"],
     queryFn: () => base44.entities.QuickLink.filter({ is_active: true }),
+  });
+
+  const { data: announcements = [] } = useQuery({
+    queryKey: ["announcements"],
+    queryFn: () => base44.entities.Announcement.list("-created_date", 5),
   });
 
   const { data: timeOffRequests = [] } = useQuery({
