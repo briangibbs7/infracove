@@ -46,6 +46,10 @@ import {
   Archive,
   UserX,
   Edit2,
+  Briefcase,
+  Plus,
+  Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -63,6 +67,9 @@ export default function Admin() {
   const [bulkEditDialogOpen, setBulkEditDialogOpen] = useState(false);
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
   const [userToDeactivate, setUserToDeactivate] = useState(null);
+  const [appDialogOpen, setAppDialogOpen] = useState(false);
+  const [editingApp, setEditingApp] = useState(null);
+  const [appFormData, setAppFormData] = useState({});
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -79,12 +86,46 @@ export default function Admin() {
     queryFn: () => base44.entities.User.list(),
   });
 
+  const { data: appLinks = [] } = useQuery({
+    queryKey: ["appLinks"],
+    queryFn: () => base44.entities.AppLink.list(),
+  });
+
   const updateEmployeeMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Employee.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       toast.success("Employee updated successfully");
       setEditingUser(null);
+    },
+  });
+
+  const createAppMutation = useMutation({
+    mutationFn: (data) => base44.entities.AppLink.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appLinks"] });
+      toast.success("App created successfully");
+      setAppDialogOpen(false);
+      setAppFormData({});
+    },
+  });
+
+  const updateAppMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.AppLink.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appLinks"] });
+      toast.success("App updated successfully");
+      setAppDialogOpen(false);
+      setEditingApp(null);
+      setAppFormData({});
+    },
+  });
+
+  const deleteAppMutation = useMutation({
+    mutationFn: (id) => base44.entities.AppLink.update(id, { is_active: false }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appLinks"] });
+      toast.success("App deleted successfully");
     },
   });
 
@@ -166,6 +207,22 @@ export default function Admin() {
       setSelectedUsers([]);
     } else {
       setSelectedUsers(filteredEmployees.map((emp) => emp.id));
+    }
+  };
+
+  const handleSaveApp = () => {
+    if (!appFormData.name || !appFormData.url) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (editingApp) {
+      updateAppMutation.mutate({ id: editingApp.id, data: appFormData });
+    } else {
+      createAppMutation.mutate({
+        ...appFormData,
+        is_active: true,
+      });
     }
   };
 
@@ -285,6 +342,10 @@ export default function Admin() {
           <TabsTrigger value="users">
             <Users className="w-4 h-4 mr-2" />
             User Management
+          </TabsTrigger>
+          <TabsTrigger value="apps">
+            <Briefcase className="w-4 h-4 mr-2" />
+            App Marketplace
           </TabsTrigger>
           <TabsTrigger value="rbac">
             <Shield className="w-4 h-4 mr-2" />
@@ -494,6 +555,99 @@ export default function Admin() {
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* App Marketplace Tab */}
+        <TabsContent value="apps" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">App Marketplace</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage application shortcuts for employees ({appLinks.filter(a => a.is_active).length} active)
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                setEditingApp(null);
+                setAppFormData({});
+                setAppDialogOpen(true);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add App
+            </Button>
+          </div>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {appLinks.filter(a => a.is_active).map((app) => (
+                  <div key={app.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white">
+                            <Briefcase className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-slate-900">{app.name}</h3>
+                            <p className="text-xs text-muted-foreground">{app.category}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          {app.description}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs">
+                          <Badge variant="outline">{app.department}</Badge>
+                          {app.is_featured && (
+                            <Badge className="bg-green-100 text-green-700">Featured</Badge>
+                          )}
+                          {app.requires_login && (
+                            <Badge variant="outline">Login Required</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingApp(app);
+                            setAppFormData(app);
+                            setAppDialogOpen(true);
+                          }}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(app.url, "_blank")}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteAppMutation.mutate(app.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {appLinks.filter(a => a.is_active).length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No apps created yet. Add your first app to get started.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -918,6 +1072,138 @@ export default function Admin() {
             >
               <Archive className="w-4 h-4 mr-2" />
               Deactivate User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit App Dialog */}
+      <Dialog open={appDialogOpen} onOpenChange={setAppDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingApp ? "Edit App" : "Add New App"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>App Name *</Label>
+                <Input
+                  placeholder="e.g., Gmail"
+                  value={appFormData.name || ""}
+                  onChange={(e) => setAppFormData({ ...appFormData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Icon</Label>
+                <Select
+                  value={appFormData.icon || "Grid"}
+                  onValueChange={(value) => setAppFormData({ ...appFormData, icon: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Mail">Mail</SelectItem>
+                    <SelectItem value="Calendar">Calendar</SelectItem>
+                    <SelectItem value="Briefcase">Briefcase</SelectItem>
+                    <SelectItem value="MessageCircle">Message</SelectItem>
+                    <SelectItem value="Cloud">Cloud</SelectItem>
+                    <SelectItem value="Video">Video</SelectItem>
+                    <SelectItem value="Users">Users</SelectItem>
+                    <SelectItem value="FileText">File</SelectItem>
+                    <SelectItem value="BookOpen">Book</SelectItem>
+                    <SelectItem value="Grid">Grid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Input
+                placeholder="Brief description of the app"
+                value={appFormData.description || ""}
+                onChange={(e) => setAppFormData({ ...appFormData, description: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>URL *</Label>
+              <Input
+                placeholder="https://example.com"
+                value={appFormData.url || ""}
+                onChange={(e) => setAppFormData({ ...appFormData, url: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={appFormData.category || "other"}
+                  onValueChange={(value) => setAppFormData({ ...appFormData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="productivity">Productivity</SelectItem>
+                    <SelectItem value="communication">Communication</SelectItem>
+                    <SelectItem value="hr">HR</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                    <SelectItem value="development">Development</SelectItem>
+                    <SelectItem value="design">Design</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select
+                  value={appFormData.department || "all"}
+                  onValueChange={(value) => setAppFormData({ ...appFormData, department: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    <SelectItem value="HR">HR</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Legal">Legal</SelectItem>
+                    <SelectItem value="IT">IT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={appFormData.requires_login || false}
+                  onChange={(e) => setAppFormData({ ...appFormData, requires_login: e.target.checked })}
+                  className="rounded border-slate-300"
+                />
+                <span className="text-sm">Requires Login</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={appFormData.is_featured || false}
+                  onChange={(e) => setAppFormData({ ...appFormData, is_featured: e.target.checked })}
+                  className="rounded border-slate-300"
+                />
+                <span className="text-sm">Featured (Show by default)</span>
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAppDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveApp} className="bg-indigo-600 hover:bg-indigo-700">
+              {editingApp ? "Update" : "Create"} App
             </Button>
           </DialogFooter>
         </DialogContent>
