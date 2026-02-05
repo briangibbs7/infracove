@@ -290,7 +290,7 @@ export default function Layout({ children, currentPageName }) {
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/696869f57e5cb5c947b8db17/9fa12f207_infracove.png"
             alt="InfraCove"
-            className="h-16 w-auto"
+            className="h-20 w-auto"
           />
         </div>
       </div>
