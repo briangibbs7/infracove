@@ -42,6 +42,8 @@ import { Textarea } from "@/components/ui/textarea";
 import PageHeader from "@/components/ui/PageHeader";
 import EmployeeLinkDialog from "@/components/compliance/EmployeeLinkDialog";
 import DeemedExportReviewDialog from "@/components/compliance/DeemedExportReviewDialog";
+import CreateAuditDialog from "@/components/compliance/CreateAuditDialog";
+import CreateTechPlanDialog from "@/components/compliance/CreateTechPlanDialog";
 
 export default function Compliance() {
   const [user, setUser] = useState(null);
@@ -55,6 +57,8 @@ export default function Compliance() {
   const [syncing, setSyncing] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedPersonnel, setSelectedPersonnel] = useState(null);
+  const [auditDialogOpen, setAuditDialogOpen] = useState(false);
+  const [techPlanDialogOpen, setTechPlanDialogOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -133,17 +137,19 @@ export default function Compliance() {
     mutationFn: (data) => base44.entities.ComplianceAudit.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["complianceAudits"] });
-      setDialogOpen(false);
-      setFormData({});
+      setAuditDialogOpen(false);
     },
   });
 
   const createTechPlanMutation = useMutation({
-    mutationFn: (data) => base44.entities.TechnologyControlPlan.create(data),
+    mutationFn: (planData) => base44.entities.TechnologyControlPlan.create({
+      ...planData,
+      responsible_person: user?.id,
+      responsible_person_name: user?.full_name,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["technologyControlPlans"] });
-      setDialogOpen(false);
-      setFormData({});
+      setTechPlanDialogOpen(false);
     },
   });
 
@@ -213,10 +219,6 @@ export default function Compliance() {
       createViolationMutation.mutate(data);
     } else if (dialogType === "alert") {
       createAlertMutation.mutate(data);
-    } else if (dialogType === "audit") {
-      createAuditMutation.mutate(data);
-    } else if (dialogType === "tech-plan") {
-      createTechPlanMutation.mutate(data);
     }
   };
 
@@ -725,14 +727,12 @@ export default function Compliance() {
 
         {/* Audits Tab */}
         <TabsContent value="audits" className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <Input placeholder="Search audits..." className="max-w-sm" />
-            <Button onClick={() => openDialog("audit")}>
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => setAuditDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" />
-              Schedule Audit
+              Create Audit
             </Button>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {audits.map((audit) => (
               <Card key={audit.id}>
@@ -778,66 +778,56 @@ export default function Compliance() {
 
         {/* Technology Control Plans Tab */}
         <TabsContent value="tech-control" className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex gap-2">
-              <Input placeholder="Search tech plans..." className="max-w-sm" />
-              <Select defaultValue="all">
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="internal">Internal</SelectItem>
-                  <SelectItem value="external">External</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={() => openDialog("tech-plan")}>
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => setTechPlanDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" />
-              New Tech Control Plan
+              Create Tech Control Plan
             </Button>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {techPlans.map((plan) => (
-              <Card key={plan.id} className={`border-l-4 ${plan.plan_type === "external" ? "border-l-purple-500" : "border-l-blue-500"}`}>
+              <Card key={plan.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <CardTitle>{plan.plan_name}</CardTitle>
-                        <Badge variant="outline" className={plan.plan_type === "external" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"}>
-                          {plan.plan_type || "internal"}
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className={plan.plan_type === "internal" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"}>
+                          {plan.plan_type === "internal" ? "Internal" : "External Contractor"}
+                        </Badge>
+                        <Badge className={getStatusColor(plan.status)}>
+                          {plan.status}
                         </Badge>
                       </div>
+                      <CardTitle>{plan.plan_name}</CardTitle>
                       <CardDescription>{plan.classification}</CardDescription>
                     </div>
-                    <Badge className={getStatusColor(plan.status)}>
-                      {plan.status}
-                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-slate-600 mb-3">{plan.technology_description}</p>
-                  
-                  {plan.plan_type === "external" && plan.contractor_company && (
-                    <div className="mb-3 p-2 bg-purple-50 rounded-lg border border-purple-100">
-                      <div className="flex items-start gap-2">
-                        <Globe className="w-4 h-4 text-purple-600 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-purple-900">{plan.contractor_company}</p>
-                          {plan.contractor_contact && (
-                            <p className="text-xs text-purple-700">{plan.contractor_contact}</p>
-                          )}
-                          {plan.contract_number && (
-                            <p className="text-xs text-purple-600">Contract: {plan.contract_number}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="space-y-2 text-sm">
+                    {plan.plan_type === "external_contractor" && (
+                      <>
+                        {plan.contractor_company && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Contractor:</span>
+                            <span className="font-medium">{plan.contractor_company}</span>
+                          </div>
+                        )}
+                        {plan.contractor_contact && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Contact:</span>
+                            <span className="font-medium">{plan.contractor_contact}</span>
+                          </div>
+                        )}
+                        {plan.contract_number && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Contract #:</span>
+                            <span className="font-medium">{plan.contract_number}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-slate-600">Responsible:</span>
                       <span className="font-medium">{plan.responsible_person_name}</span>
@@ -880,8 +870,6 @@ export default function Compliance() {
               {dialogType === "program" && "New Compliance Program"}
               {dialogType === "violation" && "Report Violation"}
               {dialogType === "alert" && "Create Alert"}
-              {dialogType === "audit" && "Schedule Audit"}
-              {dialogType === "tech-plan" && "New Technology Control Plan"}
             </DialogTitle>
             <DialogDescription>
               Fill in the details below to create a new {dialogType}.
@@ -1046,194 +1034,6 @@ export default function Compliance() {
                 </div>
               </>
             )}
-
-            {dialogType === "audit" && (
-              <>
-                <div>
-                  <Label>Audit Name</Label>
-                  <Input
-                    value={formData.audit_name || ""}
-                    onChange={(e) => setFormData({ ...formData, audit_name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Audit Type</Label>
-                  <Select
-                    value={formData.audit_type || ""}
-                    onValueChange={(value) => setFormData({ ...formData, audit_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="internal">Internal</SelectItem>
-                      <SelectItem value="external">External</SelectItem>
-                      <SelectItem value="regulatory">Regulatory</SelectItem>
-                      <SelectItem value="certification">Certification</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Program</Label>
-                  <Select
-                    value={formData.program_id || ""}
-                    onValueChange={(value) => {
-                      const prog = programs.find(p => p.id === value);
-                      setFormData({ ...formData, program_id: value, program_name: prog?.program_name });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select program" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {programs.map(prog => (
-                        <SelectItem key={prog.id} value={prog.id}>{prog.program_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Auditor Name</Label>
-                    <Input
-                      value={formData.auditor_name || ""}
-                      onChange={(e) => setFormData({ ...formData, auditor_name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Organization</Label>
-                    <Input
-                      value={formData.auditor_organization || ""}
-                      onChange={(e) => setFormData({ ...formData, auditor_organization: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Start Date</Label>
-                    <Input
-                      type="date"
-                      value={formData.start_date || ""}
-                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>End Date</Label>
-                    <Input
-                      type="date"
-                      value={formData.end_date || ""}
-                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>Scope</Label>
-                  <Textarea
-                    placeholder="Audit scope and areas covered"
-                    value={formData.scope || ""}
-                    onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
-                  />
-                </div>
-              </>
-            )}
-
-            {dialogType === "tech-plan" && (
-              <>
-                <div>
-                  <Label>Plan Name</Label>
-                  <Input
-                    value={formData.plan_name || ""}
-                    onChange={(e) => setFormData({ ...formData, plan_name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Plan Type</Label>
-                  <Select
-                    value={formData.plan_type || "internal"}
-                    onValueChange={(value) => setFormData({ ...formData, plan_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="internal">Internal</SelectItem>
-                      <SelectItem value="external">External (Contractor)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {formData.plan_type === "external" && (
-                  <>
-                    <div>
-                      <Label>Contractor Company</Label>
-                      <Input
-                        value={formData.contractor_company || ""}
-                        onChange={(e) => setFormData({ ...formData, contractor_company: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Contact Person</Label>
-                        <Input
-                          value={formData.contractor_contact || ""}
-                          onChange={(e) => setFormData({ ...formData, contractor_contact: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label>Contact Email</Label>
-                        <Input
-                          type="email"
-                          value={formData.contractor_contact_email || ""}
-                          onChange={(e) => setFormData({ ...formData, contractor_contact_email: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Contract Number</Label>
-                      <Input
-                        value={formData.contract_number || ""}
-                        onChange={(e) => setFormData({ ...formData, contract_number: e.target.value })}
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <Label>Technology Description</Label>
-                  <Textarea
-                    value={formData.technology_description || ""}
-                    onChange={(e) => setFormData({ ...formData, technology_description: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Classification</Label>
-                  <Input
-                    placeholder="e.g., ITAR, EAR99, ECCN"
-                    value={formData.classification || ""}
-                    onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Responsible Person</Label>
-                  <Select
-                    value={formData.responsible_person || ""}
-                    onValueChange={(value) => {
-                      const emp = employees.find(e => e.id === value);
-                      setFormData({ ...formData, responsible_person: value, responsible_person_name: emp?.full_name });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map(emp => (
-                        <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
           </div>
 
           <DialogFooter>
@@ -1259,6 +1059,21 @@ export default function Compliance() {
         onOpenChange={setReviewDialogOpen}
         personnelRecord={selectedPersonnel}
         employee={selectedEmployee}
+      />
+
+      {/* Create Audit Dialog */}
+      <CreateAuditDialog
+        open={auditDialogOpen}
+        onOpenChange={setAuditDialogOpen}
+        programs={programs}
+        onSubmit={(data) => createAuditMutation.mutate(data)}
+      />
+
+      {/* Create Tech Plan Dialog */}
+      <CreateTechPlanDialog
+        open={techPlanDialogOpen}
+        onOpenChange={setTechPlanDialogOpen}
+        onSubmit={(data) => createTechPlanMutation.mutate(data)}
       />
     </div>
   );
