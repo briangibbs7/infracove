@@ -58,10 +58,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Check if deemed export review is required
+    const flagResponse = await base44.functions.invoke('flagDeemedExportReview', { employee_id });
+
     return Response.json({
       success: true,
       personnelRecord,
-      riskScore: riskResponse.data
+      riskScore: riskResponse.data,
+      deemedExportFlag: flagResponse.data
     });
 
   } catch (error) {

@@ -41,6 +41,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import PageHeader from "@/components/ui/PageHeader";
 import EmployeeLinkDialog from "@/components/compliance/EmployeeLinkDialog";
+import DeemedExportReviewDialog from "@/components/compliance/DeemedExportReviewDialog";
 
 export default function Compliance() {
   const [user, setUser] = useState(null);
@@ -52,6 +53,8 @@ export default function Compliance() {
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedPersonnel, setSelectedPersonnel] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -153,12 +156,31 @@ export default function Compliance() {
     setLinkDialogOpen(true);
   };
 
+  const openReviewDialog = (personnel, emp) => {
+    setSelectedPersonnel(personnel);
+    setSelectedEmployee(emp);
+    setReviewDialogOpen(true);
+  };
+
   const getRiskColor = (score) => {
     if (score >= 70) return "bg-red-100 text-red-800 border-red-200";
     if (score >= 50) return "bg-orange-100 text-orange-800 border-orange-200";
     if (score >= 30) return "bg-yellow-100 text-yellow-800 border-yellow-200";
     return "bg-green-100 text-green-800 border-green-200";
   };
+
+  const getDeemedExportStatusColor = (status) => {
+    const colors = {
+      approved: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      denied: "bg-red-100 text-red-800",
+      not_required: "bg-slate-100 text-slate-600"
+    };
+    return colors[status] || "bg-slate-100 text-slate-800";
+  };
+
+  // Get pending reviews count
+  const pendingReviews = personnel.filter(p => p.deemed_export_status === "pending").length;
 
   const handleSubmit = () => {
     const data = {
@@ -257,12 +279,12 @@ export default function Compliance() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Upcoming Audits</CardTitle>
-            <FileText className="w-4 h-4 text-green-600" />
+            <CardTitle className="text-sm font-medium text-slate-600">Pending Reviews</CardTitle>
+            <AlertTriangle className="w-4 h-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{upcomingAudits.length}</div>
-            <p className="text-xs text-slate-500">Scheduled/In progress</p>
+            <div className="text-2xl font-bold">{pendingReviews}</div>
+            <p className="text-xs text-slate-500">Deemed export reviews</p>
           </CardContent>
         </Card>
       </div>
@@ -330,9 +352,9 @@ export default function Compliance() {
                           </Badge>
                         </div>
                         <div>
-                          <span className="text-slate-500">Access Level:</span>
-                          <Badge className={person.access_level === "full" ? "bg-green-100 text-green-800" : person.access_level === "limited" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}>
-                            {person.access_level}
+                          <span className="text-slate-500">Deemed Export:</span>
+                          <Badge className={getDeemedExportStatusColor(person.deemed_export_status)}>
+                            {person.deemed_export_status || "not_required"}
                           </Badge>
                         </div>
                       </div>
@@ -374,15 +396,26 @@ export default function Compliance() {
                       )}
                     </div>
                     
-                    {employee && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openLinkDialog(employee)}
-                      >
-                        Link to Program
-                      </Button>
-                    )}
+                    <div className="flex flex-col gap-2">
+                      {person.deemed_export_status === "pending" && employee && (
+                        <Button 
+                          size="sm"
+                          onClick={() => openReviewDialog(person, employee)}
+                          className="bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          Review Deemed Export
+                        </Button>
+                      )}
+                      {employee && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openLinkDialog(employee)}
+                        >
+                          Link to Program
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -462,6 +495,18 @@ export default function Compliance() {
                     <div className="mt-3 text-sm">
                       <span className="text-slate-500">Project: </span>
                       <span className="font-medium">{export_record.project_name}</span>
+                    </div>
+                  )}
+                  {export_record.program_name && (
+                    <div className="mt-2 text-sm">
+                      <span className="text-slate-500">Program: </span>
+                      <Badge variant="outline">{export_record.program_name}</Badge>
+                    </div>
+                  )}
+                  {export_record.authorization_type && (
+                    <div className="mt-2 text-sm">
+                      <span className="text-slate-500">Authorization: </span>
+                      <span className="font-medium capitalize">{export_record.authorization_type.replace(/_/g, ' ')}</span>
                     </div>
                   )}
                   {export_record.approved_by_name && (
@@ -937,6 +982,14 @@ export default function Compliance() {
         onOpenChange={setLinkDialogOpen}
         employee={selectedEmployee}
         programs={programs}
+      />
+
+      {/* Deemed Export Review Dialog */}
+      <DeemedExportReviewDialog
+        open={reviewDialogOpen}
+        onOpenChange={setReviewDialogOpen}
+        personnelRecord={selectedPersonnel}
+        employee={selectedEmployee}
       />
     </div>
   );
