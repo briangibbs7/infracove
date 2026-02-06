@@ -393,7 +393,7 @@ export default function Dashboard() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.location.href = createPageUrl("Recognition")}
+                    onClick={() => { window.location.href = createPageUrl("Recognition"); }}
                   >
                     View All
                   </Button>
@@ -459,7 +459,7 @@ export default function Dashboard() {
                       <Button
                         size="sm"
                         className="bg-amber-600 hover:bg-amber-700"
-                        onClick={() => window.location.href = '/Performance'}
+                        onClick={() => { window.location.href = createPageUrl("Performance"); }}
                       >
                         Complete Now
                       </Button>

@@ -55,6 +55,8 @@ import Benefits from './pages/Benefits';
 import CareerPathing from './pages/CareerPathing';
 import Claims from './pages/Claims';
 import CompanySkills from './pages/CompanySkills';
+import Compliance from './pages/Compliance';
+import ComplianceTraining from './pages/ComplianceTraining';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
 import DirectDeposit from './pages/DirectDeposit';
@@ -83,8 +85,6 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Compliance from './pages/Compliance';
-import ComplianceTraining from './pages/ComplianceTraining';
 import __Layout from './Layout.jsx';
 
 
@@ -97,6 +97,8 @@ export const PAGES = {
     "CareerPathing": CareerPathing,
     "Claims": Claims,
     "CompanySkills": CompanySkills,
+    "Compliance": Compliance,
+    "ComplianceTraining": ComplianceTraining,
     "Contracts": Contracts,
     "Dashboard": Dashboard,
     "DirectDeposit": DirectDeposit,
@@ -125,8 +127,6 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Compliance": Compliance,
-    "ComplianceTraining": ComplianceTraining,
 }
 
 export const pagesConfig = {
