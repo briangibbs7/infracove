@@ -159,11 +159,9 @@ export default function ComplianceTraining() {
       <PageHeader
         title="Compliance Training"
         subtitle="Manage and track compliance training programs"
-        action={isAdmin ? {
-          label: "Create Training",
-          onClick: () => setDialogOpen(true),
-          icon: <Plus className="w-4 h-4" />
-        } : undefined}
+        actionLabel={isAdmin ? "Create Training" : undefined}
+        actionIcon={isAdmin ? Plus : undefined}
+        onActionClick={isAdmin ? () => setDialogOpen(true) : undefined}
       />
 
       {/* Statistics */}

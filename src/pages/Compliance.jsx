@@ -235,11 +235,9 @@ export default function Compliance() {
       <PageHeader
         title="Compliance Management"
         subtitle="Export Control & Regulatory Compliance"
-        action={{
-          label: "New Program",
-          onClick: () => openDialog("program"),
-          icon: <Plus className="w-4 h-4" />
-        }}
+        actionLabel="New Program"
+        actionIcon={Plus}
+        onActionClick={() => openDialog("program")}
       />
 
       {/* Statistics */}
