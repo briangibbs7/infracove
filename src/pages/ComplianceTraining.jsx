@@ -232,139 +232,356 @@ export default function ComplianceTraining() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {trainings.map((training) => (
-                <Card key={training.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{training.title}</CardTitle>
-                        <CardDescription>{training.description}</CardDescription>
+              {trainings.map((training) => {
+                const trainingAssignments = assignments.filter(a => a.training_id === training.id);
+                const completedCount = trainingAssignments.filter(a => a.status === "completed").length;
+                const completionRate = trainingAssignments.length > 0 
+                  ? Math.round((completedCount / trainingAssignments.length) * 100) 
+                  : 0;
+
+                return (
+                  <Card key={training.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-start gap-2">
+                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <CardTitle className="text-base">{training.title}</CardTitle>
+                              <CardDescription className="text-sm">{training.description}</CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge className={training.status === "active" ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-800"}>
+                          {training.status}
+                        </Badge>
                       </div>
-                      <Badge className={training.status === "active" ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-800"}>
-                        {training.status}
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="p-2 bg-slate-50 rounded-lg">
+                          <div className="flex items-center gap-1 text-slate-600 mb-1">
+                            <Clock className="w-3 h-3" />
+                            <span className="text-xs">Duration</span>
+                          </div>
+                          <p className="font-medium text-sm">{training.duration_minutes} min</p>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded-lg">
+                          <div className="flex items-center gap-1 text-slate-600 mb-1">
+                            <FileText className="w-3 h-3" />
+                            <span className="text-xs">Validity</span>
+                          </div>
+                          <p className="font-medium text-sm">{training.validity_months} months</p>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded-lg">
+                          <div className="flex items-center gap-1 text-slate-600 mb-1">
+                            <BarChart3 className="w-3 h-3" />
+                            <span className="text-xs">Pass Score</span>
+                          </div>
+                          <p className="font-medium text-sm">{training.passing_score}%</p>
+                        </div>
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <div className="flex items-center gap-1 text-blue-600 mb-1">
+                            <Users className="w-3 h-3" />
+                            <span className="text-xs">Assigned</span>
+                          </div>
+                          <p className="font-medium text-sm text-blue-700">{trainingAssignments.length}</p>
+                        </div>
+                      </div>
+
+                      <Badge variant="outline" className="w-full mb-3 capitalize">
+                        {training.training_type.replace('_', ' ')}
                       </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm mb-4">
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Type:</span>
-                        <Badge variant="outline">{training.training_type}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Duration:</span>
-                        <span className="font-medium">{training.duration_minutes} min</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Validity:</span>
-                        <span className="font-medium">{training.validity_months} months</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Passing Score:</span>
-                        <span className="font-medium">{training.passing_score}%</span>
-                      </div>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => openAssignDialog(training)}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      Assign to Employees
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+
+                      {trainingAssignments.length > 0 && (
+                        <div className="mb-3">
+                          <div className="flex justify-between text-xs text-slate-600 mb-1">
+                            <span>Completion Rate</span>
+                            <span className="font-medium">{completionRate}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-2">
+                            <div 
+                              className="bg-green-500 h-2 rounded-full transition-all" 
+                              style={{ width: `${completionRate}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        onClick={() => openAssignDialog(training)}
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Assign to Employees
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
         )}
 
         {/* My Trainings */}
         <TabsContent value="my-trainings" className="space-y-4">
-          <div className="space-y-3">
+          <div className="space-y-4">
             {assignments
               .filter(a => a.employee_email === user?.email)
               .map((assignment) => {
+                const training = trainings.find(t => t.id === assignment.training_id);
                 const isOverdue = assignment.status === "assigned" && new Date(assignment.due_date) < new Date();
+                const daysUntilDue = assignment.due_date ? Math.ceil((new Date(assignment.due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                const daysUntilExpiry = assignment.expiry_date ? Math.ceil((new Date(assignment.expiry_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+                
                 return (
-                  <Card key={assignment.id}>
+                  <Card key={assignment.id} className={`border-l-4 ${
+                    assignment.status === "completed" ? "border-l-green-500 bg-green-50/30" :
+                    assignment.status === "failed" ? "border-l-red-500 bg-red-50/30" :
+                    isOverdue ? "border-l-red-500 bg-red-50/30" :
+                    "border-l-blue-500"
+                  }`}>
                     <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <h3 className="font-semibold mb-1">{assignment.training_title}</h3>
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            <Badge className={
-                              assignment.status === "completed" ? "bg-green-100 text-green-800" :
-                              assignment.status === "failed" ? "bg-red-100 text-red-800" :
-                              isOverdue ? "bg-red-100 text-red-800" :
-                              "bg-blue-100 text-blue-800"
-                            }>
-                              {isOverdue ? "Overdue" : assignment.status}
-                            </Badge>
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              assignment.status === "completed" ? "bg-green-100" :
+                              assignment.status === "failed" ? "bg-red-100" :
+                              isOverdue ? "bg-red-100" :
+                              "bg-blue-100"
+                            }`}>
+                              {assignment.status === "completed" ? (
+                                <CheckCircle2 className="w-6 h-6 text-green-600" />
+                              ) : assignment.status === "failed" ? (
+                                <AlertTriangle className="w-6 h-6 text-red-600" />
+                              ) : (
+                                <BookOpen className="w-6 h-6 text-blue-600" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg mb-1">{assignment.training_title}</h3>
+                              <div className="flex flex-wrap gap-2">
+                                <Badge className={
+                                  assignment.status === "completed" ? "bg-green-100 text-green-800" :
+                                  assignment.status === "failed" ? "bg-red-100 text-red-800" :
+                                  isOverdue ? "bg-red-100 text-red-800" :
+                                  assignment.status === "in_progress" ? "bg-yellow-100 text-yellow-800" :
+                                  "bg-blue-100 text-blue-800"
+                                }>
+                                  {isOverdue ? "Overdue" : assignment.status.replace('_', ' ')}
+                                </Badge>
+                                {training && (
+                                  <Badge variant="outline" className="capitalize">
+                                    {training.training_type.replace('_', ' ')}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-sm">
                             {assignment.due_date && (
-                              <Badge variant="outline">
-                                <Clock className="w-3 h-3 mr-1" />
-                                Due: {new Date(assignment.due_date).toLocaleDateString()}
-                              </Badge>
+                              <div className={`p-2 rounded-lg ${isOverdue ? "bg-red-50" : "bg-slate-50"}`}>
+                                <div className="flex items-center gap-1 text-slate-600 mb-1">
+                                  <Clock className="w-3 h-3" />
+                                  <span className="text-xs">Due Date</span>
+                                </div>
+                                <p className={`font-medium ${isOverdue ? "text-red-700" : ""}`}>
+                                  {new Date(assignment.due_date).toLocaleDateString()}
+                                </p>
+                                {daysUntilDue !== null && !isOverdue && (
+                                  <p className="text-xs text-slate-500">{daysUntilDue} days left</p>
+                                )}
+                              </div>
                             )}
+                            
+                            {training?.duration_minutes && (
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <div className="flex items-center gap-1 text-slate-600 mb-1">
+                                  <Clock className="w-3 h-3" />
+                                  <span className="text-xs">Duration</span>
+                                </div>
+                                <p className="font-medium">{training.duration_minutes} min</p>
+                              </div>
+                            )}
+
                             {assignment.quiz_score !== undefined && (
-                              <Badge variant="outline">
-                                Score: {assignment.quiz_score}%
-                              </Badge>
+                              <div className={`p-2 rounded-lg ${
+                                assignment.quiz_score >= (training?.passing_score || 80) ? "bg-green-50" : "bg-red-50"
+                              }`}>
+                                <div className="flex items-center gap-1 text-slate-600 mb-1">
+                                  <BarChart3 className="w-3 h-3" />
+                                  <span className="text-xs">Score</span>
+                                </div>
+                                <p className={`font-medium ${
+                                  assignment.quiz_score >= (training?.passing_score || 80) ? "text-green-700" : "text-red-700"
+                                }`}>
+                                  {assignment.quiz_score}%
+                                </p>
+                              </div>
+                            )}
+
+                            {assignment.attempts > 0 && (
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <div className="flex items-center gap-1 text-slate-600 mb-1">
+                                  <FileText className="w-3 h-3" />
+                                  <span className="text-xs">Attempts</span>
+                                </div>
+                                <p className="font-medium">{assignment.attempts}</p>
+                              </div>
                             )}
                           </div>
-                          {assignment.expiry_date && (
-                            <p className="text-sm text-slate-500">
-                              Valid until: {new Date(assignment.expiry_date).toLocaleDateString()}
+
+                          {assignment.status === "completed" && assignment.expiry_date && (
+                            <div className={`p-3 rounded-lg ${isExpiringSoon ? "bg-amber-50 border border-amber-200" : "bg-slate-50"}`}>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-slate-700">Certification Status</p>
+                                  <p className={`text-sm ${isExpiringSoon ? "text-amber-700" : "text-slate-500"}`}>
+                                    {isExpiringSoon ? (
+                                      <>
+                                        <AlertTriangle className="w-3 h-3 inline mr-1" />
+                                        Expires in {daysUntilExpiry} days
+                                      </>
+                                    ) : (
+                                      `Valid until ${new Date(assignment.expiry_date).toLocaleDateString()}`
+                                    )}
+                                  </p>
+                                </div>
+                                {isExpiringSoon && (
+                                  <Badge className="bg-amber-100 text-amber-800">Renewal Required</Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {assignment.completed_date && (
+                            <p className="text-xs text-slate-500 mt-2">
+                              Completed on {new Date(assignment.completed_date).toLocaleDateString()}
                             </p>
                           )}
                         </div>
+                        
                         {assignment.status !== "completed" && (
-                          <Button size="sm">Start Training</Button>
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                            {assignment.status === "in_progress" ? "Continue" : "Start Training"}
+                          </Button>
                         )}
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
+            {assignments.filter(a => a.employee_email === user?.email).length === 0 && (
+              <Card>
+                <CardContent className="py-12 text-center text-slate-500">
+                  <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No training assignments yet</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
         {/* All Assignments (Admin) */}
         {isAdmin && (
           <TabsContent value="assignments" className="space-y-4">
-            <div className="space-y-3">
-              {assignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div>
-                            <h3 className="font-semibold">{assignment.employee_name}</h3>
-                            <p className="text-sm text-slate-500">{assignment.training_title}</p>
-                          </div>
+            <div className="flex justify-between items-center mb-4">
+              <Input placeholder="Search by employee or training..." className="max-w-sm" />
+              <div className="flex gap-2">
+                <Select defaultValue="all">
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="assigned">Assigned</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {assignments.map((assignment) => {
+                const training = trainings.find(t => t.id === assignment.training_id);
+                const isOverdue = assignment.status === "assigned" && new Date(assignment.due_date) < new Date();
+                
+                return (
+                  <Card key={assignment.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          assignment.status === "completed" ? "bg-green-100" :
+                          assignment.status === "failed" ? "bg-red-100" :
+                          isOverdue ? "bg-red-100" :
+                          "bg-blue-100"
+                        }`}>
+                          {assignment.status === "completed" ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <Users className="w-5 h-5 text-blue-600" />
+                          )}
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold truncate">{assignment.employee_name}</h3>
+                          <p className="text-sm text-slate-500 truncate">{assignment.training_title}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-600">Status:</span>
                           <Badge className={
                             assignment.status === "completed" ? "bg-green-100 text-green-800" :
                             assignment.status === "failed" ? "bg-red-100 text-red-800" :
+                            isOverdue ? "bg-red-100 text-red-800" :
                             "bg-blue-100 text-blue-800"
                           }>
-                            {assignment.status}
+                            {isOverdue ? "Overdue" : assignment.status.replace('_', ' ')}
                           </Badge>
-                          {assignment.quiz_score !== undefined && (
-                            <Badge variant="outline">Score: {assignment.quiz_score}%</Badge>
-                          )}
-                          {assignment.due_date && (
-                            <Badge variant="outline">Due: {new Date(assignment.due_date).toLocaleDateString()}</Badge>
-                          )}
                         </div>
+
+                        {assignment.quiz_score !== undefined && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-600">Score:</span>
+                            <span className={`font-medium ${
+                              assignment.quiz_score >= (training?.passing_score || 80) ? "text-green-600" : "text-red-600"
+                            }`}>
+                              {assignment.quiz_score}%
+                            </span>
+                          </div>
+                        )}
+
+                        {assignment.due_date && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-600">Due:</span>
+                            <span className={isOverdue ? "text-red-600 font-medium" : ""}>
+                              {new Date(assignment.due_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+
+                        {assignment.completed_date && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-600">Completed:</span>
+                            <span className="text-green-600">
+                              {new Date(assignment.completed_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
         )}
