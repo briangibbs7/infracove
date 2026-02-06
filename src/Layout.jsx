@@ -75,6 +75,15 @@ const navigation = [
     ],
   },
   {
+    name: "Compliance",
+    icon: ShieldCheck,
+    color: "red",
+    children: [
+      { name: "Overview", href: "Compliance", icon: ShieldCheck },
+      { name: "Training", href: "ComplianceTraining", icon: BookOpen },
+    ],
+  },
+  {
     name: "Payroll",
     icon: DollarSign,
     color: "green",
@@ -123,15 +132,6 @@ const navigation = [
     ],
   },
   { name: "Documents", href: "Documents", icon: FileText, color: "slate" },
-  {
-    name: "Compliance",
-    icon: ShieldCheck,
-    color: "red",
-    children: [
-      { name: "Overview", href: "Compliance", icon: ShieldCheck },
-      { name: "Training", href: "ComplianceTraining", icon: BookOpen },
-    ],
-  },
 ];
 
 export default function Layout({ children, currentPageName }) {
