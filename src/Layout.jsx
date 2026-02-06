@@ -30,7 +30,8 @@ import {
   Target,
   Shield,
   Heart,
-  CreditCard
+  CreditCard,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -122,7 +123,15 @@ const navigation = [
     ],
   },
   { name: "Documents", href: "Documents", icon: FileText, color: "slate" },
-  { name: "Compliance", href: "Compliance", icon: ShieldCheck, color: "red" },
+  {
+    name: "Compliance",
+    icon: ShieldCheck,
+    color: "red",
+    children: [
+      { name: "Overview", href: "Compliance", icon: ShieldCheck },
+      { name: "Training", href: "ComplianceTraining", icon: BookOpen },
+    ],
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {
