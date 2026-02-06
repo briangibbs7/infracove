@@ -40,6 +40,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import PageHeader from "@/components/ui/PageHeader";
+import EmployeeLinkDialog from "@/components/compliance/EmployeeLinkDialog";
 
 export default function Compliance() {
   const [user, setUser] = useState(null);
@@ -48,6 +49,9 @@ export default function Compliance() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState(null);
   const [formData, setFormData] = useState({});
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -126,6 +130,34 @@ export default function Compliance() {
     setDialogType(type);
     setFormData({});
     setDialogOpen(true);
+  };
+
+  const syncAllEmployees = async () => {
+    setSyncing(true);
+    try {
+      for (const emp of employees) {
+        await base44.functions.invoke('syncEmployeeToCompliance', {
+          employee_id: emp.id
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["compliancePersonnel"] });
+    } catch (error) {
+      console.error('Error syncing employees:', error);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const openLinkDialog = (employee) => {
+    setSelectedEmployee(employee);
+    setLinkDialogOpen(true);
+  };
+
+  const getRiskColor = (score) => {
+    if (score >= 70) return "bg-red-100 text-red-800 border-red-200";
+    if (score >= 50) return "bg-orange-100 text-orange-800 border-orange-200";
+    if (score >= 30) return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    return "bg-green-100 text-green-800 border-green-200";
   };
 
   const handleSubmit = () => {
@@ -254,22 +286,33 @@ export default function Compliance() {
               placeholder="Search personnel..."
               className="max-w-sm"
             />
+            <Button onClick={syncAllEmployees} disabled={syncing}>
+              {syncing ? "Syncing..." : "Sync All Employees"}
+            </Button>
           </div>
 
           <div className="space-y-3">
-            {personnel.map((person) => (
+            {personnel.map((person) => {
+              const employee = employees.find(e => e.id === person.employee_id);
+              return (
               <Card key={person.id}>
                 <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
                         <Users className="w-5 h-5 text-blue-600" />
-                        <div>
+                        <div className="flex-1">
                           <h3 className="font-semibold">{person.employee_name}</h3>
                           <p className="text-sm text-slate-500">{person.employee_email}</p>
                         </div>
+                        {person.risk_score !== undefined && (
+                          <Badge className={`${getRiskColor(person.risk_score)} border`}>
+                            Risk Score: {person.risk_score}
+                          </Badge>
+                        )}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
                         <div>
                           <span className="text-slate-500">Citizenship:</span>
                           <p className="font-medium">{person.citizenship || "N/A"}</p>
@@ -293,8 +336,35 @@ export default function Compliance() {
                           </Badge>
                         </div>
                       </div>
+
+                      {person.risk_factors && person.risk_factors.length > 0 && (
+                        <div className="mb-3">
+                          <span className="text-xs text-slate-500">Risk Factors:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {person.risk_factors.map((factor, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {factor}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {person.authorized_programs && person.authorized_programs.length > 0 && (
+                        <div className="mb-3">
+                          <span className="text-xs text-slate-500">Linked Programs:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {person.authorized_programs.map((prog, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {prog.program_name} ({prog.role})
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {person.visa_type && (
-                        <div className="mt-3 text-sm">
+                        <div className="text-sm">
                           <span className="text-slate-500">Visa: </span>
                           <span className="font-medium">{person.visa_type}</span>
                           {person.visa_expiry && (
@@ -303,10 +373,20 @@ export default function Compliance() {
                         </div>
                       )}
                     </div>
+                    
+                    {employee && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openLinkDialog(employee)}
+                      >
+                        Link to Program
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );})}
             {personnel.length === 0 && (
               <Card>
                 <CardContent className="py-12 text-center text-slate-500">
@@ -850,6 +930,14 @@ export default function Compliance() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Employee Link Dialog */}
+      <EmployeeLinkDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        employee={selectedEmployee}
+        programs={programs}
+      />
     </div>
   );
 }
