@@ -17,7 +17,9 @@ import {
   Monitor,
   Plus,
   Search,
-  Filter
+  Filter,
+  Users,
+  Globe
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -76,6 +78,21 @@ export default function Compliance() {
   const { data: techPlans = [] } = useQuery({
     queryKey: ["technologyControlPlans"],
     queryFn: () => base44.entities.TechnologyControlPlan.list(),
+  });
+
+  const { data: personnel = [] } = useQuery({
+    queryKey: ["compliancePersonnel"],
+    queryFn: () => base44.entities.CompliancePersonnel.list(),
+  });
+
+  const { data: deemedExports = [] } = useQuery({
+    queryKey: ["deemedExports"],
+    queryFn: () => base44.entities.DeemedExport.list(),
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees"],
+    queryFn: () => base44.entities.Employee.list(),
   });
 
   const createProgramMutation = useMutation({
@@ -222,11 +239,172 @@ export default function Compliance() {
       <Tabs defaultValue="programs" className="space-y-4">
         <TabsList>
           <TabsTrigger value="programs">Programs</TabsTrigger>
+          <TabsTrigger value="personnel">Personnel</TabsTrigger>
+          <TabsTrigger value="deemed-exports">Deemed Exports</TabsTrigger>
           <TabsTrigger value="violations">Violations</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="audits">Audits</TabsTrigger>
           <TabsTrigger value="tech-control">Tech Control Plans</TabsTrigger>
         </TabsList>
+
+        {/* Personnel Tab */}
+        <TabsContent value="personnel" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <Input
+              placeholder="Search personnel..."
+              className="max-w-sm"
+            />
+          </div>
+
+          <div className="space-y-3">
+            {personnel.map((person) => (
+              <Card key={person.id}>
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Users className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <h3 className="font-semibold">{person.employee_name}</h3>
+                          <p className="text-sm text-slate-500">{person.employee_email}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-slate-500">Citizenship:</span>
+                          <p className="font-medium">{person.citizenship || "N/A"}</p>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Clearance:</span>
+                          <Badge className={getSeverityColor(person.clearance_level === "top_secret" ? "critical" : person.clearance_level === "secret" ? "high" : "low")}>
+                            {person.clearance_level}
+                          </Badge>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Training:</span>
+                          <Badge className={person.export_control_training ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                            {person.export_control_training ? "Completed" : "Required"}
+                          </Badge>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Access Level:</span>
+                          <Badge className={person.access_level === "full" ? "bg-green-100 text-green-800" : person.access_level === "limited" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}>
+                            {person.access_level}
+                          </Badge>
+                        </div>
+                      </div>
+                      {person.visa_type && (
+                        <div className="mt-3 text-sm">
+                          <span className="text-slate-500">Visa: </span>
+                          <span className="font-medium">{person.visa_type}</span>
+                          {person.visa_expiry && (
+                            <span className="text-slate-500"> (Expires: {new Date(person.visa_expiry).toLocaleDateString()})</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {personnel.length === 0 && (
+              <Card>
+                <CardContent className="py-12 text-center text-slate-500">
+                  No personnel records found. Add employees to compliance tracking.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Deemed Exports Tab */}
+        <TabsContent value="deemed-exports" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <Input
+              placeholder="Search deemed exports..."
+              className="max-w-sm"
+            />
+          </div>
+
+          <div className="space-y-4">
+            {deemedExports.map((export_record) => (
+              <Card key={export_record.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Globe className="w-5 h-5 text-purple-600" />
+                        <CardTitle className="text-base">{export_record.employee_name}</CardTitle>
+                      </div>
+                      <CardDescription>{export_record.technology_description}</CardDescription>
+                    </div>
+                    <Badge className={getStatusColor(export_record.status)}>
+                      {export_record.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-slate-500">Country:</span>
+                      <p className="font-medium">{export_record.foreign_national_country}</p>
+                    </div>
+                    {export_record.eccn_classification && (
+                      <div>
+                        <span className="text-slate-500">ECCN:</span>
+                        <p className="font-medium">{export_record.eccn_classification}</p>
+                      </div>
+                    )}
+                    {export_record.itar_category && (
+                      <div>
+                        <span className="text-slate-500">ITAR Category:</span>
+                        <p className="font-medium">{export_record.itar_category}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-slate-500">License Type:</span>
+                      <p className="font-medium capitalize">{export_record.license_type?.replace(/_/g, " ")}</p>
+                    </div>
+                    {export_record.release_date && (
+                      <div>
+                        <span className="text-slate-500">Release Date:</span>
+                        <p className="font-medium">{new Date(export_record.release_date).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-slate-500">Risk:</span>
+                      <Badge className={getSeverityColor(export_record.risk_assessment)}>
+                        {export_record.risk_assessment}
+                      </Badge>
+                    </div>
+                  </div>
+                  {export_record.project_name && (
+                    <div className="mt-3 text-sm">
+                      <span className="text-slate-500">Project: </span>
+                      <span className="font-medium">{export_record.project_name}</span>
+                    </div>
+                  )}
+                  {export_record.approved_by_name && (
+                    <div className="mt-2 text-sm">
+                      <span className="text-slate-500">Approved by: </span>
+                      <span className="font-medium">{export_record.approved_by_name}</span>
+                      {export_record.approval_date && (
+                        <span className="text-slate-500"> on {new Date(export_record.approval_date).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+            {deemedExports.length === 0 && (
+              <Card>
+                <CardContent className="py-12 text-center text-slate-500">
+                  No deemed export records found.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
 
         {/* Programs Tab */}
         <TabsContent value="programs" className="space-y-4">
