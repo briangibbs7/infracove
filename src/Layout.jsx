@@ -287,11 +287,9 @@ export default function Layout({ children, currentPageName }) {
     <div className="flex flex-col h-full bg-white">
       <div className="p-6 border-b border-slate-100">
         <div className="flex items-center">
-          <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/696869f57e5cb5c947b8db17/9fa12f207_infracove.png"
-            alt="InfraCove"
-            className="h-20 w-auto"
-          />
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+            InfraCove
+          </h1>
         </div>
       </div>
 
