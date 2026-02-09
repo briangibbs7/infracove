@@ -50,6 +50,7 @@
 import Admin from './pages/Admin';
 import Analytics from './pages/Analytics';
 import Announcements from './pages/Announcements';
+import AppLinks from './pages/AppLinks';
 import Assets from './pages/Assets';
 import Benefits from './pages/Benefits';
 import CareerPathing from './pages/CareerPathing';
@@ -85,7 +86,7 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import AppLinks from './pages/AppLinks';
+import OrgChart from './pages/OrgChart';
 import __Layout from './Layout.jsx';
 
 
@@ -93,6 +94,7 @@ export const PAGES = {
     "Admin": Admin,
     "Analytics": Analytics,
     "Announcements": Announcements,
+    "AppLinks": AppLinks,
     "Assets": Assets,
     "Benefits": Benefits,
     "CareerPathing": CareerPathing,
@@ -128,7 +130,7 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "AppLinks": AppLinks,
+    "OrgChart": OrgChart,
 }
 
 export const pagesConfig = {

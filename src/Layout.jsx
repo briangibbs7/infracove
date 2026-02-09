@@ -61,6 +61,7 @@ const navigation = [
       { name: "Hiring", href: "Hiring", icon: Briefcase },
       { name: "Email Templates", href: "EmailTemplates", icon: FileText },
       { name: "Employees", href: "Employees", icon: Users },
+      { name: "Org Chart", href: "OrgChart", icon: Users },
       { name: "Time Off", href: "TimeOff", icon: FileText },
       { name: "Performance", href: "Performance", icon: TrendingUp },
       { name: "Training", href: "Training", icon: TrendingUp },
