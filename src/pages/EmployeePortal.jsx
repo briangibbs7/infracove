@@ -400,8 +400,14 @@ export default function EmployeePortal() {
                       onClick={() => window.open(app.url, "_blank")}
                       className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-slate-50 transition-colors group"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white group-hover:shadow-lg transition-shadow">
-                        {getIconComponent(app.icon)}
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-lg transition-shadow">
+                        {app.thumbnail_url ? (
+                          <img src={app.thumbnail_url} alt={app.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white">
+                            {getIconComponent(app.icon)}
+                          </div>
+                        )}
                       </div>
                       <span className="text-xs font-medium text-center text-slate-700">
                         {app.name}
@@ -520,8 +526,14 @@ export default function EmployeePortal() {
                       className="flex flex-col items-center gap-3 p-4 border rounded-lg hover:shadow-lg transition-all cursor-pointer group"
                       onClick={() => window.open(app.url, "_blank")}
                     >
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                        {getIconComponent(app.icon)}
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        {app.thumbnail_url ? (
+                          <img src={app.thumbnail_url} alt={app.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white">
+                            {getIconComponent(app.icon)}
+                          </div>
+                        )}
                       </div>
                       <div className="text-center">
                         <p className="font-medium text-sm">{app.name}</p>
@@ -1138,8 +1150,14 @@ export default function EmployeePortal() {
                     className="p-4 border rounded-lg hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shrink-0">
-                        {getIconComponent(app.icon)}
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                        {app.thumbnail_url ? (
+                          <img src={app.thumbnail_url} alt={app.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white">
+                            {getIconComponent(app.icon)}
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-slate-900 mb-1">{app.name}</h3>
