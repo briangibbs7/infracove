@@ -132,6 +132,7 @@ const navigation = [
     ],
   },
   { name: "Documents", href: "Documents", icon: FileText, color: "slate" },
+  { name: "App Links", href: "AppLinks", icon: Grid, color: "cyan" },
 ];
 
 export default function Layout({ children, currentPageName }) {
