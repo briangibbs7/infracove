@@ -18,8 +18,13 @@ import {
   TrendingUp
 } from "lucide-react";
 
-export default function EmployeeProfileModal({ employee, open, onOpenChange }) {
+export default function EmployeeProfileModal({ employee, open, onOpenChange, onClose }) {
   if (!employee) return null;
+  
+  const handleOpenChange = (isOpen) => {
+    if (onOpenChange) onOpenChange(isOpen);
+    if (!isOpen && onClose) onClose();
+  };
 
   const themeColors = {
     blue: {
@@ -51,7 +56,7 @@ export default function EmployeeProfileModal({ employee, open, onOpenChange }) {
   const theme = themeColors[employee.profile_theme] || themeColors.blue;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* Header with gradient */}
         <div className={`bg-gradient-to-r ${theme.gradient} -m-6 mb-6 p-8 rounded-t-lg`}>
