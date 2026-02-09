@@ -83,18 +83,18 @@ export default function EmployeeProfileModal({ employee, open, onOpenChange }) {
 
         <div className="space-y-6">
           {/* Reporting Structure */}
-          {employee.manager_name && (
-            <div>
-              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <Briefcase className="w-4 h-4" />
-                Reporting Structure
-              </h3>
-              <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                <p className="text-xs text-indigo-600 mb-1">Reports To</p>
-                <p className="text-base font-semibold text-indigo-900">{employee.manager_name}</p>
-              </div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Reporting Structure
+            </h3>
+            <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+              <p className="text-xs text-indigo-600 mb-1">Reports To</p>
+              <p className="text-base font-semibold text-indigo-900">
+                {employee.manager_name || "Not assigned"}
+              </p>
             </div>
-          )}
+          </div>
 
           {/* Contact Information */}
           <div>
