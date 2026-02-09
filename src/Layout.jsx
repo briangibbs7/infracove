@@ -31,7 +31,8 @@ import {
   Shield,
   Heart,
   CreditCard,
-  BookOpen
+  BookOpen,
+  Grid
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
