@@ -7,6 +7,7 @@ import StatCard from "@/components/ui/StatCard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import RecognitionFeed from "@/components/recognition/RecognitionFeed";
 import GiveRecognitionDialog from "@/components/recognition/GiveRecognitionDialog";
+import EmployeeProfileModal from "@/components/employees/EmployeeProfileModal";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -50,6 +51,8 @@ export default function Dashboard() {
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [isGiveRecognitionOpen, setIsGiveRecognitionOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState(null);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -504,7 +507,14 @@ export default function Dashboard() {
                 <h3 className="font-medium text-slate-900 mb-3 text-sm md:text-base">Your Team ({myTeam.length})</h3>
                 <div className="space-y-2">
                   {myTeam.slice(0, 5).map((emp) => (
-                    <div key={emp.id} className="flex items-start sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg">
+                    <div
+                      key={emp.id}
+                      onClick={() => {
+                        setSelectedEmployee(emp);
+                        setIsProfileModalOpen(true);
+                      }}
+                      className="flex items-start sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
+                    >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-slate-900 text-sm md:text-base truncate">{emp.full_name}</p>
                         <p className="text-xs md:text-sm text-slate-500 truncate">{emp.job_title}</p>
@@ -785,6 +795,12 @@ export default function Dashboard() {
       </div>
         </>
       )}
+
+      <EmployeeProfileModal
+        employee={selectedEmployee}
+        open={isProfileModalOpen}
+        onOpenChange={setIsProfileModalOpen}
+      />
     </div>
   );
 }
