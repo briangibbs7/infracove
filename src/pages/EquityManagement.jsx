@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Award, TrendingUp, Calendar, Plus, DollarSign } from "lucide-react";
+import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import { format } from "date-fns";
 
@@ -50,6 +50,7 @@ export default function EquityManagement() {
     amount_raised: 0,
     closing_date: new Date().toISOString().split("T")[0],
   });
+  const [isCalculatingVesting, setIsCalculatingVesting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -124,6 +125,20 @@ export default function EquityManagement() {
     });
   };
 
+  const handleCalculateVesting = async () => {
+    setIsCalculatingVesting(true);
+    try {
+      await base44.functions.invoke('calculateVesting', {});
+      queryClient.invalidateQueries({ queryKey: ["equityGrants"] });
+      queryClient.invalidateQueries({ queryKey: ["shareholders"] });
+      alert('Vesting calculations completed successfully');
+    } catch (error) {
+      alert('Failed to calculate vesting: ' + error.message);
+    } finally {
+      setIsCalculatingVesting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -134,6 +149,14 @@ export default function EquityManagement() {
             Grants, options, and funding rounds
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={handleCalculateVesting}
+          disabled={isCalculatingVesting}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isCalculatingVesting ? 'animate-spin' : ''}`} />
+          {isCalculatingVesting ? 'Calculating...' : 'Update Vesting'}
+        </Button>
       </div>
 
       {/* Stats */}
@@ -227,10 +250,20 @@ export default function EquityManagement() {
                           {grant.grant_date && format(new Date(grant.grant_date), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell>
-                          <div className="text-xs">
-                            <div>{grant.shares_vested || 0} vested</div>
-                            <div className="text-slate-500">
-                              of {grant.shares_granted}
+                          <div className="flex flex-col gap-1">
+                            <div className="text-xs">
+                              <span className="font-medium text-green-600">{grant.shares_vested || 0}</span>
+                              <span className="text-slate-500"> / {grant.shares_granted}</span>
+                            </div>
+                            <div className="w-20 bg-slate-200 rounded-full h-1.5">
+                              <div
+                                className="bg-green-600 h-1.5 rounded-full"
+                                style={{ 
+                                  width: `${grant.shares_granted > 0 
+                                    ? ((grant.shares_vested || 0) / grant.shares_granted) * 100
+                                    : 0}%` 
+                                }}
+                              />
                             </div>
                           </div>
                         </TableCell>
