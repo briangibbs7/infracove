@@ -75,6 +75,7 @@ import NDAs from './pages/NDAs';
 import Offboarding from './pages/Offboarding';
 import Onboarding from './pages/Onboarding';
 import OpenEnrollment from './pages/OpenEnrollment';
+import OrgChart from './pages/OrgChart';
 import Payroll from './pages/Payroll';
 import Performance from './pages/Performance';
 import Recognition from './pages/Recognition';
@@ -86,7 +87,8 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import OrgChart from './pages/OrgChart';
+import CapTable from './pages/CapTable';
+import EquityManagement from './pages/EquityManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -119,6 +121,7 @@ export const PAGES = {
     "Offboarding": Offboarding,
     "Onboarding": Onboarding,
     "OpenEnrollment": OpenEnrollment,
+    "OrgChart": OrgChart,
     "Payroll": Payroll,
     "Performance": Performance,
     "Recognition": Recognition,
@@ -130,7 +133,8 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "OrgChart": OrgChart,
+    "CapTable": CapTable,
+    "EquityManagement": EquityManagement,
 }
 
 export const pagesConfig = {

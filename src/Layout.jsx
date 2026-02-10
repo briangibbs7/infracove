@@ -115,6 +115,15 @@ const navigation = [
       { name: "Vendors", href: "Vendors", icon: Briefcase },
     ],
   },
+  {
+    name: "Equity",
+    icon: TrendingUp,
+    color: "emerald",
+    children: [
+      { name: "Cap Table", href: "CapTable", icon: Users },
+      { name: "Equity Management", href: "EquityManagement", icon: Award },
+    ],
+  },
 
   {
     name: "Legal",
