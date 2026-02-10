@@ -53,6 +53,7 @@ import Announcements from './pages/Announcements';
 import AppLinks from './pages/AppLinks';
 import Assets from './pages/Assets';
 import Benefits from './pages/Benefits';
+import CapTable from './pages/CapTable';
 import CareerPathing from './pages/CareerPathing';
 import Claims from './pages/Claims';
 import CompanySkills from './pages/CompanySkills';
@@ -65,6 +66,7 @@ import Documents from './pages/Documents';
 import EmailTemplates from './pages/EmailTemplates';
 import EmployeePortal from './pages/EmployeePortal';
 import Employees from './pages/Employees';
+import EquityManagement from './pages/EquityManagement';
 import Expenses from './pages/Expenses';
 import HRContracts from './pages/HRContracts';
 import Hiring from './pages/Hiring';
@@ -80,6 +82,7 @@ import Payroll from './pages/Payroll';
 import Performance from './pages/Performance';
 import Recognition from './pages/Recognition';
 import Settings from './pages/Settings';
+import ShareholderPortal from './pages/ShareholderPortal';
 import Support from './pages/Support';
 import Surveys from './pages/Surveys';
 import TaxDocuments from './pages/TaxDocuments';
@@ -87,9 +90,6 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import CapTable from './pages/CapTable';
-import EquityManagement from './pages/EquityManagement';
-import ShareholderPortal from './pages/ShareholderPortal';
 import __Layout from './Layout.jsx';
 
 
@@ -100,6 +100,7 @@ export const PAGES = {
     "AppLinks": AppLinks,
     "Assets": Assets,
     "Benefits": Benefits,
+    "CapTable": CapTable,
     "CareerPathing": CareerPathing,
     "Claims": Claims,
     "CompanySkills": CompanySkills,
@@ -112,6 +113,7 @@ export const PAGES = {
     "EmailTemplates": EmailTemplates,
     "EmployeePortal": EmployeePortal,
     "Employees": Employees,
+    "EquityManagement": EquityManagement,
     "Expenses": Expenses,
     "HRContracts": HRContracts,
     "Hiring": Hiring,
@@ -127,6 +129,7 @@ export const PAGES = {
     "Performance": Performance,
     "Recognition": Recognition,
     "Settings": Settings,
+    "ShareholderPortal": ShareholderPortal,
     "Support": Support,
     "Surveys": Surveys,
     "TaxDocuments": TaxDocuments,
@@ -134,9 +137,6 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "CapTable": CapTable,
-    "EquityManagement": EquityManagement,
-    "ShareholderPortal": ShareholderPortal,
 }
 
 export const pagesConfig = {

@@ -21,6 +21,7 @@ import {
   DollarSign,
   Calendar,
   PieChart,
+  Bell,
 } from "lucide-react";
 import { format } from "date-fns";
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
@@ -239,6 +240,10 @@ export default function ShareholderPortal() {
           <h1 className="text-3xl font-bold text-slate-900">My Equity</h1>
           <p className="text-slate-600 mt-1">
             View your equity holdings and vesting schedule
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            <Bell className="w-3 h-3 inline mr-1" />
+            Vesting calculations updated daily at midnight
           </p>
         </div>
         <Button
