@@ -32,6 +32,8 @@ const COLORS = ["#10b981", "#f59e0b", "#6366f1", "#ef4444"];
 export default function ShareholderPortal() {
   const [user, setUser] = useState(null);
   const [generatingDoc, setGeneratingDoc] = useState(null);
+  const [exerciseDialogOpen, setExerciseDialogOpen] = useState(false);
+  const [selectedGrantForExercise, setSelectedGrantForExercise] = useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
