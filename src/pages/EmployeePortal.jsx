@@ -50,10 +50,15 @@ import {
   Star,
   Building2,
   Camera,
-  Edit
+  Edit,
+  TrendingUp,
+  PieChart as PieChartIcon
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
+import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+
+const EQUITY_COLORS = ["#10b981", "#f59e0b", "#6366f1", "#ef4444"];
 
 export default function EmployeePortal() {
   const [user, setUser] = useState(null);
@@ -67,6 +72,7 @@ export default function EmployeePortal() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [profileFormData, setProfileFormData] = useState({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [generatingDoc, setGeneratingDoc] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -121,6 +127,21 @@ export default function EmployeePortal() {
   const { data: trainingCourses = [] } = useQuery({
     queryKey: ["trainingCourses"],
     queryFn: () => base44.entities.TrainingCourse.list(),
+  });
+
+  const { data: shareholders = [] } = useQuery({
+    queryKey: ["shareholders"],
+    queryFn: () => base44.entities.Shareholder.list(),
+  });
+
+  const { data: equityGrants = [] } = useQuery({
+    queryKey: ["equityGrants"],
+    queryFn: () => base44.entities.EquityGrant.list("-grant_date"),
+  });
+
+  const { data: valuations = [] } = useQuery({
+    queryKey: ["valuations"],
+    queryFn: () => base44.entities.Valuation.list("-valuation_date"),
   });
 
   useEffect(() => {
@@ -311,6 +332,96 @@ export default function EmployeePortal() {
     });
   };
 
+  // Equity calculations
+  const currentShareholder = React.useMemo(() => {
+    if (!user) return null;
+    return shareholders.find(s => s.email === user.email);
+  }, [user, shareholders]);
+
+  const myGrants = React.useMemo(() => {
+    if (!currentShareholder) return [];
+    return equityGrants.filter(g => g.shareholder_id === currentShareholder.id);
+  }, [currentShareholder, equityGrants]);
+
+  const portfolioValue = React.useMemo(() => {
+    if (!currentShareholder) return 0;
+    const activeValuation = valuations.find(v => v.status === "active");
+    if (!activeValuation) return 0;
+    const pricePerShare = activeValuation.common_stock_price || 0;
+    return (currentShareholder.total_shares || 0) * pricePerShare;
+  }, [currentShareholder, valuations]);
+
+  const vestedValue = React.useMemo(() => {
+    if (!currentShareholder) return 0;
+    const activeValuation = valuations.find(v => v.status === "active");
+    if (!activeValuation) return 0;
+    const pricePerShare = activeValuation.common_stock_price || 0;
+    return (currentShareholder.shares_vested || 0) * pricePerShare;
+  }, [currentShareholder, valuations]);
+
+  const grantBreakdown = React.useMemo(() => {
+    const breakdown = {};
+    myGrants.forEach(grant => {
+      const type = grant.grant_type || "unknown";
+      if (!breakdown[type]) {
+        breakdown[type] = { type, shares: 0 };
+      }
+      breakdown[type].shares += grant.shares_granted || 0;
+    });
+    return Object.values(breakdown).map(item => ({
+      ...item,
+      percentage: currentShareholder?.total_shares 
+        ? ((item.shares / currentShareholder.total_shares) * 100).toFixed(1)
+        : 0,
+    }));
+  }, [myGrants, currentShareholder]);
+
+  const handleGenerateStockCertificate = async (shareholderId) => {
+    setGeneratingDoc("certificate");
+    try {
+      const { data } = await base44.functions.invoke("generateStockCertificate", {
+        shareholder_id: shareholderId,
+      });
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `stock-certificate-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success("Certificate downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate certificate");
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
+  const handleGenerateGrantAgreement = async (grantId) => {
+    setGeneratingDoc(`grant-${grantId}`);
+    try {
+      const { data } = await base44.functions.invoke("generateGrantAgreement", {
+        grant_id: grantId,
+      });
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `grant-agreement-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success("Agreement downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate agreement");
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
   const getCategoryColor = (category) => {
     const colors = {
       productivity: "bg-blue-100 text-blue-700",
@@ -350,7 +461,7 @@ export default function EmployeePortal() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">
             <Grid className="w-4 h-4 mr-2" />
             Overview
@@ -366,6 +477,10 @@ export default function EmployeePortal() {
           <TabsTrigger value="directory">
             <Users className="w-4 h-4 mr-2" />
             Directory
+          </TabsTrigger>
+          <TabsTrigger value="equity">
+            <TrendingUp className="w-4 h-4 mr-2" />
+            My Equity
           </TabsTrigger>
           <TabsTrigger value="profile">
             <User className="w-4 h-4 mr-2" />
@@ -668,6 +783,269 @@ export default function EmployeePortal() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Equity Tab */}
+        <TabsContent value="equity" className="space-y-6">
+          {currentShareholder ? (
+            <>
+              {/* Equity Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-slate-600 mb-1">Total Shares</p>
+                        <p className="text-2xl font-bold text-slate-900">
+                          {(currentShareholder.total_shares || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Award className="w-6 h-6 text-blue-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-slate-600 mb-1">Vested Shares</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {(currentShareholder.shares_vested || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6 text-green-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-slate-600 mb-1">Portfolio Value</p>
+                        <p className="text-2xl font-bold text-emerald-600">
+                          ${portfolioValue.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-emerald-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-slate-600 mb-1">Ownership</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {currentShareholder.ownership_percentage?.toFixed(2) || 0}%
+                        </p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                        <PieChartIcon className="w-6 h-6 text-purple-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Grant Breakdown Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Grant Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {grantBreakdown.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={250}>
+                        <RechartsPie>
+                          <Pie
+                            data={grantBreakdown}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ type, percentage }) => `${type}: ${percentage}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="shares"
+                          >
+                            {grantBreakdown.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={EQUITY_COLORS[index % EQUITY_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </RechartsPie>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-[250px] flex items-center justify-center text-slate-400">
+                        No grants yet
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Vesting Progress */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Vesting Progress</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-green-600">Vested</span>
+                          <span className="text-lg font-bold text-green-700">
+                            {(currentShareholder.shares_vested || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-green-600">
+                          ${vestedValue.toLocaleString()} value
+                        </p>
+                      </div>
+                      <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-amber-600">Unvested</span>
+                          <span className="text-lg font-bold text-amber-700">
+                            {((currentShareholder.total_shares || 0) - (currentShareholder.shares_vested || 0)).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-600">
+                          ${(portfolioValue - vestedValue).toLocaleString()} potential value
+                        </p>
+                      </div>
+                      <div className="pt-2">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-slate-600">Overall Progress</span>
+                          <span className="font-semibold">
+                            {currentShareholder.total_shares > 0 
+                              ? ((currentShareholder.shares_vested / currentShareholder.total_shares) * 100).toFixed(0)
+                              : 0}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-3">
+                          <div
+                            className="bg-green-600 h-3 rounded-full transition-all"
+                            style={{ 
+                              width: `${currentShareholder.total_shares > 0 
+                                ? ((currentShareholder.shares_vested / currentShareholder.total_shares) * 100)
+                                : 0}%` 
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* My Grants */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>My Equity Grants</CardTitle>
+                    <Button
+                      onClick={() => handleGenerateStockCertificate(currentShareholder.id)}
+                      disabled={generatingDoc === "certificate"}
+                      variant="outline"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      {generatingDoc === "certificate" ? "Generating..." : "Stock Certificate"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {myGrants.length > 0 ? (
+                    <div className="space-y-3">
+                      {myGrants.map((grant) => (
+                        <div key={grant.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <Award className="w-5 h-5 text-indigo-600" />
+                                <h3 className="font-semibold capitalize">
+                                  {grant.grant_type?.replace(/_/g, " ")}
+                                </h3>
+                                <Badge
+                                  variant={
+                                    grant.status === "active"
+                                      ? "default"
+                                      : grant.status === "fully_vested"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                >
+                                  {grant.status}
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <p className="text-slate-600">Grant Date</p>
+                                  <p className="font-medium">
+                                    {format(new Date(grant.grant_date), "MMM dd, yyyy")}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-slate-600">Total Shares</p>
+                                  <p className="font-medium">{grant.shares_granted?.toLocaleString()}</p>
+                                </div>
+                                <div>
+                                  <p className="text-slate-600">Vested</p>
+                                  <p className="font-medium text-green-600">
+                                    {grant.shares_vested?.toLocaleString()}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-slate-600">Progress</p>
+                                  <p className="font-medium">
+                                    {grant.shares_granted > 0 
+                                      ? ((grant.shares_vested / grant.shares_granted) * 100).toFixed(0)
+                                      : 0}%
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleGenerateGrantAgreement(grant.id)}
+                              disabled={generatingDoc === `grant-${grant.id}`}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              {generatingDoc === `grant-${grant.id}` ? "..." : "Agreement"}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-slate-400">
+                      <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No equity grants yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center">
+                  <Award className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">No Equity Information</h3>
+                  <p className="text-slate-600">
+                    You don't have any equity grants yet. Contact your administrator for more information.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Profile Tab */}
