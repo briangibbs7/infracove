@@ -453,7 +453,18 @@ export default function Employees() {
       {viewMode === "org" ? (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
-            <OrgChart employees={filteredEmployees} onContact={handleContact} />
+            <OrgChart 
+              employees={employees} 
+              onContact={handleContact}
+              onMessage={(employee) => {
+                setMessagingRecipient(employee);
+                setIsMessagingOpen(true);
+              }}
+              onViewProfile={(employee) => {
+                setSelectedEmployee(employee);
+                setIsViewDialogOpen(true);
+              }}
+            />
           </CardContent>
         </Card>
       ) : isLoading ? (

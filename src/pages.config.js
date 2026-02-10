@@ -61,6 +61,7 @@ import Compliance from './pages/Compliance';
 import ComplianceTraining from './pages/ComplianceTraining';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
+import Departments from './pages/Departments';
 import DirectDeposit from './pages/DirectDeposit';
 import Documents from './pages/Documents';
 import EmailTemplates from './pages/EmailTemplates';
@@ -90,7 +91,6 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Departments from './pages/Departments';
 import __Layout from './Layout.jsx';
 
 
@@ -109,6 +109,7 @@ export const PAGES = {
     "ComplianceTraining": ComplianceTraining,
     "Contracts": Contracts,
     "Dashboard": Dashboard,
+    "Departments": Departments,
     "DirectDeposit": DirectDeposit,
     "Documents": Documents,
     "EmailTemplates": EmailTemplates,
@@ -138,7 +139,6 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Departments": Departments,
 }
 
 export const pagesConfig = {
