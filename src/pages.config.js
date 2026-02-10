@@ -89,6 +89,7 @@ import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
 import CapTable from './pages/CapTable';
 import EquityManagement from './pages/EquityManagement';
+import ShareholderPortal from './pages/ShareholderPortal';
 import __Layout from './Layout.jsx';
 
 
@@ -135,6 +136,7 @@ export const PAGES = {
     "WelcomePackets": WelcomePackets,
     "CapTable": CapTable,
     "EquityManagement": EquityManagement,
+    "ShareholderPortal": ShareholderPortal,
 }
 
 export const pagesConfig = {

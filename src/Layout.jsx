@@ -122,6 +122,7 @@ const navigation = [
     children: [
       { name: "Cap Table", href: "CapTable", icon: Users },
       { name: "Equity Management", href: "EquityManagement", icon: Award },
+      { name: "My Equity", href: "ShareholderPortal", icon: TrendingUp },
     ],
   },
 
