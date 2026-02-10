@@ -696,11 +696,30 @@ export default function EquityManagement() {
                             {election.filing_deadline && format(new Date(election.filing_deadline), "MMM d, yyyy")}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={election.status === "filed" ? "default" : election.status === "deadline_missed" ? "destructive" : "secondary"}
-                            >
-                              {election.status?.replace(/_/g, " ")}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={election.status === "filed" ? "default" : election.status === "deadline_missed" ? "destructive" : "secondary"}
+                              >
+                                {election.status?.replace(/_/g, " ")}
+                              </Badge>
+                              {election.status === "pending" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setSigningConfig({
+                                      documentType: '83b_election',
+                                      electionId: election.id,
+                                      recipientEmail: election.employee_email,
+                                      recipientName: election.employee_name
+                                    });
+                                    setIsSigningDialogOpen(true);
+                                  }}
+                                >
+                                  <PenLine className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
