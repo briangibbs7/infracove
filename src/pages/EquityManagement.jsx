@@ -29,12 +29,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw, FileText, Eye, Upload, History } from "lucide-react";
+import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw, FileText, Eye, Upload, History, BarChart3, Gavel, Shield, ArrowLeftRight } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import { format } from "date-fns";
 import VestingCalculator from "@/components/equity/VestingCalculator";
 import BulkGrantImport from "@/components/equity/BulkGrantImport";
 import EquityAuditLog from "@/components/equity/EquityAuditLog";
+import WaterfallModeler from "@/components/equity/WaterfallModeler";
+import BoardConsentManager from "@/components/equity/BoardConsentManager";
 import { toast } from "react-hot-toast";
 
 export default function EquityManagement() {
@@ -81,6 +83,36 @@ export default function EquityManagement() {
   const { data: valuations = [] } = useQuery({
     queryKey: ["valuations"],
     queryFn: () => base44.entities.Valuation.list("-valuation_date"),
+  });
+
+  const { data: shareClasses = [] } = useQuery({
+    queryKey: ["shareClasses"],
+    queryFn: () => base44.entities.ShareClass.list(),
+  });
+
+  const { data: safes = [] } = useQuery({
+    queryKey: ["safes"],
+    queryFn: () => base44.entities.SAFEAgreement.list("-issue_date"),
+  });
+
+  const { data: convertibleNotes = [] } = useQuery({
+    queryKey: ["convertibleNotes"],
+    queryFn: () => base44.entities.ConvertibleNote.list("-issue_date"),
+  });
+
+  const { data: secondaryTx = [] } = useQuery({
+    queryKey: ["secondaryTransactions"],
+    queryFn: () => base44.entities.SecondaryTransaction.list("-transaction_date"),
+  });
+
+  const { data: qsbsTracking = [] } = useQuery({
+    queryKey: ["qsbsTracking"],
+    queryFn: () => base44.entities.QSBSTracking.list(),
+  });
+
+  const { data: eightyThreeBElections = [] } = useQuery({
+    queryKey: ["eightyThreeBElections"],
+    queryFn: () => base44.entities.EightyThreeBElection.list("-election_date"),
   });
 
   const createGrantMutation = useMutation({
@@ -263,10 +295,14 @@ export default function EquityManagement() {
 
       {/* Tabs */}
       <Tabs defaultValue="grants" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="grants">Equity Grants</TabsTrigger>
-          <TabsTrigger value="rounds">Funding Rounds</TabsTrigger>
-          <TabsTrigger value="valuations">Valuations</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="grants">Grants</TabsTrigger>
+          <TabsTrigger value="rounds">Funding</TabsTrigger>
+          <TabsTrigger value="safes">SAFEs/Notes</TabsTrigger>
+          <TabsTrigger value="waterfall">Waterfall</TabsTrigger>
+          <TabsTrigger value="board">Board</TabsTrigger>
+          <TabsTrigger value="secondary">Secondary</TabsTrigger>
+          <TabsTrigger value="compliance">Compliance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grants" className="space-y-4">
@@ -453,49 +489,145 @@ export default function EquityManagement() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="valuations" className="space-y-4">
+        <TabsContent value="safes" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Company Valuations</CardTitle>
+              <CardTitle>SAFEs & Convertible Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              {valuations.length > 0 ? (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">SAFE Agreements</h3>
+                  {safes.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Investor</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead className="text-right">Valuation Cap</TableHead>
+                          <TableHead className="text-right">Discount</TableHead>
+                          <TableHead>Issue Date</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {safes.map((safe) => (
+                          <TableRow key={safe.id}>
+                            <TableCell className="font-medium">{safe.investor_name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{safe.safe_type?.replace(/_/g, " ")}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">${safe.investment_amount?.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">
+                              {safe.valuation_cap ? `$${(safe.valuation_cap / 1000000).toFixed(1)}M` : "—"}
+                            </TableCell>
+                            <TableCell className="text-right">{safe.discount_rate ? `${safe.discount_rate}%` : "—"}</TableCell>
+                            <TableCell>{format(new Date(safe.issue_date), "MMM d, yyyy")}</TableCell>
+                            <TableCell>
+                              <Badge className="capitalize">{safe.status}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="py-8 text-center text-slate-400">
+                      <p>No SAFE agreements</p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Convertible Notes</h3>
+                  {convertibleNotes.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Investor</TableHead>
+                          <TableHead className="text-right">Principal</TableHead>
+                          <TableHead className="text-right">Interest Rate</TableHead>
+                          <TableHead className="text-right">Valuation Cap</TableHead>
+                          <TableHead>Issue Date</TableHead>
+                          <TableHead>Maturity</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {convertibleNotes.map((note) => (
+                          <TableRow key={note.id}>
+                            <TableCell className="font-medium">{note.investor_name}</TableCell>
+                            <TableCell className="text-right">${note.principal_amount?.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{note.interest_rate}%</TableCell>
+                            <TableCell className="text-right">
+                              {note.valuation_cap ? `$${(note.valuation_cap / 1000000).toFixed(1)}M` : "—"}
+                            </TableCell>
+                            <TableCell>{format(new Date(note.issue_date), "MMM d, yyyy")}</TableCell>
+                            <TableCell>{format(new Date(note.maturity_date), "MMM d, yyyy")}</TableCell>
+                            <TableCell>
+                              <Badge className="capitalize">{note.status}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="py-8 text-center text-slate-400">
+                      <p>No convertible notes</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="waterfall" className="space-y-4">
+          <WaterfallModeler 
+            shareholders={shareholders}
+            shareClasses={shareClasses}
+            equityGrants={equityGrants}
+          />
+        </TabsContent>
+
+        <TabsContent value="board" className="space-y-4">
+          <BoardConsentManager />
+        </TabsContent>
+
+        <TabsContent value="secondary" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Secondary Transactions & Liquidity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {secondaryTx.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Valuation</TableHead>
-                      <TableHead className="text-right">Common Price</TableHead>
-                      <TableHead>Provider</TableHead>
+                      <TableHead>Seller</TableHead>
+                      <TableHead>Buyer</TableHead>
+                      <TableHead className="text-right">Shares</TableHead>
+                      <TableHead className="text-right">Price/Share</TableHead>
+                      <TableHead className="text-right">Total Value</TableHead>
+                      <TableHead>Date</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {valuations.map((valuation) => (
-                      <TableRow key={valuation.id}>
+                    {secondaryTx.map((tx) => (
+                      <TableRow key={tx.id}>
                         <TableCell>
-                          {format(new Date(valuation.valuation_date), "MMM d, yyyy")}
+                          <Badge variant="outline">{tx.transaction_type?.replace(/_/g, " ")}</Badge>
                         </TableCell>
+                        <TableCell>{tx.seller_name}</TableCell>
+                        <TableCell>{tx.buyer_name || "—"}</TableCell>
+                        <TableCell className="text-right">{tx.shares_transferred?.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">${tx.price_per_share?.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold">${tx.total_value?.toLocaleString()}</TableCell>
+                        <TableCell>{format(new Date(tx.transaction_date), "MMM d, yyyy")}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="uppercase">
-                            {valuation.valuation_type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ${(valuation.total_valuation / 1000000).toFixed(1)}M
-                        </TableCell>
-                        <TableCell className="text-right">
-                          ${valuation.common_stock_price?.toFixed(2) || "N/A"}
-                        </TableCell>
-                        <TableCell>{valuation.valuation_provider || "N/A"}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={valuation.status === "active" ? "default" : "secondary"}
-                            className="capitalize"
-                          >
-                            {valuation.status}
-                          </Badge>
+                          <Badge className="capitalize">{tx.status?.replace(/_/g, " ")}</Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -503,12 +635,104 @@ export default function EquityManagement() {
                 </Table>
               ) : (
                 <div className="py-12 text-center text-slate-400">
-                  <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No valuations yet</p>
+                  <ArrowLeftRight className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No secondary transactions yet</p>
                 </div>
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="compliance" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>83(b) Elections</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {eightyThreeBElections.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Employee</TableHead>
+                        <TableHead className="text-right">Shares</TableHead>
+                        <TableHead>Deadline</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {eightyThreeBElections.map((election) => (
+                        <TableRow key={election.id}>
+                          <TableCell className="font-medium">{election.employee_name}</TableCell>
+                          <TableCell className="text-right">{election.shares_subject_to_election?.toLocaleString()}</TableCell>
+                          <TableCell>
+                            {election.filing_deadline && format(new Date(election.filing_deadline), "MMM d, yyyy")}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={election.status === "filed" ? "default" : election.status === "deadline_missed" ? "destructive" : "secondary"}
+                            >
+                              {election.status?.replace(/_/g, " ")}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="py-8 text-center text-slate-400">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No 83(b) elections</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>QSBS Tracking</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {qsbsTracking.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Shareholder</TableHead>
+                        <TableHead className="text-right">Shares</TableHead>
+                        <TableHead>Acquisition</TableHead>
+                        <TableHead>5-Year Date</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {qsbsTracking.map((qsbs) => (
+                        <TableRow key={qsbs.id}>
+                          <TableCell className="font-medium">{qsbs.shareholder_name}</TableCell>
+                          <TableCell className="text-right">{qsbs.shares_acquired?.toLocaleString()}</TableCell>
+                          <TableCell>{format(new Date(qsbs.stock_acquisition_date), "MMM d, yyyy")}</TableCell>
+                          <TableCell>
+                            {qsbs.five_year_anniversary && format(new Date(qsbs.five_year_anniversary), "MMM d, yyyy")}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={qsbs.qsbs_eligible ? "default" : "secondary"}
+                            >
+                              {qsbs.verification_status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="py-8 text-center text-slate-400">
+                    <Shield className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No QSBS tracking records</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 

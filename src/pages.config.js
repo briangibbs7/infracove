@@ -69,6 +69,7 @@ import EmployeePortal from './pages/EmployeePortal';
 import Employees from './pages/Employees';
 import EquityManagement from './pages/EquityManagement';
 import Expenses from './pages/Expenses';
+import HRAIAssistant from './pages/HRAIAssistant';
 import HRContracts from './pages/HRContracts';
 import Hiring from './pages/Hiring';
 import InternshipProgram from './pages/InternshipProgram';
@@ -91,7 +92,6 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import HRAIAssistant from './pages/HRAIAssistant';
 import __Layout from './Layout.jsx';
 
 
@@ -118,6 +118,7 @@ export const PAGES = {
     "Employees": Employees,
     "EquityManagement": EquityManagement,
     "Expenses": Expenses,
+    "HRAIAssistant": HRAIAssistant,
     "HRContracts": HRContracts,
     "Hiring": Hiring,
     "InternshipProgram": InternshipProgram,
@@ -140,7 +141,6 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "HRAIAssistant": HRAIAssistant,
 }
 
 export const pagesConfig = {
