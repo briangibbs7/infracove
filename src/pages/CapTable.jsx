@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Users, TrendingUp, PieChart, Plus, Download, Building2, Filter, Calendar } from "lucide-react";
+import { Users, TrendingUp, PieChart, Plus, Download, Building2, Filter, Calendar, Search, UserPlus } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import {
   PieChart as RechartsPie,
@@ -56,6 +56,9 @@ export default function CapTable() {
   const [isAddShareholderOpen, setIsAddShareholderOpen] = useState(false);
   const [filterShareClass, setFilterShareClass] = useState("all");
   const [filterDateRange, setFilterDateRange] = useState("all");
+  const [searchMode, setSearchMode] = useState("search"); // "search" or "manual"
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [newShareholder, setNewShareholder] = useState({
     name: "",
     email: "",
@@ -89,6 +92,11 @@ export default function CapTable() {
   const { data: fundingRounds = [] } = useQuery({
     queryKey: ["fundingRounds"],
     queryFn: () => base44.entities.FundingRound.list("-closing_date"),
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees"],
+    queryFn: () => base44.entities.Employee.list(),
   });
 
   const createShareholderMutation = useMutation({
@@ -240,8 +248,35 @@ export default function CapTable() {
   }));
 
   const handleAddShareholder = () => {
-    createShareholderMutation.mutate(newShareholder);
+    const shareholderData = searchMode === "search" && selectedEmployee
+      ? {
+          name: selectedEmployee.full_name,
+          email: selectedEmployee.email,
+          type: "employee",
+          total_shares: 0,
+          ownership_percentage: 0,
+          join_date: new Date().toISOString().split("T")[0],
+          status: "active",
+        }
+      : newShareholder;
+    
+    createShareholderMutation.mutate(shareholderData);
+    setSelectedEmployee(null);
+    setEmployeeSearch("");
+    setSearchMode("search");
   };
+
+  const filteredEmployees = employees.filter(emp => {
+    const alreadyShareholder = shareholders.some(sh => sh.email === emp.email);
+    if (alreadyShareholder) return false;
+    
+    const search = employeeSearch.toLowerCase();
+    return (
+      emp.full_name?.toLowerCase().includes(search) ||
+      emp.email?.toLowerCase().includes(search) ||
+      emp.department?.toLowerCase().includes(search)
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -623,7 +658,7 @@ export default function CapTable() {
                   <TableHead className="text-right">Vested</TableHead>
                   <TableHead className="text-right">Unvested</TableHead>
                   <TableHead className="text-right">Ownership %</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Status & Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -656,12 +691,38 @@ export default function CapTable() {
                       {shareholder.ownership_percentage?.toFixed(2) || 0}%
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={shareholder.status === "active" ? "default" : "secondary"}
-                        className="capitalize"
-                      >
-                        {shareholder.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={shareholder.status === "active" ? "default" : "secondary"}
+                          className="capitalize"
+                        >
+                          {shareholder.status}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            try {
+                              const { data } = await base44.functions.invoke("generateStockCertificate", {
+                                shareholder_id: shareholder.id,
+                              });
+                              const blob = new Blob([data], { type: "application/pdf" });
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `certificate-${shareholder.name}-${Date.now()}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              a.remove();
+                            } catch (error) {
+                              alert("Failed to generate certificate");
+                            }
+                          }}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -691,74 +752,189 @@ export default function CapTable() {
 
       {/* Add Shareholder Dialog */}
       <Dialog open={isAddShareholderOpen} onOpenChange={setIsAddShareholderOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Shareholder</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Name *</Label>
-              <Input
-                value={newShareholder.name}
-                onChange={(e) =>
-                  setNewShareholder({ ...newShareholder, name: e.target.value })
-                }
-                placeholder="John Doe"
-              />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={newShareholder.email}
-                onChange={(e) =>
-                  setNewShareholder({ ...newShareholder, email: e.target.value })
-                }
-                placeholder="john@example.com"
-              />
-            </div>
-            <div>
-              <Label>Type *</Label>
-              <Select
-                value={newShareholder.type}
-                onValueChange={(value) =>
-                  setNewShareholder({ ...newShareholder, type: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="founder">Founder</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="investor">Investor</SelectItem>
-                  <SelectItem value="advisor">Advisor</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Total Shares</Label>
-              <Input
-                type="number"
-                value={newShareholder.total_shares}
-                onChange={(e) =>
-                  setNewShareholder({
-                    ...newShareholder,
-                    total_shares: parseFloat(e.target.value) || 0,
-                  })
-                }
-                placeholder="0"
-              />
-            </div>
+
+          {/* Mode Toggle */}
+          <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
+            <Button
+              variant={searchMode === "search" ? "default" : "ghost"}
+              className="flex-1"
+              onClick={() => setSearchMode("search")}
+            >
+              <Search className="w-4 h-4 mr-2" />
+              Search Employee
+            </Button>
+            <Button
+              variant={searchMode === "manual" ? "default" : "ghost"}
+              className="flex-1"
+              onClick={() => setSearchMode("manual")}
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Manual Entry
+            </Button>
           </div>
+
+          {searchMode === "search" ? (
+            <div className="space-y-4">
+              <div>
+                <Label>Search Employees</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    placeholder="Search by name, email, or department..."
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {employeeSearch && (
+                <div className="border rounded-lg max-h-[300px] overflow-y-auto">
+                  {filteredEmployees.length > 0 ? (
+                    filteredEmployees.map((emp) => (
+                      <div
+                        key={emp.id}
+                        onClick={() => setSelectedEmployee(emp)}
+                        className={`p-3 hover:bg-slate-50 cursor-pointer border-b last:border-b-0 ${
+                          selectedEmployee?.id === emp.id ? "bg-indigo-50" : ""
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-slate-900">{emp.full_name}</p>
+                            <p className="text-sm text-slate-600">{emp.email}</p>
+                            <p className="text-xs text-slate-500">
+                              {emp.job_title} • {emp.department}
+                            </p>
+                          </div>
+                          {selectedEmployee?.id === emp.id && (
+                            <Badge className="bg-indigo-600">Selected</Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-6 text-center text-slate-500">
+                      <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No employees found</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedEmployee && (
+                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                  <p className="text-sm font-medium text-indigo-900 mb-2">Selected Employee:</p>
+                  <p className="font-semibold text-indigo-900">{selectedEmployee.full_name}</p>
+                  <p className="text-sm text-indigo-700">{selectedEmployee.email}</p>
+                  <p className="text-xs text-indigo-600 mt-1">
+                    Will be added as Employee shareholder with 0 shares initially
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <Label>Name *</Label>
+                <Input
+                  value={newShareholder.name}
+                  onChange={(e) =>
+                    setNewShareholder({ ...newShareholder, name: e.target.value })
+                  }
+                  placeholder="John Doe"
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={newShareholder.email}
+                  onChange={(e) =>
+                    setNewShareholder({ ...newShareholder, email: e.target.value })
+                  }
+                  placeholder="john@example.com"
+                />
+              </div>
+              <div>
+                <Label>Type *</Label>
+                <Select
+                  value={newShareholder.type}
+                  onValueChange={(value) =>
+                    setNewShareholder({ ...newShareholder, type: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="founder">Founder</SelectItem>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="investor">Investor</SelectItem>
+                    <SelectItem value="advisor">Advisor</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Entity Type</Label>
+                <Select
+                  value={newShareholder.entity_type || "individual"}
+                  onValueChange={(value) =>
+                    setNewShareholder({ ...newShareholder, entity_type: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="corporation">Corporation</SelectItem>
+                    <SelectItem value="llc">LLC</SelectItem>
+                    <SelectItem value="partnership">Partnership</SelectItem>
+                    <SelectItem value="trust">Trust</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  value={newShareholder.phone || ""}
+                  onChange={(e) =>
+                    setNewShareholder({ ...newShareholder, phone: e.target.value })
+                  }
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+              <div>
+                <Label>Address</Label>
+                <Input
+                  value={newShareholder.address || ""}
+                  onChange={(e) =>
+                    setNewShareholder({ ...newShareholder, address: e.target.value })
+                  }
+                  placeholder="123 Main St, City, State ZIP"
+                />
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddShareholderOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsAddShareholderOpen(false);
+              setSelectedEmployee(null);
+              setEmployeeSearch("");
+              setSearchMode("search");
+            }}>
               Cancel
             </Button>
             <Button
               onClick={handleAddShareholder}
-              disabled={!newShareholder.name}
+              disabled={searchMode === "search" ? !selectedEmployee : !newShareholder.name}
             >
               Add Shareholder
             </Button>
