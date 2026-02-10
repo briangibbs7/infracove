@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw, FileText, Eye, Upload, History, BarChart3, Gavel, Shield, ArrowLeftRight } from "lucide-react";
+import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw, FileText, Eye, Upload, History, BarChart3, Gavel, Shield, ArrowLeftRight, PenLine, RefreshCcw } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import { format } from "date-fns";
 import VestingCalculator from "@/components/equity/VestingCalculator";
@@ -37,6 +37,8 @@ import BulkGrantImport from "@/components/equity/BulkGrantImport";
 import EquityAuditLog from "@/components/equity/EquityAuditLog";
 import WaterfallModeler from "@/components/equity/WaterfallModeler";
 import BoardConsentManager from "@/components/equity/BoardConsentManager";
+import ElectronicSigningDialog from "@/components/equity/ElectronicSigningDialog";
+import HRISSyncPanel from "@/components/equity/HRISSyncPanel";
 import { toast } from "react-hot-toast";
 
 export default function EquityManagement() {
@@ -47,6 +49,9 @@ export default function EquityManagement() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [isAuditLogOpen, setIsAuditLogOpen] = useState(false);
+  const [isSigningDialogOpen, setIsSigningDialogOpen] = useState(false);
+  const [signingConfig, setSigningConfig] = useState(null);
+  const [isHRISSyncOpen, setIsHRISSyncOpen] = useState(false);
   const [newGrant, setNewGrant] = useState({
     shareholder_id: "",
     grant_type: "stock_options",
@@ -230,7 +235,14 @@ export default function EquityManagement() {
             Grants, options, and funding rounds
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => setIsHRISSyncOpen(true)}
+          >
+            <RefreshCcw className="w-4 h-4 mr-2" />
+            HRIS Sync
+          </Button>
           <Button
             variant="outline"
             onClick={() => setIsAuditLogOpen(true)}
@@ -399,6 +411,21 @@ export default function EquityManagement() {
                               disabled={isGeneratingReport}
                             >
                               <FileText className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSigningConfig({
+                                  documentType: 'grant_agreement',
+                                  grantId: grant.id,
+                                  recipientEmail: grant.shareholder_name,
+                                  recipientName: grant.shareholder_name
+                                });
+                                setIsSigningDialogOpen(true);
+                              }}
+                            >
+                              <PenLine className="w-4 h-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -898,6 +925,32 @@ export default function EquityManagement() {
             <DialogTitle>Equity Audit Log</DialogTitle>
           </DialogHeader>
           <EquityAuditLog entityType="EquityGrant" limit={100} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Electronic Signing Dialog */}
+      {signingConfig && (
+        <ElectronicSigningDialog
+          open={isSigningDialogOpen}
+          onClose={() => {
+            setIsSigningDialogOpen(false);
+            setSigningConfig(null);
+          }}
+          documentType={signingConfig.documentType}
+          grantId={signingConfig.grantId}
+          electionId={signingConfig.electionId}
+          recipientEmail={signingConfig.recipientEmail}
+          recipientName={signingConfig.recipientName}
+        />
+      )}
+
+      {/* HRIS Sync Dialog */}
+      <Dialog open={isHRISSyncOpen} onOpenChange={setIsHRISSyncOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>HRIS Integration & Sync</DialogTitle>
+          </DialogHeader>
+          <HRISSyncPanel />
         </DialogContent>
       </Dialog>
 
