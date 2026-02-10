@@ -37,7 +37,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const DEPARTMENTS = ["HR", "Finance", "Legal", "IT"];
 const EMPLOYMENT_TYPES = ["full_time", "part_time", "contractor", "intern"];
 const STATUSES = ["active", "onboarding", "on_leave", "terminated"];
 
@@ -92,6 +91,11 @@ export default function Employees() {
     queryFn: () => base44.entities.EmployeeSkill.list(),
   });
 
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => base44.entities.Department.list(),
+  });
+
   useEffect(() => {
     if (user && employees.length > 0) {
       const emp = employees.find(e => e.email === user.email);
@@ -126,6 +130,9 @@ export default function Employees() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const managerId = formData.get("manager_id");
+    const selectedManager = employees.find(e => e.id === managerId);
+    
     const data = {
       full_name: formData.get("full_name"),
       email: formData.get("email"),
@@ -137,6 +144,8 @@ export default function Employees() {
       start_date: formData.get("start_date"),
       location: formData.get("location"),
       salary: formData.get("salary") ? parseFloat(formData.get("salary")) : undefined,
+      manager_id: managerId || undefined,
+      manager_name: selectedManager?.full_name || undefined,
     };
 
     if (editingEmployee) {
@@ -289,8 +298,8 @@ export default function Employees() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Departments</SelectItem>
-                      {DEPARTMENTS.map((dept) => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -697,8 +706,24 @@ export default function Employees() {
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEPARTMENTS.map((dept) => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="manager_id">Manager</Label>
+                <Select name="manager_id" defaultValue={editingEmployee?.manager_id || ""}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select manager (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>No Manager</SelectItem>
+                    {employees.filter(e => e.id !== editingEmployee?.id).map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.full_name} - {emp.job_title}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

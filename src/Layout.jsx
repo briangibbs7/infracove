@@ -74,6 +74,7 @@ const navigation = [
       { name: "Company Skills", href: "CompanySkills", icon: Target },
       { name: "Recognition", href: "Recognition", icon: Award },
       { name: "Surveys", href: "Surveys", icon: FileText },
+      { name: "Departments", href: "Departments", icon: Building2 },
     ],
   },
   {
