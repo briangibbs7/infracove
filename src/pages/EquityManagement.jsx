@@ -595,6 +595,35 @@ export default function EquityManagement() {
                 }
               />
             </div>
+            <div>
+              <Label>Vesting Start Date</Label>
+              <Input
+                type="date"
+                value={newGrant.vesting_start_date || newGrant.grant_date}
+                onChange={(e) =>
+                  setNewGrant({ ...newGrant, vesting_start_date: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Vesting Schedule</Label>
+              <Select
+                value={newGrant.vesting_schedule}
+                onValueChange={(value) =>
+                  setNewGrant({ ...newGrant, vesting_schedule: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="4_year_1_cliff">4 Year with 1 Year Cliff</SelectItem>
+                  <SelectItem value="4_year_monthly">4 Year Monthly</SelectItem>
+                  <SelectItem value="immediate">Immediate</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddGrantOpen(false)}>

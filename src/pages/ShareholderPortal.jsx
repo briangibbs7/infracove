@@ -26,6 +26,9 @@ import {
 import { format } from "date-fns";
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import StatCard from "@/components/ui/StatCard";
+import ExerciseOptionsDialog from "@/components/equity/ExerciseOptionsDialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
 
 const COLORS = ["#10b981", "#f59e0b", "#6366f1", "#ef4444"];
 
@@ -34,10 +37,20 @@ export default function ShareholderPortal() {
   const [generatingDoc, setGeneratingDoc] = useState(null);
   const [exerciseDialogOpen, setExerciseDialogOpen] = useState(false);
   const [selectedGrantForExercise, setSelectedGrantForExercise] = useState(null);
+  const queryClient = useQueryClient();
 
   React.useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
+
+  const updateGrantMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.EquityGrant.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["equityGrants"] });
+      queryClient.invalidateQueries({ queryKey: ["shareholders"] });
+      toast.success("Options exercised successfully");
+    },
+  });
 
   const { data: shareholders = [] } = useQuery({
     queryKey: ["shareholders"],
@@ -426,15 +439,30 @@ export default function ShareholderPortal() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleGenerateGrantAgreement(grant.id)}
-                            disabled={generatingDoc === `grant-${grant.id}`}
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            {generatingDoc === `grant-${grant.id}` ? "..." : "Download"}
-                          </Button>
+                          <div className="flex gap-2">
+                            {grant.grant_type === "stock_options" && grant.shares_vested > (grant.shares_exercised || 0) && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-emerald-600 hover:bg-emerald-700"
+                                onClick={() => {
+                                  setSelectedGrantForExercise(grant);
+                                  setExerciseDialogOpen(true);
+                                }}
+                              >
+                                Exercise
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleGenerateGrantAgreement(grant.id)}
+                              disabled={generatingDoc === `grant-${grant.id}`}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              {generatingDoc === `grant-${grant.id}` ? "..." : "Download"}
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -595,6 +623,23 @@ export default function ShareholderPortal() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Exercise Options Dialog */}
+      <ExerciseOptionsDialog
+        grant={selectedGrantForExercise}
+        valuation={valuations.find(v => v.status === "active")}
+        isOpen={exerciseDialogOpen}
+        onClose={() => {
+          setExerciseDialogOpen(false);
+          setSelectedGrantForExercise(null);
+        }}
+        onExercise={(updatedGrant) => {
+          updateGrantMutation.mutate({
+            id: updatedGrant.id,
+            data: updatedGrant
+          });
+        }}
+      />
     </div>
   );
 }
