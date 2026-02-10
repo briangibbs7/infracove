@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -28,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Users, TrendingUp, PieChart, Plus, Download, Building2 } from "lucide-react";
+import { Users, TrendingUp, PieChart, Plus, Download, Building2, Filter, Calendar } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import {
   PieChart as RechartsPie,
@@ -36,12 +37,25 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+  LineChart,
+  Line,
+  Area,
+  AreaChart,
 } from "recharts";
+import { format } from "date-fns";
 
 const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6"];
 
 export default function CapTable() {
   const [isAddShareholderOpen, setIsAddShareholderOpen] = useState(false);
+  const [filterShareClass, setFilterShareClass] = useState("all");
+  const [filterDateRange, setFilterDateRange] = useState("all");
   const [newShareholder, setNewShareholder] = useState({
     name: "",
     email: "",
@@ -72,6 +86,11 @@ export default function CapTable() {
     queryFn: () => base44.entities.Valuation.list("-valuation_date"),
   });
 
+  const { data: fundingRounds = [] } = useQuery({
+    queryKey: ["fundingRounds"],
+    queryFn: () => base44.entities.FundingRound.list("-closing_date"),
+  });
+
   const createShareholderMutation = useMutation({
     mutationFn: (data) => base44.entities.Shareholder.create(data),
     onSuccess: () => {
@@ -97,6 +116,102 @@ export default function CapTable() {
   }, [shareClasses]);
 
   const activeValuation = valuations.find(v => v.status === "active");
+
+  // Filter shareholders
+  const filteredShareholders = useMemo(() => {
+    let filtered = shareholders;
+
+    if (filterShareClass !== "all") {
+      filtered = filtered.filter(sh => {
+        const grants = equityGrants.filter(g => g.shareholder_id === sh.id);
+        return grants.some(g => g.share_class === filterShareClass);
+      });
+    }
+
+    if (filterDateRange !== "all") {
+      const cutoffDate = new Date();
+      if (filterDateRange === "last_year") {
+        cutoffDate.setFullYear(cutoffDate.getFullYear() - 1);
+      } else if (filterDateRange === "last_6_months") {
+        cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+      }
+      filtered = filtered.filter(sh => {
+        return sh.join_date && new Date(sh.join_date) >= cutoffDate;
+      });
+    }
+
+    return filtered;
+  }, [shareholders, filterShareClass, filterDateRange, equityGrants]);
+
+  // Vested vs Unvested breakdown
+  const vestingBreakdown = useMemo(() => {
+    return filteredShareholders.map(sh => ({
+      name: sh.name,
+      vested: sh.shares_vested || 0,
+      unvested: (sh.total_shares || 0) - (sh.shares_vested || 0),
+      total: sh.total_shares || 0,
+    }));
+  }, [filteredShareholders]);
+
+  // Dilution over time based on funding rounds
+  const dilutionTimeline = useMemo(() => {
+    const sortedRounds = [...fundingRounds]
+      .filter(r => r.closing_date && r.status === "closed")
+      .sort((a, b) => new Date(a.closing_date) - new Date(b.closing_date));
+
+    let cumulativeShares = totalShares;
+    const timeline = [
+      {
+        date: "Current",
+        totalShares: totalShares,
+        dilution: 0,
+      },
+    ];
+
+    sortedRounds.forEach((round, idx) => {
+      const sharesIssued = round.shares_issued || 0;
+      const prevShares = cumulativeShares;
+      cumulativeShares += sharesIssued;
+      const dilutionPercent = prevShares > 0 ? ((sharesIssued / cumulativeShares) * 100).toFixed(2) : 0;
+
+      timeline.unshift({
+        date: format(new Date(round.closing_date), "MMM yyyy"),
+        roundName: round.round_name,
+        totalShares: cumulativeShares,
+        dilution: parseFloat(dilutionPercent),
+      });
+    });
+
+    return timeline.reverse();
+  }, [fundingRounds, totalShares]);
+
+  // Ownership changes after each funding round
+  const ownershipHistory = useMemo(() => {
+    if (fundingRounds.length === 0) return [];
+
+    const sortedRounds = [...fundingRounds]
+      .filter(r => r.closing_date && r.status === "closed")
+      .sort((a, b) => new Date(a.closing_date) - new Date(b.closing_date));
+
+    return sortedRounds.map(round => {
+      const roundData = {
+        round: round.round_name,
+        date: format(new Date(round.closing_date), "MMM yyyy"),
+      };
+
+      // Calculate ownership for each shareholder type at this round
+      const types = ["founder", "employee", "investor", "advisor"];
+      types.forEach(type => {
+        const typeShares = shareholders
+          .filter(sh => sh.type === type)
+          .reduce((sum, sh) => sum + (sh.total_shares || 0), 0);
+        const totalAtRound = (round.shares_issued || 0) + totalShares;
+        roundData[type] = totalAtRound > 0 ? ((typeShares / totalAtRound) * 100).toFixed(2) : 0;
+      });
+
+      return roundData;
+    });
+  }, [fundingRounds, shareholders, totalShares]);
 
   // Ownership breakdown by type
   const ownershipByType = useMemo(() => {
@@ -150,6 +265,60 @@ export default function CapTable() {
         </div>
       </div>
 
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="flex-1">
+              <Label className="flex items-center gap-2 mb-2">
+                <Building2 className="w-4 h-4" />
+                Share Class
+              </Label>
+              <Select value={filterShareClass} onValueChange={setFilterShareClass}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {shareClasses.map(sc => (
+                    <SelectItem key={sc.id} value={sc.class_name}>
+                      {sc.class_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Label className="flex items-center gap-2 mb-2">
+                <Calendar className="w-4 h-4" />
+                Date Range
+              </Label>
+              <Select value={filterDateRange} onValueChange={setFilterDateRange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="last_6_months">Last 6 Months</SelectItem>
+                  <SelectItem value="last_year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(filterShareClass !== "all" || filterDateRange !== "all") && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilterShareClass("all");
+                  setFilterDateRange("all");
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
@@ -186,74 +355,264 @@ export default function CapTable() {
         />
       </div>
 
-      {/* Charts and Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Ownership by Type</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <RechartsPie>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value }) => `${name}: ${value}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </RechartsPie>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-slate-400">
-                No ownership data yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Advanced Visualizations */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="vesting">Vesting Analysis</TabsTrigger>
+          <TabsTrigger value="dilution">Dilution Timeline</TabsTrigger>
+          <TabsTrigger value="history">Ownership History</TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Ownership Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {ownershipByType.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-slate-900 capitalize">
-                      {item.type.replace(/_/g, " ")}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      {item.shares.toLocaleString()} shares
-                    </p>
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ownership by Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RechartsPie>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </RechartsPie>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-slate-400">
+                    No ownership data yet
                   </div>
-                  <Badge className="text-lg font-semibold">
-                    {item.percentage}%
-                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Ownership Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {ownershipByType.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-slate-900 capitalize">
+                          {item.type.replace(/_/g, " ")}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          {item.shares.toLocaleString()} shares
+                        </p>
+                      </div>
+                      <Badge className="text-lg font-semibold">
+                        {item.percentage}%
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="vesting" className="space-y-6">
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Vested vs Unvested Shares by Shareholder</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {vestingBreakdown.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={vestingBreakdown}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="vested" stackId="a" fill="#10b981" name="Vested" />
+                      <Bar dataKey="unvested" stackId="a" fill="#f59e0b" name="Unvested" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[400px] flex items-center justify-center text-slate-400">
+                    No vesting data yet
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Vesting Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {vestingBreakdown.slice(0, 6).map((item, idx) => (
+                    <div key={idx} className="p-4 bg-slate-50 rounded-lg">
+                      <p className="font-medium text-slate-900 mb-2">{item.name}</p>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Vested:</span>
+                          <span className="font-medium text-green-600">
+                            {item.vested.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Unvested:</span>
+                          <span className="font-medium text-amber-600">
+                            {item.unvested.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between pt-1 border-t">
+                          <span className="text-slate-600">Total:</span>
+                          <span className="font-semibold">
+                            {item.total.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="dilution" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Share Dilution Over Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dilutionTimeline.length > 1 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <AreaChart data={dilutionTimeline}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis yAxisId="left" label={{ value: "Total Shares", angle: -90, position: "insideLeft" }} />
+                    <YAxis yAxisId="right" orientation="right" label={{ value: "Dilution %", angle: 90, position: "insideRight" }} />
+                    <Tooltip />
+                    <Legend />
+                    <Area
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="totalShares"
+                      stroke="#6366f1"
+                      fill="#6366f1"
+                      fillOpacity={0.3}
+                      name="Total Shares"
+                    />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="dilution"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      name="Dilution %"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[400px] flex items-center justify-center text-slate-400">
+                  No funding rounds to display dilution timeline
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Dilution Events</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Round</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Total Shares After</TableHead>
+                    <TableHead className="text-right">Dilution %</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dilutionTimeline.map((event, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium">
+                        {event.roundName || event.date}
+                      </TableCell>
+                      <TableCell>{event.date}</TableCell>
+                      <TableCell className="text-right">
+                        {event.totalShares.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={event.dilution > 20 ? "destructive" : "secondary"}>
+                          {event.dilution}%
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ownership Changes After Funding Rounds</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ownershipHistory.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={ownershipHistory}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="round" />
+                    <YAxis label={{ value: "Ownership %", angle: -90, position: "insideLeft" }} />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="founder" stroke="#6366f1" strokeWidth={2} name="Founders" />
+                    <Line type="monotone" dataKey="employee" stroke="#10b981" strokeWidth={2} name="Employees" />
+                    <Line type="monotone" dataKey="investor" stroke="#f59e0b" strokeWidth={2} name="Investors" />
+                    <Line type="monotone" dataKey="advisor" stroke="#8b5cf6" strokeWidth={2} name="Advisors" />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[400px] flex items-center justify-center text-slate-400">
+                  No funding history to display
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Shareholders Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Shareholders</CardTitle>
+          <CardTitle>
+            Shareholders
+            {(filterShareClass !== "all" || filterDateRange !== "all") && (
+              <span className="ml-2 text-sm font-normal text-slate-500">
+                ({filteredShareholders.length} filtered)
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {shareholders.length > 0 ? (
+          {filteredShareholders.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -262,12 +621,13 @@ export default function CapTable() {
                   <TableHead>Entity Type</TableHead>
                   <TableHead className="text-right">Total Shares</TableHead>
                   <TableHead className="text-right">Vested</TableHead>
+                  <TableHead className="text-right">Unvested</TableHead>
                   <TableHead className="text-right">Ownership %</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {shareholders.map((shareholder) => (
+                {filteredShareholders.map((shareholder) => (
                   <TableRow key={shareholder.id}>
                     <TableCell className="font-medium">
                       <div>
@@ -286,8 +646,11 @@ export default function CapTable() {
                     <TableCell className="text-right">
                       {(shareholder.total_shares || 0).toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right text-green-600 font-medium">
                       {(shareholder.shares_vested || 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-amber-600 font-medium">
+                      {((shareholder.total_shares || 0) - (shareholder.shares_vested || 0)).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {shareholder.ownership_percentage?.toFixed(2) || 0}%
@@ -307,14 +670,20 @@ export default function CapTable() {
           ) : (
             <div className="py-12 text-center text-slate-400">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No shareholders yet</p>
-              <Button
-                className="mt-4"
-                variant="outline"
-                onClick={() => setIsAddShareholderOpen(true)}
-              >
-                Add First Shareholder
-              </Button>
+              <p>
+                {shareholders.length === 0
+                  ? "No shareholders yet"
+                  : "No shareholders match the current filters"}
+              </p>
+              {shareholders.length === 0 && (
+                <Button
+                  className="mt-4"
+                  variant="outline"
+                  onClick={() => setIsAddShareholderOpen(true)}
+                >
+                  Add First Shareholder
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
