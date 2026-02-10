@@ -32,7 +32,8 @@ import {
   Heart,
   CreditCard,
   BookOpen,
-  Grid
+  Grid,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,6 +76,7 @@ const navigation = [
       { name: "Recognition", href: "Recognition", icon: Award },
       { name: "Surveys", href: "Surveys", icon: FileText },
       { name: "Departments", href: "Departments", icon: Building2 },
+      { name: "AI Assistant", href: "HRAIAssistant", icon: Sparkles },
     ],
   },
   {
