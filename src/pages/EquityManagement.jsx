@@ -29,13 +29,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw } from "lucide-react";
+import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw, FileText, Eye } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import { format } from "date-fns";
+import VestingCalculator from "@/components/equity/VestingCalculator";
+import { toast } from "react-hot-toast";
 
 export default function EquityManagement() {
   const [isAddGrantOpen, setIsAddGrantOpen] = useState(false);
   const [isAddRoundOpen, setIsAddRoundOpen] = useState(false);
+  const [selectedGrant, setSelectedGrant] = useState(null);
+  const [isVestingDialogOpen, setIsVestingDialogOpen] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [newGrant, setNewGrant] = useState({
     shareholder_id: "",
     grant_type: "stock_options",
@@ -125,18 +130,58 @@ export default function EquityManagement() {
     });
   };
 
+  const updateGrantMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.EquityGrant.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["equityGrants"] });
+      queryClient.invalidateQueries({ queryKey: ["shareholders"] });
+      toast.success("Grant updated successfully");
+    },
+  });
+
   const handleCalculateVesting = async () => {
     setIsCalculatingVesting(true);
     try {
       await base44.functions.invoke('calculateVesting', {});
       queryClient.invalidateQueries({ queryKey: ["equityGrants"] });
       queryClient.invalidateQueries({ queryKey: ["shareholders"] });
-      alert('Vesting calculations completed successfully');
+      toast.success('Vesting calculations completed successfully');
     } catch (error) {
-      alert('Failed to calculate vesting: ' + error.message);
+      toast.error('Failed to calculate vesting: ' + error.message);
     } finally {
       setIsCalculatingVesting(false);
     }
+  };
+
+  const handleGenerateReport = async (reportType, shareholderId = null) => {
+    setIsGeneratingReport(true);
+    try {
+      const { data } = await base44.functions.invoke('generateVestingReport', {
+        report_type: reportType,
+        shareholder_id: shareholderId,
+      });
+      const blob = new Blob([data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vesting-report-${reportType}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success('Report generated successfully');
+    } catch (error) {
+      toast.error('Failed to generate report: ' + error.message);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  const handleUpdateGrant = (updatedGrant) => {
+    updateGrantMutation.mutate({
+      id: updatedGrant.id,
+      data: updatedGrant
+    });
   };
 
   return (
@@ -149,14 +194,24 @@ export default function EquityManagement() {
             Grants, options, and funding rounds
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={handleCalculateVesting}
-          disabled={isCalculatingVesting}
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isCalculatingVesting ? 'animate-spin' : ''}`} />
-          {isCalculatingVesting ? 'Calculating...' : 'Update Vesting'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handleGenerateReport('company')}
+            disabled={isGeneratingReport}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Company Report
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleCalculateVesting}
+            disabled={isCalculatingVesting}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isCalculatingVesting ? 'animate-spin' : ''}`} />
+            {isCalculatingVesting ? 'Calculating...' : 'Update Vesting'}
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -226,7 +281,7 @@ export default function EquityManagement() {
                       <TableHead className="text-right">Strike Price</TableHead>
                       <TableHead>Grant Date</TableHead>
                       <TableHead>Vesting</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Status & Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -268,9 +323,29 @@ export default function EquityManagement() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className="capitalize">
-                            {grant.status?.replace(/_/g, " ")}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge className="capitalize">
+                              {grant.status?.replace(/_/g, " ")}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedGrant(grant);
+                                setIsVestingDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleGenerateReport('individual', grant.shareholder_id)}
+                              disabled={isGeneratingReport}
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -513,6 +588,23 @@ export default function EquityManagement() {
               Create Grant
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vesting Calculator Dialog */}
+      <Dialog open={isVestingDialogOpen} onOpenChange={setIsVestingDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Vesting Schedule - {selectedGrant?.shareholder_name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedGrant && (
+            <VestingCalculator 
+              grant={selectedGrant}
+              onUpdate={handleUpdateGrant}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
