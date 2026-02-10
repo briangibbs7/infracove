@@ -29,10 +29,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw, FileText, Eye } from "lucide-react";
+import { Award, TrendingUp, Calendar, Plus, DollarSign, RefreshCw, FileText, Eye, Upload, History } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import { format } from "date-fns";
 import VestingCalculator from "@/components/equity/VestingCalculator";
+import BulkGrantImport from "@/components/equity/BulkGrantImport";
+import EquityAuditLog from "@/components/equity/EquityAuditLog";
 import { toast } from "react-hot-toast";
 
 export default function EquityManagement() {
@@ -41,6 +43,8 @@ export default function EquityManagement() {
   const [selectedGrant, setSelectedGrant] = useState(null);
   const [isVestingDialogOpen, setIsVestingDialogOpen] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [isAuditLogOpen, setIsAuditLogOpen] = useState(false);
   const [newGrant, setNewGrant] = useState({
     shareholder_id: "",
     grant_type: "stock_options",
@@ -197,6 +201,13 @@ export default function EquityManagement() {
         <div className="flex gap-2">
           <Button
             variant="outline"
+            onClick={() => setIsAuditLogOpen(true)}
+          >
+            <History className="w-4 h-4 mr-2" />
+            Audit Log
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => handleGenerateReport('company')}
             disabled={isGeneratingReport}
           >
@@ -259,7 +270,15 @@ export default function EquityManagement() {
         </TabsList>
 
         <TabsContent value="grants" className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsBulkImportOpen(true)} 
+              className="gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Bulk Import
+            </Button>
             <Button onClick={() => setIsAddGrantOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" />
               New Grant
@@ -605,6 +624,27 @@ export default function EquityManagement() {
               onUpdate={handleUpdateGrant}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <BulkGrantImport
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["equityGrants"] });
+          queryClient.invalidateQueries({ queryKey: ["shareholders"] });
+        }}
+        shareholders={shareholders}
+      />
+
+      {/* Audit Log Dialog */}
+      <Dialog open={isAuditLogOpen} onOpenChange={setIsAuditLogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Equity Audit Log</DialogTitle>
+          </DialogHeader>
+          <EquityAuditLog entityType="EquityGrant" limit={100} />
         </DialogContent>
       </Dialog>
 

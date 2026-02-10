@@ -8,6 +8,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import RecognitionFeed from "@/components/recognition/RecognitionFeed";
 import GiveRecognitionDialog from "@/components/recognition/GiveRecognitionDialog";
 import EmployeeProfileModal from "@/components/employees/EmployeeProfileModal";
+import EquityDashboardWidget from "@/components/equity/EquityDashboardWidget";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -389,6 +390,8 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EquityDashboardWidget user={user} />
+
             <Card className="border-0 shadow-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -410,38 +413,38 @@ export default function Dashboard() {
                 />
               </CardContent>
             </Card>
-
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">My Recognitions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {myRecognitions.length > 0 ? (
-                  <div className="space-y-3">
-                    {myRecognitions.slice(0, 3).map((rec) => (
-                      <div key={rec.id} className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
-                        <div className="flex items-start justify-between mb-2">
-                          <p className="font-semibold text-slate-900">{rec.title}</p>
-                          <Badge className="bg-amber-100 text-amber-700">
-                            +{rec.points_awarded} pts
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-slate-700 mb-2">{rec.message}</p>
-                        <p className="text-xs text-slate-500">
-                          From {rec.giver_name} • {format(parseISO(rec.created_date), "MMM d")}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center text-slate-400">
-                    <Award className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No recognitions yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">My Recognitions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {myRecognitions.length > 0 ? (
+                <div className="space-y-3">
+                  {myRecognitions.slice(0, 3).map((rec) => (
+                    <div key={rec.id} className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+                      <div className="flex items-start justify-between mb-2">
+                        <p className="font-semibold text-slate-900">{rec.title}</p>
+                        <Badge className="bg-amber-100 text-amber-700">
+                          +{rec.points_awarded} pts
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-700 mb-2">{rec.message}</p>
+                      <p className="text-xs text-slate-500">
+                        From {rec.giver_name} • {format(parseISO(rec.created_date), "MMM d")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-slate-400">
+                  <Award className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No recognitions yet</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {myPendingReviews.length > 0 && (
             <Card className="border-0 shadow-sm border-amber-200 bg-amber-50">
