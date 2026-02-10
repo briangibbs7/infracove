@@ -148,7 +148,7 @@ const navigation = [
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState(["HR", "Finance", "Sales", "Legal", "IT"]);
+  const [expandedGroups, setExpandedGroups] = useState([]);
   const [user, setUser] = useState(null);
   const [currentEmployee, setCurrentEmployee] = useState(null);
 
