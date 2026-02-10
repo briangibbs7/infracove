@@ -217,6 +217,97 @@ export default function EmployeePortal() {
     });
   };
 
+  // Equity calculations - MUST be before conditional return
+  const currentShareholder = React.useMemo(() => {
+    if (!user) return null;
+    return shareholders.find(s => s.email === user.email);
+  }, [user, shareholders]);
+
+  const myGrants = React.useMemo(() => {
+    if (!currentShareholder) return [];
+    return equityGrants.filter(g => g.shareholder_id === currentShareholder.id);
+  }, [currentShareholder, equityGrants]);
+
+  const portfolioValue = React.useMemo(() => {
+    if (!currentShareholder) return 0;
+    const activeValuation = valuations.find(v => v.status === "active");
+    if (!activeValuation) return 0;
+    const pricePerShare = activeValuation.common_stock_price || 0;
+    return (currentShareholder.total_shares || 0) * pricePerShare;
+  }, [currentShareholder, valuations]);
+
+  const vestedValue = React.useMemo(() => {
+    if (!currentShareholder) return 0;
+    const activeValuation = valuations.find(v => v.status === "active");
+    if (!activeValuation) return 0;
+    const pricePerShare = activeValuation.common_stock_price || 0;
+    return (currentShareholder.shares_vested || 0) * pricePerShare;
+  }, [currentShareholder, valuations]);
+
+  const grantBreakdown = React.useMemo(() => {
+    const breakdown = {};
+    myGrants.forEach(grant => {
+      const type = grant.grant_type || "unknown";
+      if (!breakdown[type]) {
+        breakdown[type] = { type, shares: 0 };
+      }
+      breakdown[type].shares += grant.shares_granted || 0;
+    });
+    return Object.values(breakdown).map(item => ({
+      ...item,
+      percentage: currentShareholder?.total_shares 
+        ? ((item.shares / currentShareholder.total_shares) * 100).toFixed(1)
+        : 0,
+    }));
+  }, [myGrants, currentShareholder]);
+
+  const handleGenerateStockCertificate = async (shareholderId) => {
+    setGeneratingDoc("certificate");
+    try {
+      const { data } = await base44.functions.invoke("generateStockCertificate", {
+        shareholder_id: shareholderId,
+      });
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `stock-certificate-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success("Certificate downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate certificate");
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
+  const handleGenerateGrantAgreement = async (grantId) => {
+    setGeneratingDoc(`grant-${grantId}`);
+    try {
+      const { data } = await base44.functions.invoke("generateGrantAgreement", {
+        grant_id: grantId,
+      });
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `grant-agreement-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success("Agreement downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate agreement");
+    } finally {
+      setGeneratingDoc(null);
+    }
+  };
+
+  // Early return AFTER all hooks
   if (!currentEmployee) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
