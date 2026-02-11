@@ -268,16 +268,24 @@ export default function Admin() {
     );
   }
 
+  const allDepartments = [
+    "HR", "Human Resources", "Finance", "Legal", "IT", "Information Technology",
+    "Corporate", "Engineering", "Software Engineers", "Software", "Systems",
+    "Design", "Industrial Design", "Manufacturing", "Customer Experience",
+    "Accounting", "Business Development", "Business/Finance", "Repair Station",
+    "Quality", "Procurement", "Production", "Program Management"
+  ];
+
+  const departmentStats = {};
+  allDepartments.forEach(dept => {
+    departmentStats[dept] = employees.filter(e => e.department === dept).length;
+  });
+
   const stats = {
     totalUsers: users.length,
     activeEmployees: employees.filter(e => e.status === "active").length,
     adminUsers: users.filter(u => u.role === "admin").length,
-    departments: {
-      HR: employees.filter(e => e.department === "HR").length,
-      Finance: employees.filter(e => e.department === "Finance").length,
-      Legal: employees.filter(e => e.department === "Legal").length,
-      IT: employees.filter(e => e.department === "IT").length,
-    },
+    departments: departmentStats,
   };
 
   return (
@@ -332,7 +340,7 @@ export default function Admin() {
           <CardContent>
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-blue-600" />
-              <span className="text-2xl font-bold">4</span>
+              <span className="text-2xl font-bold">{allDepartments.length}</span>
             </div>
           </CardContent>
         </Card>
@@ -746,24 +754,35 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {["HR", "Finance", "Legal", "IT"].map((dept) => (
-                  <div key={dept} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-indigo-600" />
-                      <div>
-                        <p className="font-medium text-slate-900">{dept} Department</p>
-                        <p className="text-sm text-muted-foreground">
-                          {stats.departments[dept]} employees
-                        </p>
+                {allDepartments.filter(dept => stats.departments[dept] > 0).map((dept, idx) => {
+                  const colors = [
+                    "text-indigo-600", "text-blue-600", "text-purple-600", "text-pink-600",
+                    "text-rose-600", "text-orange-600", "text-amber-600", "text-yellow-600",
+                    "text-lime-600", "text-green-600", "text-emerald-600", "text-teal-600",
+                    "text-cyan-600", "text-sky-600", "text-violet-600", "text-fuchsia-600",
+                    "text-red-600", "text-slate-600", "text-gray-600", "text-zinc-600"
+                  ];
+                  const colorClass = colors[idx % colors.length];
+                  
+                  return (
+                    <div key={dept} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Building2 className={`w-5 h-5 ${colorClass}`} />
+                        <div>
+                          <p className="font-medium text-slate-900">{dept} Department</p>
+                          <p className="text-sm text-muted-foreground">
+                            {stats.departments[dept]} employees
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant="outline">Admins: Full Access</Badge>
+                        <Badge variant="outline">{dept} Members: Full Access</Badge>
+                        <Badge variant="outline" className="text-red-600">Others: No Access</Badge>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant="outline">Admins: Full Access</Badge>
-                      <Badge variant="outline">{dept} Members: Full Access</Badge>
-                      <Badge variant="outline" className="text-red-600">Others: No Access</Badge>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -777,39 +796,60 @@ export default function Admin() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Object.entries(stats.departments).map(([dept, count]) => (
-              <Card key={dept}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>{dept}</CardTitle>
-                    <Badge className="bg-indigo-100 text-indigo-800">{count} employees</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {employees
-                      .filter(e => e.department === dept)
-                      .slice(0, 5)
-                      .map((emp) => (
-                        <div key={emp.id} className="flex items-center justify-between py-2">
-                          <div>
-                            <p className="text-sm font-medium">{emp.full_name}</p>
-                            <p className="text-xs text-muted-foreground">{emp.job_title}</p>
+            {Object.entries(stats.departments).filter(([_, count]) => count > 0).map(([dept, count], idx) => {
+              const colors = [
+                { bg: "bg-indigo-50", text: "text-indigo-800", border: "border-indigo-200" },
+                { bg: "bg-blue-50", text: "text-blue-800", border: "border-blue-200" },
+                { bg: "bg-purple-50", text: "text-purple-800", border: "border-purple-200" },
+                { bg: "bg-pink-50", text: "text-pink-800", border: "border-pink-200" },
+                { bg: "bg-rose-50", text: "text-rose-800", border: "border-rose-200" },
+                { bg: "bg-orange-50", text: "text-orange-800", border: "border-orange-200" },
+                { bg: "bg-amber-50", text: "text-amber-800", border: "border-amber-200" },
+                { bg: "bg-lime-50", text: "text-lime-800", border: "border-lime-200" },
+                { bg: "bg-green-50", text: "text-green-800", border: "border-green-200" },
+                { bg: "bg-emerald-50", text: "text-emerald-800", border: "border-emerald-200" },
+                { bg: "bg-teal-50", text: "text-teal-800", border: "border-teal-200" },
+                { bg: "bg-cyan-50", text: "text-cyan-800", border: "border-cyan-200" },
+                { bg: "bg-sky-50", text: "text-sky-800", border: "border-sky-200" },
+                { bg: "bg-violet-50", text: "text-violet-800", border: "border-violet-200" },
+                { bg: "bg-fuchsia-50", text: "text-fuchsia-800", border: "border-fuchsia-200" },
+              ];
+              const colorScheme = colors[idx % colors.length];
+              
+              return (
+                <Card key={dept} className={`${colorScheme.border} border-2`}>
+                  <CardHeader className={colorScheme.bg}>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-slate-900">{dept}</CardTitle>
+                      <Badge className={`${colorScheme.bg} ${colorScheme.text}`}>{count} employees</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {employees
+                        .filter(e => e.department === dept)
+                        .slice(0, 5)
+                        .map((emp) => (
+                          <div key={emp.id} className="flex items-center justify-between py-2">
+                            <div>
+                              <p className="text-sm font-medium">{emp.full_name}</p>
+                              <p className="text-xs text-muted-foreground">{emp.job_title}</p>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {emp.role || "user"}
+                            </Badge>
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {emp.role || "user"}
-                          </Badge>
-                        </div>
-                      ))}
-                    {count > 5 && (
-                      <p className="text-xs text-muted-foreground pt-2">
-                        +{count - 5} more employees
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                        ))}
+                      {count > 5 && (
+                        <p className="text-xs text-muted-foreground pt-2">
+                          +{count - 5} more employees
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
 
@@ -1015,10 +1055,9 @@ export default function Admin() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="HR">HR</SelectItem>
-                      <SelectItem value="Finance">Finance</SelectItem>
-                      <SelectItem value="Legal">Legal</SelectItem>
-                      <SelectItem value="IT">IT</SelectItem>
+                      {allDepartments.map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1083,10 +1122,9 @@ export default function Admin() {
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="Legal">Legal</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
+                  {allDepartments.map(dept => (
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
