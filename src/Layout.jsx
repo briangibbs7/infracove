@@ -52,10 +52,8 @@ const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard, color: "slate" },
   { name: "My Portal", href: "EmployeePortal", icon: User, color: "blue" },
   { name: "Announcements", href: "Announcements", icon: Building2, color: "purple" },
-  { name: "Analytics", href: "Analytics", icon: TrendingUp, color: "emerald" },
-  { name: "Admin", href: "Admin", icon: Shield, color: "purple" },
   {
-    name: "HR",
+    name: "People",
     icon: Users,
     color: "indigo",
     children: [
@@ -79,75 +77,23 @@ const navigation = [
       { name: "AI Assistant", href: "HRAIAssistant", icon: Sparkles },
     ],
   },
-  {
-    name: "Compliance",
-    icon: ShieldCheck,
-    color: "red",
-    children: [
-      { name: "Overview", href: "Compliance", icon: ShieldCheck },
-      { name: "Training", href: "ComplianceTraining", icon: BookOpen },
-    ],
-  },
-  {
-    name: "Payroll",
-    icon: DollarSign,
-    color: "green",
-    children: [
-      { name: "Payroll Runs", href: "Payroll", icon: CreditCard },
-      { name: "Tax Documents", href: "TaxDocuments", icon: FileText },
-      { name: "Direct Deposit", href: "DirectDeposit", icon: DollarSign },
-    ],
-  },
-  {
-    name: "Benefits",
-    icon: Heart,
-    color: "emerald",
-    children: [
-      { name: "Benefits Catalog", href: "Benefits", icon: Heart },
-      { name: "Open Enrollment", href: "OpenEnrollment", icon: Users },
-      { name: "Claims", href: "Claims", icon: FileText },
-    ],
-  },
-  {
-    name: "Finance",
-    icon: DollarSign,
-    color: "green",
-    children: [
-      { name: "Expenses", href: "Expenses", icon: Receipt },
-      { name: "Invoices", href: "Invoices", icon: FileText },
-      { name: "Vendors", href: "Vendors", icon: Briefcase },
-    ],
-  },
-  {
-    name: "Equity",
-    icon: TrendingUp,
-    color: "emerald",
-    children: [
-      { name: "Cap Table", href: "CapTable", icon: Users },
-      { name: "Equity Management", href: "EquityManagement", icon: Award },
-      { name: "My Equity", href: "ShareholderPortal", icon: TrendingUp },
-    ],
-  },
-
-  {
-    name: "Legal",
-    icon: Scale,
-    color: "amber",
-    children: [
-      { name: "Contracts", href: "Contracts", icon: ShieldCheck },
-      { name: "NDAs", href: "NDAs", icon: FileText },
-    ],
-  },
-  {
-    name: "IT",
-    icon: Monitor,
-    color: "cyan",
-    children: [
-      { name: "Assets", href: "Assets", icon: Package },
-    ],
-  },
+  { name: "Benefits", href: "Benefits", icon: Heart, color: "emerald" },
+  { name: "Compliance", href: "Compliance", icon: ShieldCheck, color: "red" },
   { name: "Documents", href: "Documents", icon: FileText, color: "slate" },
-  { name: "App Links", href: "AppLinks", icon: Grid, color: "cyan" },
+  { name: "Equity", href: "EquityManagement", icon: TrendingUp, color: "emerald" },
+  { name: "Finance", href: "Expenses", icon: DollarSign, color: "green" },
+  { name: "Payroll", href: "Payroll", icon: CreditCard, color: "green" },
+  { name: "Legal", href: "Contracts", icon: Scale, color: "amber" },
+  { name: "IT", href: "Assets", icon: Monitor, color: "cyan" },
+  {
+    name: "Admin",
+    icon: Shield,
+    color: "purple",
+    children: [
+      { name: "Admin Dashboard", href: "Admin", icon: Shield },
+      { name: "App Links", href: "AppLinks", icon: Grid },
+    ],
+  },
 ];
 
 export default function Layout({ children, currentPageName }) {
@@ -201,20 +147,17 @@ export default function Layout({ children, currentPageName }) {
     // Dashboard and Announcements are for everyone
     if (item.href === "Dashboard" || item.href === "Announcements") return true;
     
-    // Analytics is admin only
-    if (item.href === "Analytics") return false;
-    
     // Department-specific access
-    if (item.name === "HR" && currentEmployee?.department === "HR") return true;
+    if (item.name === "People" && currentEmployee?.department === "HR") return true;
     if (item.name === "Finance" && currentEmployee?.department === "Finance") return true;
     if (item.name === "Legal" && currentEmployee?.department === "Legal") return true;
     if (item.name === "IT" && currentEmployee?.department === "IT") return true;
     
-    // Documents are for everyone
-    if (item.href === "Documents") return true;
+    // Documents, Benefits are for everyone
+    if (item.href === "Documents" || item.href === "Benefits") return true;
     
     // Hide department sections if not in that department
-    if (["HR", "Finance", "Legal", "IT"].includes(item.name)) return false;
+    if (["People", "Finance", "Legal", "IT", "Admin"].includes(item.name)) return false;
     
     return true;
   });
