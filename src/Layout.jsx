@@ -50,12 +50,12 @@ import ChatButton from "@/components/chat/ChatButton";
 
 const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard, color: "slate" },
-  { name: "My Portal", href: "EmployeePortal", icon: User, color: "blue" },
-  { name: "Announcements", href: "Announcements", icon: Building2, color: "purple" },
+  { name: "My Portal", href: "EmployeePortal", icon: User, color: "red" },
+  { name: "Announcements", href: "Announcements", icon: Building2, color: "blue" },
   {
     name: "People",
     icon: Users,
-    color: "indigo",
+    color: "pink",
     children: [
       { name: "Hiring", href: "Hiring", icon: Briefcase },
       { name: "Email Templates", href: "EmailTemplates", icon: FileText },
@@ -77,18 +77,18 @@ const navigation = [
       { name: "AI Assistant", href: "HRAIAssistant", icon: Sparkles },
     ],
   },
-  { name: "Benefits", href: "Benefits", icon: Heart, color: "emerald" },
-  { name: "Compliance", href: "Compliance", icon: ShieldCheck, color: "red" },
+  { name: "Benefits", href: "Benefits", icon: Heart, color: "green" },
+  { name: "Compliance", href: "Compliance", icon: ShieldCheck, color: "purple" },
   { name: "Documents", href: "Documents", icon: FileText, color: "slate" },
-  { name: "Equity", href: "EquityManagement", icon: TrendingUp, color: "emerald" },
-  { name: "Finance", href: "Expenses", icon: DollarSign, color: "green" },
-  { name: "Payroll", href: "Payroll", icon: CreditCard, color: "green" },
-  { name: "Legal", href: "Contracts", icon: Scale, color: "amber" },
-  { name: "IT", href: "Assets", icon: Monitor, color: "cyan" },
+  { name: "Equity", href: "EquityManagement", icon: TrendingUp, color: "orange" },
+  { name: "Finance", href: "Expenses", icon: DollarSign, color: "yellow" },
+  { name: "Payroll", href: "Payroll", icon: CreditCard, color: "cyan" },
+  { name: "Legal", href: "Contracts", icon: Scale, color: "blue" },
+  { name: "IT", href: "Assets", icon: Monitor, color: "green" },
   {
     name: "Admin",
     icon: Shield,
-    color: "purple",
+    color: "blue",
     children: [
       { name: "Admin Dashboard", href: "Admin", icon: Shield },
       { name: "App Links", href: "AppLinks", icon: Grid },
@@ -165,12 +165,13 @@ export default function Layout({ children, currentPageName }) {
   const getColorClasses = (color, isActive) => {
     const colors = {
       slate: isActive ? "bg-slate-600 text-white shadow-lg shadow-slate-200" : "bg-slate-50 hover:bg-slate-100 border-l-4 border-slate-600",
+      red: isActive ? "bg-red-600 text-white shadow-lg shadow-red-200" : "bg-red-50 hover:bg-red-100 border-l-4 border-red-600",
       blue: isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-600",
       purple: isActive ? "bg-purple-600 text-white shadow-lg shadow-purple-200" : "bg-purple-50 hover:bg-purple-100 border-l-4 border-purple-600",
-      emerald: isActive ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" : "bg-emerald-50 hover:bg-emerald-100 border-l-4 border-emerald-600",
-      indigo: isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-indigo-50 hover:bg-indigo-100 border-l-4 border-indigo-600",
+      pink: isActive ? "bg-pink-600 text-white shadow-lg shadow-pink-200" : "bg-pink-50 hover:bg-pink-100 border-l-4 border-pink-600",
       green: isActive ? "bg-green-600 text-white shadow-lg shadow-green-200" : "bg-green-50 hover:bg-green-100 border-l-4 border-green-600",
-      amber: isActive ? "bg-amber-600 text-white shadow-lg shadow-amber-200" : "bg-amber-50 hover:bg-amber-100 border-l-4 border-amber-600",
+      orange: isActive ? "bg-orange-600 text-white shadow-lg shadow-orange-200" : "bg-orange-50 hover:bg-orange-100 border-l-4 border-orange-600",
+      yellow: isActive ? "bg-yellow-600 text-white shadow-lg shadow-yellow-200" : "bg-yellow-50 hover:bg-yellow-100 border-l-4 border-yellow-600",
       cyan: isActive ? "bg-cyan-600 text-white shadow-lg shadow-cyan-200" : "bg-cyan-50 hover:bg-cyan-100 border-l-4 border-cyan-600",
     };
     return colors[color] || colors.indigo;
@@ -178,22 +179,18 @@ export default function Layout({ children, currentPageName }) {
 
   const getGroupColorClasses = (color, isActive) => {
     const colors = {
-      indigo: isActive ? "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600" : "bg-indigo-50 border-l-4 border-indigo-400",
-      green: isActive ? "bg-green-50 text-green-700 border-l-4 border-green-600" : "bg-green-50 border-l-4 border-green-400",
-      amber: isActive ? "bg-amber-50 text-amber-700 border-l-4 border-amber-600" : "bg-amber-50 border-l-4 border-amber-400",
-      cyan: isActive ? "bg-cyan-50 text-cyan-700 border-l-4 border-cyan-600" : "bg-cyan-50 border-l-4 border-cyan-400",
+      pink: isActive ? "bg-pink-50 text-pink-700 border-l-4 border-pink-600" : "bg-pink-50 border-l-4 border-pink-400",
+      blue: isActive ? "bg-blue-50 text-blue-700 border-l-4 border-blue-600" : "bg-blue-50 border-l-4 border-blue-400",
     };
-    return colors[color] || colors.indigo;
+    return colors[color] || colors.pink;
   };
 
   const getIconColorClasses = (color, isActive) => {
     const colors = {
-      indigo: isActive ? "text-indigo-700" : "text-indigo-600",
-      green: isActive ? "text-green-700" : "text-green-600",
-      amber: isActive ? "text-amber-700" : "text-amber-600",
-      cyan: isActive ? "text-cyan-700" : "text-cyan-600",
+      pink: isActive ? "text-pink-700" : "text-pink-600",
+      blue: isActive ? "text-blue-700" : "text-blue-600",
     };
-    return colors[color] || colors.indigo;
+    return colors[color] || colors.pink;
   };
 
   const NavItem = ({ item, depth = 0 }) => {
