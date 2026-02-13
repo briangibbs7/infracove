@@ -208,15 +208,16 @@ export default function Payroll() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Payroll Management"
-        subtitle="Manage employee compensation and payments"
-        action={{
-          label: "Run Payroll",
-          icon: Plus,
-          onClick: handleRunPayroll,
-        }}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Payroll Management</h1>
+          <p className="mt-1 text-slate-500">Manage employee compensation and payments</p>
+        </div>
+        <Button onClick={handleRunPayroll} className="bg-cyan-600 hover:bg-cyan-700 shadow-lg shadow-cyan-200">
+          <Plus className="w-4 h-4 mr-2" />
+          Run Payroll
+        </Button>
+      </div>
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList>
