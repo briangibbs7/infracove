@@ -63,6 +63,7 @@ import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
 import Departments from './pages/Departments';
 import DirectDeposit from './pages/DirectDeposit';
+import Documentation from './pages/Documentation';
 import Documents from './pages/Documents';
 import EmailTemplates from './pages/EmailTemplates';
 import EmployeePortal from './pages/EmployeePortal';
@@ -92,7 +93,7 @@ import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
-import Documentation from './pages/Documentation';
+import ExportGuide from './pages/ExportGuide';
 import __Layout from './Layout.jsx';
 
 
@@ -113,6 +114,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Departments": Departments,
     "DirectDeposit": DirectDeposit,
+    "Documentation": Documentation,
     "Documents": Documents,
     "EmailTemplates": EmailTemplates,
     "EmployeePortal": EmployeePortal,
@@ -142,7 +144,7 @@ export const PAGES = {
     "Training": Training,
     "Vendors": Vendors,
     "WelcomePackets": WelcomePackets,
-    "Documentation": Documentation,
+    "ExportGuide": ExportGuide,
 }
 
 export const pagesConfig = {
