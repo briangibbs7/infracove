@@ -51,7 +51,6 @@ import ChatButton from "@/components/chat/ChatButton";
 const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard, color: "slate" },
   { name: "My Portal", href: "EmployeePortal", icon: User, color: "red" },
-  { name: "My Profile", href: "MyProfile", icon: UserCircle, color: "indigo" },
   { name: "Announcements", href: "Announcements", icon: Building2, color: "blue" },
   {
     name: "People",
@@ -356,7 +355,7 @@ export default function Layout({ children, currentPageName }) {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to={createPageUrl("EmployeePortal")} className="flex items-center cursor-pointer">
+                    <Link to={createPageUrl("MyProfile")} className="flex items-center cursor-pointer">
                       <UserCircle className="w-4 h-4 mr-2" />
                       Profile
                     </Link>
