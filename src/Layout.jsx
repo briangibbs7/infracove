@@ -33,7 +33,8 @@ import {
   CreditCard,
   BookOpen,
   Grid,
-  Sparkles
+  Sparkles,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
