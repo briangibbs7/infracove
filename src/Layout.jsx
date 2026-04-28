@@ -62,6 +62,7 @@ const navigation = [
       { name: "Employees", href: "Employees", icon: Users },
       { name: "Org Chart", href: "OrgChart", icon: Users },
       { name: "Time Off", href: "TimeOff", icon: FileText },
+      { name: "Team Calendar", href: "TeamCalendar", icon: Calendar },
       { name: "Performance", href: "Performance", icon: TrendingUp },
       { name: "Training", href: "Training", icon: TrendingUp },
       { name: "Mentorship", href: "MentorshipProgram", icon: Users },
