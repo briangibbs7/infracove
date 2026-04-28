@@ -6,6 +6,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import TeamCalendar from './pages/TeamCalendar';
+import EmployeeDirectory from './pages/EmployeeDirectory';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/TeamCalendar" element={<LayoutWrapper currentPageName="TeamCalendar"><TeamCalendar /></LayoutWrapper>} />
+      <Route path="/EmployeeDirectory" element={<LayoutWrapper currentPageName="EmployeeDirectory"><EmployeeDirectory /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
