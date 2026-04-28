@@ -94,6 +94,7 @@ const navigation = [
     children: [
       { name: "Admin Dashboard", href: "Admin", icon: Shield },
       { name: "App Links", href: "AppLinks", icon: Grid },
+      { name: "Compensation", href: "CompensationDashboard", icon: DollarSign },
     ],
   },
 ];

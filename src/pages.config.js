@@ -94,6 +94,7 @@ import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
 import ExportGuide from './pages/ExportGuide';
 import MyProfile from './pages/MyProfile';
+import CompensationDashboard from './pages/CompensationDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -145,6 +146,7 @@ export const PAGES = {
     "WelcomePackets": WelcomePackets,
     "ExportGuide": ExportGuide,
     "MyProfile": MyProfile,
+    "CompensationDashboard": CompensationDashboard,
 }
 
 export const pagesConfig = {
