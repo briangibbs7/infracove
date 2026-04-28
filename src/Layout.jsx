@@ -47,6 +47,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import NotificationCenter from "@/components/communications/NotificationCenter";
+import AppSwitcher from "@/components/layout/AppSwitcher";
 import ChatButton from "@/components/chat/ChatButton";
 
 const navigation = [
@@ -338,6 +339,7 @@ export default function Layout({ children, currentPageName }) {
             </div>
 
             <div className="flex items-center gap-3">
+              <AppSwitcher />
               <NotificationCenter currentEmployee={currentEmployee} />
 
               <DropdownMenu>

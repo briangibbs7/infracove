@@ -51,8 +51,58 @@ import {
   Plus,
   Trash2,
   ExternalLink,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { toast } from "sonner";
+
+function CatchAllToggle({ appLinks, updateAppMutation, createAppMutation }) {
+  const existing = appLinks.find((a) => a.name === "CatchAllAI");
+  const isEnabled = existing?.is_active === true;
+
+  const handleToggle = () => {
+    if (existing) {
+      updateAppMutation.mutate({ id: existing.id, data: { is_active: !isEnabled } });
+    } else {
+      createAppMutation.mutate({
+        name: "CatchAllAI",
+        url: "https://catchallai.com",
+        description: "CatchAll AI application",
+        category: "other",
+        is_active: true,
+        is_featured: false,
+        requires_login: false,
+      });
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-500 flex items-center justify-center text-white font-bold text-sm">
+          C
+        </div>
+        <div>
+          <p className="font-medium text-slate-900">CatchAll AI</p>
+          <p className="text-sm text-muted-foreground">
+            Show the CatchAll AI app switcher in the top navigation bar
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={handleToggle}
+        className="focus:outline-none"
+        aria-label="Toggle CatchAll AI"
+      >
+        {isEnabled ? (
+          <ToggleRight className="w-10 h-10 text-indigo-600" />
+        ) : (
+          <ToggleLeft className="w-10 h-10 text-slate-400" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 export default function Admin() {
   const [user, setUser] = useState(null);
@@ -858,6 +908,17 @@ export default function Admin() {
             <h2 className="text-lg font-semibold text-slate-900">System Settings</h2>
             <p className="text-sm text-muted-foreground">Configure backend and system-wide settings</p>
           </div>
+
+          {/* Integrations */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Integrations</CardTitle>
+              <CardDescription>Enable or disable third-party app integrations</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <CatchAllToggle appLinks={appLinks} updateAppMutation={updateAppMutation} createAppMutation={createAppMutation} />
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
