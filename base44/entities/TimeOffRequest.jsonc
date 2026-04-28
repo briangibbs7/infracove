@@ -1,0 +1,162 @@
+{
+  "name": "TimeOffRequest",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string"
+    },
+    "employee_name": {
+      "type": "string"
+    },
+    "employee_email": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "vacation",
+        "sick",
+        "personal",
+        "bereavement",
+        "parental",
+        "other"
+      ]
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "days_requested": {
+      "type": "number"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_approval",
+        "manager_review",
+        "hr_review",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending_approval"
+    },
+    "review_stage": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "manager_reviewed",
+        "hr_reviewed",
+        "completed"
+      ],
+      "default": "submitted",
+      "description": "Current stage in the review pipeline"
+    },
+    "manager_id": {
+      "type": "string"
+    },
+    "manager_name": {
+      "type": "string"
+    },
+    "manager_email": {
+      "type": "string"
+    },
+    "manager_decision": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "escalated"
+      ],
+      "default": "pending"
+    },
+    "manager_comments": {
+      "type": "string"
+    },
+    "manager_reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "hr_reviewer_id": {
+      "type": "string"
+    },
+    "hr_reviewer_name": {
+      "type": "string"
+    },
+    "hr_decision": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "hr_comments": {
+      "type": "string"
+    },
+    "hr_reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_by": {
+      "type": "string"
+    },
+    "approved_by_name": {
+      "type": "string"
+    },
+    "approved_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "rejection_reason": {
+      "type": "string"
+    },
+    "requires_hr_review": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for requests >5 days or parental/bereavement"
+    },
+    "audit_trail": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actor_name": {
+            "type": "string"
+          },
+          "actor_email": {
+            "type": "string"
+          },
+          "comments": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "employee_id",
+    "type",
+    "start_date",
+    "end_date"
+  ]
+}
