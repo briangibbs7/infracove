@@ -9,6 +9,7 @@ import RecognitionFeed from "@/components/recognition/RecognitionFeed";
 import GiveRecognitionDialog from "@/components/recognition/GiveRecognitionDialog";
 import EmployeeProfileModal from "@/components/employees/EmployeeProfileModal";
 import EquityDashboardWidget from "@/components/equity/EquityDashboardWidget";
+import DepartmentAnalytics from "@/components/analytics/DepartmentAnalytics";
 import { format, parseISO, isFuture, isPast } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -134,6 +135,11 @@ export default function Dashboard() {
   const { data: employeePoints = [] } = useQuery({
     queryKey: ["employeePoints"],
     queryFn: () => base44.entities.EmployeePoints.list(),
+  });
+
+  const { data: payslips = [] } = useQuery({
+    queryKey: ["payslips"],
+    queryFn: () => base44.entities.Payslip.list(),
   });
 
   // Personal data for employee
@@ -471,56 +477,64 @@ export default function Dashboard() {
 
       {/* Manager View */}
       {isManager && !isAdmin && (
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Team Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div>
-                <h3 className="font-medium text-slate-900 mb-3 text-sm md:text-base">Pending Approvals</h3>
-                {pendingApprovals.length > 0 ? (
-                  <div className="space-y-2">
-                    {pendingApprovals.map((request) => (
-                      <div key={request.id} className="flex items-start sm:items-center justify-between gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-900 text-sm md:text-base truncate">{request.employee_name}</p>
-                          <p className="text-xs md:text-sm text-slate-500 capitalize">
-                            {request.type?.replace(/_/g, " ")} • {request.days_requested} days
-                          </p>
+        <>
+          <DepartmentAnalytics 
+            myTeam={myTeam} 
+            performanceReviews={performanceReviews}
+            payslips={payslips}
+          />
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Quick Team Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <div>
+                  <h3 className="font-medium text-slate-900 mb-3 text-sm md:text-base">Pending Approvals</h3>
+                  {pendingApprovals.length > 0 ? (
+                    <div className="space-y-2">
+                      {pendingApprovals.map((request) => (
+                        <div key={request.id} className="flex items-start sm:items-center justify-between gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-900 text-sm md:text-base truncate">{request.employee_name}</p>
+                            <p className="text-xs md:text-sm text-slate-500 capitalize">
+                              {request.type?.replace(/_/g, " ")} • {request.days_requested} days
+                            </p>
+                          </div>
+                          <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-amber-600 flex-shrink-0" />
                         </div>
-                        <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-amber-600 flex-shrink-0" />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs md:text-sm text-slate-500">No pending approvals</p>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-medium text-slate-900 mb-3 text-sm md:text-base">Your Team ({myTeam.length})</h3>
+                  <div className="space-y-2">
+                    {myTeam.slice(0, 5).map((emp) => (
+                      <div
+                        key={emp.id}
+                        onClick={() => {
+                          setSelectedEmployee(emp);
+                          setIsProfileModalOpen(true);
+                        }}
+                        className="flex items-start sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 text-sm md:text-base truncate">{emp.full_name}</p>
+                          <p className="text-xs md:text-sm text-slate-500 truncate">{emp.job_title}</p>
+                        </div>
+                        <StatusBadge status={emp.status} />
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-xs md:text-sm text-slate-500">No pending approvals</p>
-                )}
-              </div>
-              <div>
-                <h3 className="font-medium text-slate-900 mb-3 text-sm md:text-base">Your Team ({myTeam.length})</h3>
-                <div className="space-y-2">
-                  {myTeam.slice(0, 5).map((emp) => (
-                    <div
-                      key={emp.id}
-                      onClick={() => {
-                        setSelectedEmployee(emp);
-                        setIsProfileModalOpen(true);
-                      }}
-                      className="flex items-start sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900 text-sm md:text-base truncate">{emp.full_name}</p>
-                        <p className="text-xs md:text-sm text-slate-500 truncate">{emp.job_title}</p>
-                      </div>
-                      <StatusBadge status={emp.status} />
-                    </div>
-                  ))}
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Admin/HR View */}
