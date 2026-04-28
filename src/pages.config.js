@@ -80,7 +80,6 @@ import NDAs from './pages/NDAs';
 import Offboarding from './pages/Offboarding';
 import Onboarding from './pages/Onboarding';
 import OpenEnrollment from './pages/OpenEnrollment';
-import OrgChart from './pages/OrgChart';
 import Payroll from './pages/Payroll';
 import Performance from './pages/Performance';
 import Recognition from './pages/Recognition';
@@ -132,7 +131,6 @@ export const PAGES = {
     "Offboarding": Offboarding,
     "Onboarding": Onboarding,
     "OpenEnrollment": OpenEnrollment,
-    "OrgChart": OrgChart,
     "Payroll": Payroll,
     "Performance": Performance,
     "Recognition": Recognition,
