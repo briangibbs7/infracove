@@ -24,7 +24,8 @@ import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { format, differenceInDays } from "date-fns";
-import { Calendar, Check, X } from "lucide-react";
+import { Calendar, Check, X, Clock, CheckCircle, XCircle, TrendingDown } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const TIME_OFF_TYPES = ["vacation", "sick", "personal", "bereavement", "parental", "other"];
 
@@ -81,8 +82,8 @@ export default function TimeOff() {
     });
   };
 
-  const handleApprove = (request) => {
-    updateMutation.mutate({
+  const handleApprove = async (request) => {
+    await updateMutation.mutateAsync({
       id: request.id,
       data: {
         status: "approved",
@@ -91,6 +92,16 @@ export default function TimeOff() {
         approved_date: new Date().toISOString().split("T")[0],
       },
     });
+    // Deduct from employee leave balance
+    try {
+      await base44.functions.invoke('deductApprovedLeave', {
+        employee_id: request.employee_id,
+        leave_type: request.type,
+        days: request.days_requested,
+      });
+    } catch (e) {
+      // Non-critical: balance deduction failed silently
+    }
   };
 
   const handleReject = (request) => {
@@ -167,6 +178,11 @@ export default function TimeOff() {
     },
   ];
 
+  const pendingCount = requests.filter(r => r.status === "pending_approval").length;
+  const approvedCount = requests.filter(r => r.status === "approved").length;
+  const totalDaysRequested = requests.reduce((sum, r) => sum + (r.days_requested || 0), 0);
+  const totalDaysApproved = requests.filter(r => r.status === "approved").reduce((sum, r) => sum + (r.days_requested || 0), 0);
+
   return (
     <div>
       <PageHeader
@@ -175,6 +191,25 @@ export default function TimeOff() {
         action={() => setIsDialogOpen(true)}
         actionLabel="Request Time Off"
       />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Pending Approval</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><Clock className="w-5 h-5 text-amber-500" /><span className="text-2xl font-bold text-amber-600">{pendingCount}</span></div></CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Approved</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-emerald-500" /><span className="text-2xl font-bold text-emerald-600">{approvedCount}</span></div></CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Days Requested</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><Calendar className="w-5 h-5 text-blue-500" /><span className="text-2xl font-bold text-blue-600">{totalDaysRequested}</span></div></CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Days Approved</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><TrendingDown className="w-5 h-5 text-indigo-500" /><span className="text-2xl font-bold text-indigo-600">{totalDaysApproved}</span></div></CardContent>
+        </Card>
+      </div>
 
       <Card className="border-0 shadow-sm">
         {requests.length === 0 && !isLoading ? (

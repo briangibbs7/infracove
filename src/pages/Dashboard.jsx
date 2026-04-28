@@ -42,7 +42,7 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
 } from "recharts";
 
 const COLORS = ["#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"];
@@ -90,11 +90,6 @@ export default function Dashboard() {
       setCurrentEmployee(emp);
     }
   }, [user, employees]);
-
-  const { data: leads = [] } = useQuery({
-    queryKey: ["leads"],
-    queryFn: () => base44.entities.Lead.list(),
-  });
 
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses"],
@@ -178,9 +173,6 @@ export default function Dashboard() {
   const pendingExpenses = expenses.filter((e) => e.status === "pending");
   const totalExpenseAmount = pendingExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const openTickets = tickets.filter((t) => t.status === "open" || t.status === "in_progress").length;
-  const pipelineValue = leads
-    .filter((l) => !["won", "lost"].includes(l.status))
-    .reduce((sum, l) => sum + (l.value || 0), 0);
   const onboardingEmployees = employees.filter(e => e.status === "onboarding").length;
   
   // Enhanced metrics
@@ -201,6 +193,7 @@ export default function Dashboard() {
 
   const assignedAssets = assets.filter(a => a.status === "assigned").length;
   const availableAssets = assets.filter(a => a.status === "available").length;
+  const totalApprovedExpenses = expenses.filter(e => e.status === "approved").reduce((sum, e) => sum + (e.amount || 0), 0);
   
   const myTraining = currentEmployee 
     ? trainingAssignments.filter(t => t.employee_id === currentEmployee.id && t.status !== "completed")
@@ -231,23 +224,21 @@ export default function Dashboard() {
     return acc;
   }, []);
 
-  const leadStatusData = [
-    { name: "New", value: leads.filter((l) => l.status === "new").length },
-    { name: "Contacted", value: leads.filter((l) => l.status === "contacted").length },
-    { name: "Qualified", value: leads.filter((l) => l.status === "qualified").length },
-    { name: "Proposal", value: leads.filter((l) => l.status === "proposal").length },
-    { name: "Won", value: leads.filter((l) => l.status === "won").length },
+  const expenseStatusData = [
+    { name: "Pending", value: expenses.filter((e) => e.status === "pending").length },
+    { name: "Approved", value: expenses.filter((e) => e.status === "approved").length },
+    { name: "Rejected", value: expenses.filter((e) => e.status === "rejected").length },
   ].filter((d) => d.value > 0);
 
   const recentActivities = [
-    ...expenses.slice(0, 2).map((e) => ({
+    ...expenses.slice(0, 3).map((e) => ({
       type: "expense",
       title: `Expense: ${e.title}`,
       subtitle: `$${e.amount?.toLocaleString()} - ${e.category?.replace(/_/g, " ")}`,
       status: e.status,
       date: e.created_date,
     })),
-    ...timeOffRequests.slice(0, 2).map((t) => ({
+    ...timeOffRequests.slice(0, 3).map((t) => ({
       type: "timeoff",
       title: `Time Off: ${t.employee_name}`,
       subtitle: `${t.type?.replace(/_/g, " ")} - ${t.days_requested} days`,
@@ -663,14 +654,14 @@ export default function Dashboard() {
 
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Sales Pipeline</CardTitle>
+            <CardTitle className="text-lg font-semibold">Expense Status</CardTitle>
           </CardHeader>
           <CardContent>
-            {leadStatusData.length > 0 ? (
+            {expenseStatusData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200} className="md:!h-[250px]">
                 <PieChart>
                   <Pie
-                    data={leadStatusData}
+                    data={expenseStatusData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -679,7 +670,7 @@ export default function Dashboard() {
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
-                    {leadStatusData.map((entry, index) => (
+                    {expenseStatusData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -688,7 +679,7 @@ export default function Dashboard() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[250px] flex items-center justify-center text-slate-400">
-                No lead data yet
+                No expense data yet
               </div>
             )}
           </CardContent>
@@ -784,14 +775,14 @@ export default function Dashboard() {
               <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              to={createPageUrl("NDAs")}
-              className="flex items-center justify-between p-3 md:p-4 bg-indigo-50 rounded-xl hover:bg-indigo-100 active:bg-indigo-200 transition-colors group"
+              to={createPageUrl("Payroll")}
+              className="flex items-center justify-between p-3 md:p-4 bg-cyan-50 rounded-xl hover:bg-cyan-100 active:bg-cyan-200 transition-colors group"
             >
               <div className="flex items-center gap-2 md:gap-3">
-                <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" />
-                <span className="font-medium text-indigo-900 text-sm md:text-base">Create NDA</span>
+                <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-cyan-600" />
+                <span className="font-medium text-cyan-900 text-sm md:text-base">Run Payroll</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-cyan-600 group-hover:translate-x-1 transition-transform" />
             </Link>
           </CardContent>
         </Card>

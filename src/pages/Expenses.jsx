@@ -24,7 +24,8 @@ import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { format } from "date-fns";
-import { Receipt, Check, X, Upload, Eye } from "lucide-react";
+import { Receipt, Check, X, Upload, Eye, DollarSign, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const CATEGORIES = ["travel", "office_supplies", "software", "meals", "equipment", "marketing", "professional_services", "utilities", "other"];
 const DEPARTMENTS = ["HR", "Finance", "Sales", "Legal", "IT", "Marketing", "Operations", "Executive"];
@@ -182,9 +183,10 @@ export default function Expenses() {
     },
   ];
 
-  const pendingTotal = expenses
-    .filter((e) => e.status === "pending")
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
+  const pendingTotal = expenses.filter((e) => e.status === "pending").reduce((sum, e) => sum + (e.amount || 0), 0);
+  const approvedTotal = expenses.filter((e) => e.status === "approved").reduce((sum, e) => sum + (e.amount || 0), 0);
+  const rejectedCount = expenses.filter((e) => e.status === "rejected").length;
+  const totalAll = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
   return (
     <div>
@@ -194,6 +196,25 @@ export default function Expenses() {
         action={() => setIsDialogOpen(true)}
         actionLabel="Submit Expense"
       />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Total Submitted</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><DollarSign className="w-5 h-5 text-slate-500" /><span className="text-2xl font-bold">${totalAll.toLocaleString()}</span></div></CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Pending</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><Clock className="w-5 h-5 text-amber-500" /><span className="text-2xl font-bold text-amber-600">${pendingTotal.toLocaleString()}</span></div></CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Approved</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-emerald-500" /><span className="text-2xl font-bold text-emerald-600">${approvedTotal.toLocaleString()}</span></div></CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-slate-500">Rejected</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><XCircle className="w-5 h-5 text-red-500" /><span className="text-2xl font-bold text-red-600">{rejectedCount}</span></div></CardContent>
+        </Card>
+      </div>
 
       <Card className="border-0 shadow-sm">
         {expenses.length === 0 && !isLoading ? (

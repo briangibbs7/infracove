@@ -79,7 +79,7 @@ export default function Payroll() {
   });
 
   const calculatePayroll = (employee, periodStart, periodEnd) => {
-    const baseAmount = employee.salary || 0;
+    const baseAmount = employee.salary || employee.base_salary || 0;
     const monthlyRate = baseAmount / 12;
     
     // Get benefit deductions for this employee
@@ -101,7 +101,7 @@ export default function Payroll() {
 
     return {
       employee_id: employee.id,
-      employee_name: employee.name,
+      employee_name: employee.full_name,
       employee_email: employee.email,
       department: employee.department,
       pay_period_start: periodStart,
@@ -131,7 +131,16 @@ export default function Payroll() {
     const periodStart = moment().subtract(14, "days").format("YYYY-MM-DD");
 
     const activeEmployees = employees.filter((e) => e.status === "active");
-    const payrollRecords = activeEmployees.map((emp) =>
+    if (activeEmployees.length === 0) {
+      toast.error("No active employees found");
+      return;
+    }
+    const employeesWithSalary = activeEmployees.filter(e => (e.salary || e.base_salary));
+    if (employeesWithSalary.length === 0) {
+      toast.error("No employees have salary data. Please add salaries to employee records first.");
+      return;
+    }
+    const payrollRecords = employeesWithSalary.map((emp) =>
       calculatePayroll(emp, periodStart, periodEnd)
     );
 
@@ -139,7 +148,7 @@ export default function Payroll() {
       payrollRecords.map((record) => base44.entities.Payroll.create(record))
     ).then(() => {
       queryClient.invalidateQueries({ queryKey: ["payrolls"] });
-      toast.success(`Payroll run created for ${activeEmployees.length} employees`);
+      toast.success(`Payroll run created for ${employeesWithSalary.length} employees`);
     });
   };
 

@@ -103,7 +103,7 @@ export default function Benefits() {
 
     const enrollmentData = {
       employee_id: employee.id,
-      employee_name: employee.name,
+      employee_name: employee.full_name,
       employee_email: employee.email,
       benefit_id: benefit.id,
       benefit_name: benefit.name,
@@ -527,9 +527,9 @@ export default function Benefits() {
                 <SelectContent>
                   {employees
                     .filter((e) => e.status === "active")
-                    .map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.name} - {emp.department}
+                      .map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.full_name} - {emp.department}
                       </SelectItem>
                     ))}
                 </SelectContent>
