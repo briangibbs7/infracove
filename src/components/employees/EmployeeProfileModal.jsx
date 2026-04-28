@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import EmployeeDocuments from "./EmployeeDocuments";
+import { base44 } from "@/api/base44Client";
 import {
   Mail,
   Phone,
@@ -19,6 +21,13 @@ import {
 } from "lucide-react";
 
 export default function EmployeeProfileModal({ employee, open, onOpenChange, onClose }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
+
+  const isAdmin = user?.role === "admin";
   if (!employee) return null;
   
   const handleOpenChange = (isOpen) => {
@@ -300,7 +309,17 @@ export default function EmployeeProfileModal({ employee, open, onOpenChange, onC
               </div>
             </>
           )}
-        </div>
+
+          {/* Secure Documents */}
+          <>
+            <Separator />
+            <EmployeeDocuments 
+              employeeId={employee.id}
+              employeeName={employee.full_name}
+              isAdmin={isAdmin}
+            />
+          </>
+          </div>
       </DialogContent>
     </Dialog>
   );

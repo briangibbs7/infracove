@@ -1,0 +1,59 @@
+{
+  "name": "EmployeeDocument",
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "string",
+      "description": "Reference to Employee entity"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Name of the employee (denormalized)"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "contract",
+        "offer_letter",
+        "performance_review",
+        "feedback",
+        "tax_form",
+        "handbook_ack",
+        "nda",
+        "other"
+      ],
+      "description": "Type of document"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original file name"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL to the uploaded file"
+    },
+    "file_size": {
+      "type": "number",
+      "description": "File size in bytes"
+    },
+    "uploaded_by": {
+      "type": "string",
+      "description": "Email or ID of uploader"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the document"
+    },
+    "is_sensitive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Mark as sensitive - admin only access"
+    }
+  },
+  "required": [
+    "employee_id",
+    "document_type",
+    "file_name",
+    "file_url"
+  ]
+}
