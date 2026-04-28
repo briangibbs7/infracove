@@ -25,10 +25,6 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
     enabled: !!candidate && isOpen
   });
 
-  if (!candidate) return null;
-
-  const job = jobOpenings.find(j => j.id === candidate.job_opening_id);
-
   const updateCandidateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.JobCandidate.update(id, data),
     onSuccess: () => {
@@ -58,6 +54,10 @@ export default function CandidateDetailsDialog({ isOpen, onClose, candidate, job
       onClose();
     },
   });
+
+  if (!candidate) return null;
+
+  const job = jobOpenings.find(j => j.id === candidate.job_opening_id);
 
   const handleAddNote = async () => {
     if (!note.trim()) return;
