@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import EmployeeDetailModal from "@/components/directory/EmployeeDetailModal";
 
 const STATUS_COLORS = {
   active: "bg-green-100 text-green-700",
@@ -17,6 +18,7 @@ export default function EmployeeDirectory() {
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["employees-directory"],
@@ -127,7 +129,8 @@ export default function EmployeeDirectory() {
           {filtered.map(emp => (
             <div
               key={emp.id}
-              className="rounded-xl border bg-white p-5 hover:shadow-md transition-shadow space-y-4"
+              onClick={() => setSelectedEmployee(emp)}
+              className="rounded-xl border bg-white p-5 hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer space-y-4"
             >
               {/* Avatar + Name */}
               <div className="flex items-center gap-3">
@@ -187,6 +190,12 @@ export default function EmployeeDirectory() {
           ))}
         </div>
       )}
+
+      <EmployeeDetailModal
+        employee={selectedEmployee}
+        open={!!selectedEmployee}
+        onClose={() => setSelectedEmployee(null)}
+      />
     </div>
   );
 }
