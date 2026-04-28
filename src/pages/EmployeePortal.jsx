@@ -1050,215 +1050,181 @@ export default function EmployeePortal() {
         </TabsContent>
 
         {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-6">
-          {/* Profile Header with Theme */}
-          <Card className="overflow-hidden">
-            <div className={`h-32 bg-gradient-to-r ${getThemeGradient(currentEmployee?.profile_theme || "blue")}`} />
-            <CardContent className="relative pt-0 pb-6">
-              <div className="flex flex-col md:flex-row items-start md:items-end gap-6 -mt-16">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden">
-                    {currentEmployee?.profile_photo ? (
-                      <img
-                        src={currentEmployee.profile_photo}
-                        alt={currentEmployee.full_name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className={`w-full h-full flex items-center justify-center text-4xl font-bold text-white ${getThemeBg(currentEmployee?.profile_theme || "blue")}`}>
-                        {currentEmployee?.full_name?.charAt(0)}
-                      </div>
-                    )}
+        <TabsContent value="profile" className="space-y-0">
+          {/* Cover + Avatar Hero */}
+          <div className="relative">
+            <div className={`h-40 w-full rounded-xl bg-gradient-to-r ${getThemeGradient(currentEmployee?.profile_theme || "blue")}`} />
+            <div className="px-6 pb-6">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-12">
+                <div className="flex items-end gap-4">
+                  <div className="relative shrink-0">
+                    <div className="w-24 h-24 rounded-2xl border-4 border-white bg-white shadow-xl overflow-hidden">
+                      {currentEmployee?.profile_photo ? (
+                        <img src={currentEmployee.profile_photo} alt={currentEmployee.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className={`w-full h-full flex items-center justify-center text-3xl font-bold text-white ${getThemeBg(currentEmployee?.profile_theme || "blue")}`}>
+                          {currentEmployee?.full_name?.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <label className="absolute -bottom-1 -right-1 bg-white rounded-full p-1.5 shadow-md cursor-pointer hover:bg-slate-50 transition-colors border border-slate-200">
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                      <Camera className="w-3.5 h-3.5 text-slate-600" />
+                    </label>
                   </div>
-                  <label className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handlePhotoUpload}
-                    />
-                    <Camera className="w-4 h-4 text-slate-600" />
-                  </label>
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-slate-900">{currentEmployee?.full_name}</h2>
-                  <p className="text-slate-600">{currentEmployee?.job_title}</p>
-                  <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
-                    <MapPin className="w-4 h-4" />
-                    {currentEmployee?.location || "Location not set"}
+                  <div className="pb-1">
+                    <h2 className="text-xl font-bold text-slate-900 leading-tight">{currentEmployee?.full_name}</h2>
+                    <p className="text-slate-500 text-sm">{currentEmployee?.job_title}</p>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                      {currentEmployee?.department && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{currentEmployee.department}</span>}
+                      {currentEmployee?.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{currentEmployee.location}</span>}
+                    </div>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setEditProfileOpen(true)}
-                >
+                <Button variant="outline" size="sm" onClick={() => setEditProfileOpen(true)} className="shrink-0">
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Profile
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* About Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>About</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-700 whitespace-pre-wrap">
-                {currentEmployee?.bio || "No bio added yet. Click 'Edit Profile' to add your bio."}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Career Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Career</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium text-slate-500">Department</Label>
-                <p className="text-slate-900">{currentEmployee?.department || "Not set"}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-500">Manager</Label>
-                <p className="text-slate-900">{currentEmployee?.manager_name || "Not assigned"}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-500">Hire Date</Label>
-                <p className="text-slate-900">
-                  {currentEmployee?.start_date ? format(new Date(currentEmployee.start_date), "MMMM d, yyyy") : "Not set"}
-                </p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-slate-500">Career Goals</Label>
-                <p className="text-slate-700">
-                  {currentEmployee?.career_goals || "No career goals set. Click 'Edit Profile' to add them."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Skills & Interests */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Skills</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {currentEmployee?.skills?.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {currentEmployee.skills.map((skill, idx) => (
-                      <Badge key={idx} variant="outline" className={`${getThemeBadge(currentEmployee?.profile_theme || "blue")}`}>
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No skills added yet</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Interests & Hobbies</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {currentEmployee?.interests?.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {currentEmployee.interests.map((interest, idx) => (
-                      <Badge key={idx} variant="outline" className={`${getThemeBadge(currentEmployee?.profile_theme || "blue")}`}>
-                        {interest}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No interests added yet</p>
-                )}
-              </CardContent>
-            </Card>
+            </div>
           </div>
 
-          {/* Contact Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-slate-400" />
-                <div>
-                  <Label className="text-sm font-medium text-slate-500">Email</Label>
-                  <p className="text-slate-900">{currentEmployee?.email}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-slate-400" />
-                <div>
-                  <Label className="text-sm font-medium text-slate-500">Phone</Label>
-                  <p className="text-slate-900">{currentEmployee?.phone || "Not set"}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-slate-400" />
-                <div>
-                  <Label className="text-sm font-medium text-slate-500">Location</Label>
-                  <p className="text-slate-900">{currentEmployee?.location || "Not set"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Main Content Grid */}
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* About */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">About</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
+                    {currentEmployee?.bio || <span className="italic text-slate-400">No bio added yet. Click 'Edit Profile' to add one.</span>}
+                  </p>
+                </CardContent>
+              </Card>
 
-          {/* Leave Balances */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Leave Balances
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-600 mb-1 font-medium">Vacation</p>
-                  <p className="text-3xl font-bold text-blue-700">
-                    {currentEmployee?.vacation_balance || 0}
-                  </p>
-                  <p className="text-xs text-blue-500 mt-1">days remaining</p>
-                </div>
-                <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                  <p className="text-sm text-red-600 mb-1 font-medium">Sick</p>
-                  <p className="text-3xl font-bold text-red-700">
-                    {currentEmployee?.sick_balance || 0}
-                  </p>
-                  <p className="text-xs text-red-500 mt-1">days remaining</p>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <p className="text-sm text-purple-600 mb-1 font-medium">Personal</p>
-                  <p className="text-3xl font-bold text-purple-700">
-                    {currentEmployee?.personal_balance || 0}
-                  </p>
-                  <p className="text-xs text-purple-500 mt-1">days remaining</p>
-                </div>
-                <div className="text-center p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <p className="text-sm text-slate-600 mb-1 font-medium">Bereavement</p>
-                  <p className="text-3xl font-bold text-slate-700">
-                    {currentEmployee?.bereavement_balance || 0}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">days remaining</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-sm text-green-600 mb-1 font-medium">Parental</p>
-                  <p className="text-3xl font-bold text-green-700">
-                    {currentEmployee?.parental_balance || 0}
-                  </p>
-                  <p className="text-xs text-green-500 mt-1">days remaining</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Career Goals */}
+              {currentEmployee?.career_goals && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="w-4 h-4 text-indigo-500" />Career Goals</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-slate-600 text-sm leading-relaxed">{currentEmployee.career_goals}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Skills & Interests */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Skills & Interests</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {currentEmployee?.skills?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Skills</p>
+                      <div className="flex flex-wrap gap-2">
+                        {currentEmployee.skills.map((skill, idx) => (
+                          <Badge key={idx} variant="outline" className={getThemeBadge(currentEmployee?.profile_theme || "blue")}>{skill}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {currentEmployee?.interests?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Interests</p>
+                      <div className="flex flex-wrap gap-2">
+                        {currentEmployee.interests.map((interest, idx) => (
+                          <Badge key={idx} variant="outline" className="border-slate-200 text-slate-600">{interest}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {!currentEmployee?.skills?.length && !currentEmployee?.interests?.length && (
+                    <p className="text-sm italic text-slate-400">No skills or interests added yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Leave Balances */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2"><Calendar className="w-4 h-4 text-indigo-500" />Leave Balances</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    {[
+                      { label: "Vacation", value: currentEmployee?.vacation_balance || 0, color: "bg-blue-50 text-blue-700 border-blue-100" },
+                      { label: "Sick", value: currentEmployee?.sick_balance || 0, color: "bg-rose-50 text-rose-700 border-rose-100" },
+                      { label: "Personal", value: currentEmployee?.personal_balance || 0, color: "bg-purple-50 text-purple-700 border-purple-100" },
+                      { label: "Bereavement", value: currentEmployee?.bereavement_balance || 0, color: "bg-slate-50 text-slate-700 border-slate-200" },
+                      { label: "Parental", value: currentEmployee?.parental_balance || 0, color: "bg-emerald-50 text-emerald-700 border-emerald-100" },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} className={`text-center p-3 rounded-xl border ${color}`}>
+                        <p className="text-2xl font-bold">{value}</p>
+                        <p className="text-xs mt-0.5 font-medium">{label}</p>
+                        <p className="text-xs opacity-60">days</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Contact Info */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Contact</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { icon: Mail, label: "Email", value: currentEmployee?.email },
+                    { icon: Phone, label: "Phone", value: currentEmployee?.phone },
+                    { icon: MapPin, label: "Location", value: currentEmployee?.location },
+                  ].map(({ icon: Icon, label, value }) => (
+                    <div key={label} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-slate-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium">{label}</p>
+                        <p className="text-sm text-slate-800">{value || <span className="italic text-slate-300">Not set</span>}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Work Info */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Work Info</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { icon: Briefcase, label: "Department", value: currentEmployee?.department },
+                    { icon: Users, label: "Manager", value: currentEmployee?.manager_name },
+                    { icon: Calendar, label: "Hire Date", value: currentEmployee?.hire_date ? format(new Date(currentEmployee.hire_date), "MMM d, yyyy") : null },
+                  ].map(({ icon: Icon, label, value }) => (
+                    <div key={label} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-slate-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium">{label}</p>
+                        <p className="text-sm text-slate-800">{value || <span className="italic text-slate-300">Not set</span>}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 
