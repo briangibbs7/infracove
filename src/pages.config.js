@@ -89,7 +89,7 @@ import ShareholderPortal from './pages/ShareholderPortal';
 import Support from './pages/Support';
 import Surveys from './pages/Surveys';
 import TaxDocuments from './pages/TaxDocuments';
-import TimeOff from './pages/TimeOff.jsx';
+import TimeOff from './pages/TimeOff';
 import Training from './pages/Training';
 import Vendors from './pages/Vendors';
 import WelcomePackets from './pages/WelcomePackets';
