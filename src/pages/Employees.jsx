@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import MessagingDialog from "@/components/communications/MessagingDialog";
 import EmployeeDetailsDialog from "@/components/employees/EmployeeDetailsDialog";
+import EnhancedProfileModal from "@/components/employees/EnhancedProfileModal";
 import EmployeeProfile from "@/components/employees/EmployeeProfile";
 import EmployeeDetailModal from "@/components/directory/EmployeeDetailModal";
 import EmployeeProfileModal from "@/components/employees/EmployeeProfileModal";
@@ -152,6 +153,7 @@ export default function Employees() {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEnhancedProfileOpen, setIsEnhancedProfileOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [orgSelectedEmployee, setOrgSelectedEmployee] = useState(null);
@@ -408,8 +410,8 @@ export default function Employees() {
                           <DropdownMenuItem onClick={() => { setEditingEmployee(employee); setIsDialogOpen(true); }}>
                             <Pencil className="w-4 h-4 mr-2" /> Edit Basic Info
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { setSelectedEmployee(employee); setEditingEmployee(employee); setIsViewDialogOpen(true); }}>
-                            <Award className="w-4 h-4 mr-2" /> View Full Profile
+                          <DropdownMenuItem onClick={() => { setSelectedEmployee(employee); setIsEnhancedProfileOpen(true); }}>
+                            <Award className="w-4 h-4 mr-2" /> View Enhanced Profile
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => { setEditingEmployee(employee); setIsDetailsDialogOpen(true); }}>
                             <Shield className="w-4 h-4 mr-2" /> Edit Skills & Details
@@ -705,6 +707,12 @@ export default function Employees() {
         onClose={() => { setIsMessagingOpen(false); setMessagingRecipient(null); }}
         recipient={messagingRecipient}
         currentEmployee={currentEmployee}
+      />
+
+      <EnhancedProfileModal
+        employee={selectedEmployee}
+        open={isEnhancedProfileOpen}
+        onOpenChange={setIsEnhancedProfileOpen}
       />
     </div>
   );
