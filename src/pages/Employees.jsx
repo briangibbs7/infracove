@@ -70,57 +70,79 @@ function OrgNode({ node, level, onSelect, collapsedNodes, toggleCollapse }) {
   const countAll = (n) => (n.children || []).reduce((s, c) => s + 1 + countAll(c), 0);
   const totalReports = countAll(node);
 
-  // Role-based coloring
-  const getRoleColor = () => {
-    const title = (node.job_title || "").toLowerCase();
-    if (title.includes("president") || title.includes("ceo") || title.includes("founder")) {
-      return { bg: "bg-slate-600", text: "text-white", avatar: "bg-gradient-to-br from-slate-600 to-slate-700" };
-    }
-    if (title.includes("director") || title.includes("vp") || title.includes("vice")) {
-      return { bg: "bg-teal-500", text: "text-white", avatar: "bg-gradient-to-br from-teal-400 to-cyan-500" };
-    }
-    return { bg: "bg-red-500", text: "text-white", avatar: "bg-gradient-to-br from-red-400 to-rose-500" };
+  // Role-based coloring by level
+  const getLevelColor = () => {
+    if (level === 0) return { card: "bg-slate-800 text-white border-slate-700", dot: "bg-slate-600", line: "bg-slate-400" };
+    if (level === 1) return { card: "bg-indigo-600 text-white border-indigo-500", dot: "bg-indigo-400", line: "bg-indigo-300" };
+    if (level === 2) return { card: "bg-white text-slate-800 border-slate-200 shadow-sm", dot: "bg-slate-300", line: "bg-slate-300" };
+    return { card: "bg-slate-50 text-slate-700 border-slate-200 shadow-sm", dot: "bg-slate-200", line: "bg-slate-200" };
   };
 
-  const colors = getRoleColor();
+  const colors = getLevelColor();
+  const isLight = level >= 2;
 
   return (
     <div className="flex flex-col items-center">
+      {/* Card */}
       <div
         onClick={() => onSelect(node)}
-        className={`group relative ${colors.bg} ${colors.text} rounded-3xl px-6 py-4 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer min-w-max`}
+        className={`group relative border rounded-2xl px-4 py-3 hover:shadow-lg transition-all duration-200 cursor-pointer w-52 ${colors.card}`}
       >
         <div className="flex items-center gap-3">
-          <Avatar className="h-16 w-16 flex-shrink-0 ring-4 ring-white shadow-lg">
+          <Avatar className="h-10 w-10 flex-shrink-0 ring-2 ring-white/60">
             <AvatarImage src={node.profile_photo} />
-            <AvatarFallback className={`${colors.avatar} font-bold text-lg`}>
+            <AvatarFallback className={`font-semibold text-xs ${isLight ? "bg-indigo-100 text-indigo-700" : "bg-white/20 text-white"}`}>
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <p className="font-bold text-sm">{node.full_name}</p>
-            <p className="text-xs opacity-90">{node.job_title || "Team Member"}</p>
+          <div className="min-w-0">
+            <p className={`font-semibold text-sm truncate ${isLight ? "text-slate-900" : "text-white"}`}>{node.full_name}</p>
+            <p className={`text-xs truncate ${isLight ? "text-slate-500" : "text-white/75"}`}>{node.job_title || "Team Member"}</p>
+            {totalReports > 0 && (
+              <p className={`text-xs mt-0.5 ${isLight ? "text-slate-400" : "text-white/60"}`}>
+                {totalReports} report{totalReports !== 1 ? "s" : ""}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {hasChildren && !isCollapsed && <div className="w-0.5 h-6 bg-teal-400" />}
+      {/* Expand/collapse toggle */}
+      {hasChildren && (
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleCollapse(node.id); }}
+          className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors z-10 ${isLight ? "border-slate-300 bg-white text-slate-500 hover:border-indigo-400" : "border-indigo-300 bg-indigo-600 text-white hover:bg-indigo-500"}`}
+        >
+          {isCollapsed ? "+" : "−"}
+        </button>
+      )}
 
+      {/* Vertical line down */}
       {hasChildren && !isCollapsed && (
-        <div className="flex gap-8 relative">
+        <div className={`w-px h-6 ${colors.line}`} />
+      )}
+
+      {/* Children row */}
+      {hasChildren && !isCollapsed && (
+        <div className="relative flex gap-6">
+          {/* Horizontal bar spanning children */}
           {node.children.length > 1 && (
             <div
-              className="absolute -top-6 h-0.5 bg-teal-400"
-              style={{
-                left: `calc(50% - ${(node.children.length - 1) * 0.5 * (200 + 32)}px + ${100}px)`,
-                width: `${(node.children.length - 1) * (200 + 32)}px`,
-              }}
+              className={`absolute top-0 h-px ${colors.line}`}
+              style={{ left: "50%", right: "50%", width: "100%" }}
             />
           )}
-          {node.children.map(child => (
-            <div key={child.id} className="flex flex-col items-center">
-              <div className="w-0.5 h-6 bg-teal-400" />
-              <OrgNode node={child} level={level + 1} onSelect={onSelect} collapsedNodes={collapsedNodes} toggleCollapse={toggleCollapse} />
+          {node.children.map((child, idx) => (
+            <div key={child.id} className="flex flex-col items-center relative">
+              {/* Vertical line up to horizontal bar */}
+              <div className={`w-px h-6 ${colors.line}`} />
+              <OrgNode
+                node={child}
+                level={level + 1}
+                onSelect={onSelect}
+                collapsedNodes={collapsedNodes}
+                toggleCollapse={toggleCollapse}
+              />
             </div>
           ))}
         </div>
@@ -572,29 +594,40 @@ export default function Employees() {
 
         {/* ── ORG CHART TAB ── */}
         <TabsContent value="org" className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <p className="text-sm text-slate-500">{employees.length} employees · click any card for details</p>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input placeholder="Search employees..." value={orgSearch} onChange={e => setOrgSearch(e.target.value)} className="pl-10" />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <p className="text-sm text-slate-500">{employees.length} employees · click any card for details · click +/− to expand/collapse</p>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input placeholder="Search by name or title..." value={orgSearch} onChange={e => setOrgSearch(e.target.value)} className="pl-10" />
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setCollapsedNodes(new Set())}>Expand All</Button>
+              <Button variant="outline" size="sm" onClick={() => setCollapsedNodes(new Set(employees.map(e => e.id)))}>Collapse All</Button>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-2xl border border-slate-200 p-8 overflow-x-auto min-h-64">
-            <div className="inline-block min-w-full">
+          <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-2xl border border-slate-200 overflow-auto min-h-64" style={{ maxHeight: "70vh" }}>
+            <div className="inline-flex p-10 min-w-full justify-center">
               {filteredOrgTree.length === 0 ? (
                 <div className="text-center py-16">
                   <Users className="w-14 h-14 text-slate-300 mx-auto mb-4" />
                   <p className="text-slate-500">{orgSearch ? "No employees match your search" : "No employees in the organization"}</p>
                 </div>
               ) : (
-                <div className="flex gap-12 justify-center">
+                <div className="flex gap-16 justify-center">
                   {filteredOrgTree.map(root => (
                     <OrgNode key={root.id} node={root} level={0} onSelect={setOrgSelectedEmployee} collapsedNodes={collapsedNodes} toggleCollapse={toggleCollapse} />
                   ))}
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-6 text-xs text-slate-500 px-1">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-slate-800" /><span>Executive</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-indigo-600" /><span>Director / VP</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-white border border-slate-200" /><span>Team Member</span></div>
           </div>
 
           {orgSelectedEmployee && (
