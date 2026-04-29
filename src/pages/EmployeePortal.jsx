@@ -156,6 +156,18 @@ export default function EmployeePortal() {
     }
   }, [user, employees]);
 
+  // Calculate filtered employees for directory - must be before early return
+  const dirFilteredEmployees = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return employees.filter(e => {
+      const matchesSearch = !q || e.full_name?.toLowerCase().includes(q) || e.job_title?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q) || e.department?.toLowerCase().includes(q);
+      const matchesDept = dirDept === "all" || e.department === dirDept;
+      const matchesLoc = dirLocation === "all" || e.location === dirLocation;
+      const matchesSkills = dirSkills.length === 0 || (e.skills && dirSkills.some(skill => e.skills.includes(skill)));
+      return matchesSearch && matchesDept && matchesLoc && matchesSkills;
+    });
+  }, [employees, searchQuery, dirDept, dirLocation, dirSkills]);
+
   const createTimeOffMutation = useMutation({
     mutationFn: (data) => base44.entities.TimeOffRequest.create(data),
     onSuccess: () => {
@@ -332,17 +344,6 @@ export default function EmployeePortal() {
       e.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.job_title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const dirFilteredEmployees = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    return employees.filter(e => {
-      const matchesSearch = !q || e.full_name?.toLowerCase().includes(q) || e.job_title?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q) || e.department?.toLowerCase().includes(q);
-      const matchesDept = dirDept === "all" || e.department === dirDept;
-      const matchesLoc = dirLocation === "all" || e.location === dirLocation;
-      const matchesSkills = dirSkills.length === 0 || (e.skills && dirSkills.some(skill => e.skills.includes(skill)));
-      return matchesSearch && matchesDept && matchesLoc && matchesSkills;
-    });
-  }, [employees, searchQuery, dirDept, dirLocation, dirSkills]);
 
   const getIconComponent = (iconName) => {
     const icons = {
