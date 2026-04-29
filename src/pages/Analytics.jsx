@@ -8,6 +8,7 @@ import RecognitionAnalytics from "@/components/analytics/RecognitionAnalytics";
 import TrainingAnalytics from "@/components/analytics/TrainingAnalytics";
 import TimeOffAnalytics from "@/components/analytics/TimeOffAnalytics";
 import PerformanceAnalytics from "@/components/analytics/PerformanceAnalytics";
+import WorkforceAnalytics from "@/components/analytics/WorkforceAnalytics";
 import { TrendingUp, Award, GraduationCap, Calendar, Target, Users } from "lucide-react";
 
 export default function Analytics() {
@@ -68,8 +69,12 @@ export default function Analytics() {
         subtitle="Data-driven insights for workforce management and engagement"
       />
 
-      <Tabs defaultValue="skills" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 mb-6">
+      <Tabs defaultValue="workforce" className="w-full">
+        <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsTrigger value="workforce" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Workforce</span>
+          </TabsTrigger>
           <TabsTrigger value="skills" className="flex items-center gap-2">
             <Target className="w-4 h-4" />
             <span className="hidden sm:inline">Skills</span>
@@ -91,6 +96,10 @@ export default function Analytics() {
             <span className="hidden sm:inline">Performance</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="workforce">
+          <WorkforceAnalytics employees={employees} />
+        </TabsContent>
 
         <TabsContent value="skills">
           <SkillsAnalytics
