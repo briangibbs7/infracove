@@ -1053,9 +1053,9 @@ export default function EmployeePortal() {
         <TabsContent value="profile" className="space-y-0">
           {/* Cover + Avatar Hero */}
           <div className="relative">
-            <div className={`h-40 w-full rounded-xl bg-gradient-to-r ${getThemeGradient(currentEmployee?.profile_theme || "blue")}`} />
-            <div className="px-6 pb-6">
-              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-12">
+            <div className={`h-36 w-full rounded-t-xl bg-gradient-to-r ${getThemeGradient(currentEmployee?.profile_theme || "blue")}`} />
+            <div className="px-6 pb-6 bg-white rounded-b-xl border border-t-0 border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-12 pt-0">
                 <div className="flex items-end gap-4">
                   <div className="relative shrink-0">
                     <div className="w-24 h-24 rounded-2xl border-4 border-white bg-white shadow-xl overflow-hidden">
