@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import TeamCalendar from './pages/TeamCalendar';
 import CompensationDashboard from './pages/CompensationDashboard';
+import HRAnalytics from './pages/HRAnalytics';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/TeamCalendar" element={<LayoutWrapper currentPageName="TeamCalendar"><TeamCalendar /></LayoutWrapper>} />
       <Route path="/CompensationDashboard" element={<LayoutWrapper currentPageName="CompensationDashboard"><CompensationDashboard /></LayoutWrapper>} />
+      <Route path="/HRAnalytics" element={<LayoutWrapper currentPageName="HRAnalytics"><HRAnalytics /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

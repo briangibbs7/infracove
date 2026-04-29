@@ -43,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import SkillsInput from "@/components/employees/SkillsInput";
+import ProfileCompletenessIndicator from "@/components/employees/ProfileCompletenessIndicator";
 
 const EMPLOYMENT_TYPES = ["full_time", "part_time", "contractor", "intern"];
 const STATUSES = ["active", "onboarding", "on_leave", "terminated"];
@@ -197,6 +198,13 @@ export default function Employees() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const email = formData.get("email");
+    // Duplicate email detection
+    const existingWithEmail = employees.find(emp => emp.email === email && emp.id !== editingEmployee?.id);
+    if (existingWithEmail) {
+      alert(`A record with email "${email}" already exists (${existingWithEmail.full_name}). Please use a unique email.`);
+      return;
+    }
     const managerId = formData.get("manager_id");
     const selectedManager = employees.find(e => e.id === managerId);
     const data = {
@@ -445,6 +453,7 @@ export default function Employees() {
                         {employee.department && <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">{employee.department}</span>}
                       </div>
                     </div>
+                    <ProfileCompletenessIndicator employee={employee} />
                   </CardContent>
                 </Card>
               ))}

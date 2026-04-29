@@ -26,6 +26,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import SkillsInput from "@/components/employees/SkillsInput";
 import EnhancedProfileModal from "@/components/employees/EnhancedProfileModal";
+import GettingStartedBanner from "@/components/portal/GettingStartedBanner";
 import {
   User,
   Briefcase,
@@ -510,6 +511,7 @@ export default function EmployeePortal() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
+          <GettingStartedBanner employee={currentEmployee} onEditProfile={() => setEditProfileOpen(true)} />
           {/* My Apps Shortcuts */}
           <Card>
             <CardHeader>

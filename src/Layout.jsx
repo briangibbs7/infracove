@@ -78,6 +78,7 @@ const navigation = [
       { name: "Surveys", href: "Surveys", icon: FileText },
       { name: "Departments", href: "Departments", icon: Building2 },
       { name: "AI Assistant", href: "HRAIAssistant", icon: Sparkles },
+      { name: "HR Analytics", href: "HRAnalytics", icon: TrendingUp },
     ],
   },
   { name: "Benefits", href: "Benefits", icon: Heart, color: "green" },
