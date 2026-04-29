@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import SkillsInput from "@/components/employees/SkillsInput";
+import EnhancedProfileModal from "@/components/employees/EnhancedProfileModal";
 import {
   User,
   Briefcase,
@@ -78,6 +79,7 @@ export default function EmployeePortal() {
   const [profileFormData, setProfileFormData] = useState({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [generatingDoc, setGeneratingDoc] = useState(null);
+  const [selectedEmployeeForProfile, setSelectedEmployeeForProfile] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -778,7 +780,7 @@ export default function EmployeePortal() {
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  {dirFilteredEmployees.map((employee) => (
-                   <Card key={employee.id} className="hover:shadow-lg transition-shadow">
+                   <Card key={employee.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedEmployeeForProfile(employee)}>
                      <CardContent className="p-5">
                        <div className="flex items-start gap-3">
                          <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
@@ -1614,6 +1616,14 @@ export default function EmployeePortal() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Enhanced Profile Modal */}
+      {selectedEmployeeForProfile && (
+        <EnhancedProfileModal 
+          employee={selectedEmployeeForProfile} 
+          onClose={() => setSelectedEmployeeForProfile(null)} 
+        />
+      )}
 
       {/* Edit Profile Dialog */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
