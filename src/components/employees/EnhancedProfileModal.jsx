@@ -24,7 +24,7 @@ const skillIcons = {
   marketing: <Briefcase className="w-5 h-5" />,
 };
 
-export default function EnhancedProfileModal({ employee, open, onOpenChange }) {
+export default function EnhancedProfileModal({ employee, onClose }) {
   if (!employee) return null;
 
   // Mock achievements - in real app would come from data
@@ -78,7 +78,7 @@ export default function EnhancedProfileModal({ employee, open, onOpenChange }) {
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={!!employee} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="border-b pb-4 flex items-center justify-between">
           <div>
