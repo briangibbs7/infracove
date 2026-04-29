@@ -781,8 +781,12 @@ export default function EmployeePortal() {
                    <Card key={employee.id} className="hover:shadow-lg transition-shadow">
                      <CardContent className="p-5">
                        <div className="flex items-start gap-3">
-                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg">
-                           {employee.full_name?.charAt(0)}
+                         <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                           {employee.profile_photo ? (
+                             <img src={employee.profile_photo} alt={employee.full_name} className="w-full h-full object-cover" />
+                           ) : (
+                             <span>{employee.full_name?.charAt(0)}</span>
+                           )}
                          </div>
                          <div className="flex-1">
                            <h3 className="font-semibold text-slate-900">{employee.full_name}</h3>
