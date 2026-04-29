@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
+import SkillsInput from "@/components/employees/SkillsInput";
 import {
   User,
   Briefcase,
@@ -52,7 +53,8 @@ import {
   Camera,
   Edit,
   TrendingUp,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Sparkles
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
@@ -64,6 +66,9 @@ export default function EmployeePortal() {
   const [user, setUser] = useState(null);
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dirDept, setDirDept] = useState("all");
+  const [dirLocation, setDirLocation] = useState("all");
+  const [dirSkills, setDirSkills] = useState([]);
   const [timeOffDialogOpen, setTimeOffDialogOpen] = useState(false);
   const [payrollDialogOpen, setPayrollDialogOpen] = useState(false);
   const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
@@ -322,11 +327,22 @@ export default function EmployeePortal() {
 
   const filteredEmployees = employees.filter(
     (e) =>
-      e.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.job_title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const dirFilteredEmployees = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return employees.filter(e => {
+      const matchesSearch = !q || e.full_name?.toLowerCase().includes(q) || e.job_title?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q) || e.department?.toLowerCase().includes(q);
+      const matchesDept = dirDept === "all" || e.department === dirDept;
+      const matchesLoc = dirLocation === "all" || e.location === dirLocation;
+      const matchesSkills = dirSkills.length === 0 || (e.skills && dirSkills.some(skill => e.skills.includes(skill)));
+      return matchesSearch && matchesDept && matchesLoc && matchesSkills;
+    });
+  }, [employees, searchQuery, dirDept, dirLocation, dirSkills]);
 
   const getIconComponent = (iconName) => {
     const icons = {
@@ -714,77 +730,114 @@ export default function EmployeePortal() {
         </TabsContent>
 
         {/* Directory Tab */}
-        <TabsContent value="directory" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Employee Directory</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    placeholder="Search employees by name, email, department, or job title..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+         <TabsContent value="directory" className="space-y-6">
+           <Card>
+             <CardHeader>
+               <CardTitle>Employee Directory</CardTitle>
+             </CardHeader>
+             <CardContent>
+               <div className="space-y-4 mb-6">
+                 <div className="relative">
+                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                   <Input
+                     placeholder="Search employees by name, email, department, or job title..."
+                     value={searchQuery}
+                     onChange={(e) => setSearchQuery(e.target.value)}
+                     className="pl-10"
+                   />
+                 </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredEmployees.map((employee) => (
-                  <Card key={employee.id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-5">
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg">
-                          {employee.name?.charAt(0)}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-slate-900">{employee.name}</h3>
-                          <p className="text-sm text-muted-foreground">{employee.job_title}</p>
-                          <div className="mt-2 space-y-1">
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <Mail className="w-3 h-3" />
-                              <a href={`mailto:${employee.email}`} className="hover:text-indigo-600">
-                                {employee.email}
-                              </a>
-                            </div>
-                            {employee.phone && (
-                              <div className="flex items-center gap-2 text-sm text-slate-600">
-                                <Phone className="w-3 h-3" />
-                                <a href={`tel:${employee.phone}`} className="hover:text-indigo-600">
-                                  {employee.phone}
-                                </a>
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <Briefcase className="w-3 h-3" />
-                              <span>{employee.department}</span>
-                            </div>
-                            {employee.location && (
-                              <div className="flex items-center gap-2 text-sm text-slate-600">
-                                <MapPin className="w-3 h-3" />
-                                <span>{employee.location}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                 <div className="flex flex-col sm:flex-row gap-3">
+                   <Select value={dirDept} onValueChange={setDirDept}>
+                     <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Department" /></SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="all">All Departments</SelectItem>
+                       {[...new Set(employees.map(e => e.department).filter(Boolean))].map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                     </SelectContent>
+                   </Select>
+                   <Select value={dirLocation} onValueChange={setDirLocation}>
+                     <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Location" /></SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="all">All Locations</SelectItem>
+                       {[...new Set(employees.map(e => e.location).filter(Boolean))].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                     </SelectContent>
+                   </Select>
+                 </div>
 
-              {filteredEmployees.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No employees found</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                 <Card className="border-indigo-100 bg-indigo-50/40 p-4">
+                   <div className="space-y-2">
+                     <Label className="flex items-center gap-2 text-sm font-medium">
+                       <Sparkles className="w-4 h-4 text-indigo-600" />
+                       Filter by Skills
+                     </Label>
+                     <SkillsInput skills={dirSkills} onSkillsChange={setDirSkills} />
+                   </div>
+                 </Card>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {dirFilteredEmployees.map((employee) => (
+                   <Card key={employee.id} className="hover:shadow-lg transition-shadow">
+                     <CardContent className="p-5">
+                       <div className="flex items-start gap-3">
+                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg">
+                           {employee.full_name?.charAt(0)}
+                         </div>
+                         <div className="flex-1">
+                           <h3 className="font-semibold text-slate-900">{employee.full_name}</h3>
+                           <p className="text-sm text-muted-foreground">{employee.job_title}</p>
+                           {employee.skills?.length > 0 && (
+                             <div className="mt-2 mb-2 flex flex-wrap gap-1">
+                               {employee.skills.slice(0, 3).map((skill, idx) => (
+                                 <Badge key={idx} variant="secondary" className="text-xs">{skill}</Badge>
+                               ))}
+                               {employee.skills.length > 3 && (
+                                 <Badge variant="outline" className="text-xs">+{employee.skills.length - 3}</Badge>
+                               )}
+                             </div>
+                           )}
+                           <div className="mt-2 space-y-1">
+                             <div className="flex items-center gap-2 text-sm text-slate-600">
+                               <Mail className="w-3 h-3" />
+                               <a href={`mailto:${employee.email}`} className="hover:text-indigo-600">
+                                 {employee.email}
+                               </a>
+                             </div>
+                             {employee.phone && (
+                               <div className="flex items-center gap-2 text-sm text-slate-600">
+                                 <Phone className="w-3 h-3" />
+                                 <a href={`tel:${employee.phone}`} className="hover:text-indigo-600">
+                                   {employee.phone}
+                                 </a>
+                               </div>
+                             )}
+                             <div className="flex items-center gap-2 text-sm text-slate-600">
+                               <Briefcase className="w-3 h-3" />
+                               <span>{employee.department}</span>
+                             </div>
+                             {employee.location && (
+                               <div className="flex items-center gap-2 text-sm text-slate-600">
+                                 <MapPin className="w-3 h-3" />
+                                 <span>{employee.location}</span>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
+                 ))}
+               </div>
+
+               {dirFilteredEmployees.length === 0 && (
+                 <div className="text-center py-12 text-muted-foreground">
+                   <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                   <p>No employees found</p>
+                 </div>
+               )}
+             </CardContent>
+           </Card>
+         </TabsContent>
 
         {/* Equity Tab */}
         <TabsContent value="equity" className="space-y-6">
