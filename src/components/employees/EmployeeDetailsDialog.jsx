@@ -7,23 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, X, Briefcase } from "lucide-react";
+import SkillsInput from "./SkillsInput";
 
 export default function EmployeeDetailsDialog({ employee, onUpdate }) {
   const [skills, setSkills] = useState(employee?.skills || []);
-  const [newSkill, setNewSkill] = useState("");
   const [emergencyContacts, setEmergencyContacts] = useState(employee?.emergency_contacts || []);
   const [jobHistory, setJobHistory] = useState(employee?.job_history || []);
-
-  const addSkill = () => {
-    if (newSkill.trim()) {
-      setSkills([...skills, newSkill.trim()]);
-      setNewSkill("");
-    }
-  };
-
-  const removeSkill = (index) => {
-    setSkills(skills.filter((_, i) => i !== index));
-  };
 
   const addEmergencyContact = () => {
     setEmergencyContacts([
@@ -77,32 +66,8 @@ export default function EmployeeDetailsDialog({ employee, onUpdate }) {
         </TabsList>
 
         <TabsContent value="skills" className="space-y-4">
-          <div>
-            <Label>Add Skills</Label>
-            <div className="flex gap-2 mt-2">
-              <Input
-                placeholder="e.g., JavaScript, Project Management"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
-              />
-              <Button type="button" onClick={addSkill}>
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {skills.map((skill, index) => (
-              <Badge key={index} variant="secondary" className="gap-2">
-                {skill}
-                <X
-                  className="w-3 h-3 cursor-pointer"
-                  onClick={() => removeSkill(index)}
-                />
-              </Badge>
-            ))}
-          </div>
-        </TabsContent>
+           <SkillsInput skills={skills} onSkillsChange={setSkills} />
+         </TabsContent>
 
         <TabsContent value="emergency" className="space-y-4">
           <Button type="button" onClick={addEmergencyContact} variant="outline" size="sm">

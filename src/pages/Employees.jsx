@@ -28,7 +28,7 @@ import { format } from "date-fns";
 import {
   Users, Mail, Phone, MapPin, Calendar, Search, Filter,
   MoreVertical, Pencil, Trash2, Award, Network, Grid3x3,
-  MessageCircle, Shield, Briefcase, ChevronDown, ChevronRight,
+  MessageCircle, Shield, Briefcase, ChevronDown, ChevronRight, Sparkles,
 } from "lucide-react";
 import MessagingDialog from "@/components/communications/MessagingDialog";
 import EmployeeDetailsDialog from "@/components/employees/EmployeeDetailsDialog";
@@ -42,6 +42,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import SkillsInput from "@/components/employees/SkillsInput";
 
 const EMPLOYMENT_TYPES = ["full_time", "part_time", "contractor", "intern"];
 const STATUSES = ["active", "onboarding", "on_leave", "terminated"];
@@ -149,6 +150,7 @@ export default function Employees() {
   const [dirSearch, setDirSearch] = useState("");
   const [dirDept, setDirDept] = useState("all");
   const [dirLocation, setDirLocation] = useState("all");
+  const [dirSkills, setDirSkills] = useState([]);
   const [dirSelectedEmployee, setDirSelectedEmployee] = useState(null);
   // Org chart
   const [orgSearch, setOrgSearch] = useState("");
@@ -244,9 +246,10 @@ export default function Employees() {
       const matchesSearch = !q || e.full_name?.toLowerCase().includes(q) || e.job_title?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q) || e.department?.toLowerCase().includes(q);
       const matchesDept = dirDept === "all" || e.department === dirDept;
       const matchesLoc = dirLocation === "all" || e.location === dirLocation;
-      return matchesSearch && matchesDept && matchesLoc;
+      const matchesSkills = dirSkills.length === 0 || (e.skills && dirSkills.some(skill => e.skills.includes(skill)));
+      return matchesSearch && matchesDept && matchesLoc && matchesSkills;
     });
-  }, [employees, dirSearch, dirDept, dirLocation]);
+  }, [employees, dirSearch, dirDept, dirLocation, dirSkills]);
 
   const dirDepartments = useMemo(() => [...new Set(employees.map(e => e.department).filter(Boolean))].sort(), [employees]);
   const dirLocations = useMemo(() => [...new Set(employees.map(e => e.location).filter(Boolean))].sort(), [employees]);
@@ -450,27 +453,37 @@ export default function Employees() {
         </TabsContent>
 
         {/* ── DIRECTORY TAB ── */}
-        <TabsContent value="directory" className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input placeholder="Search by name, title, email, or department..." value={dirSearch} onChange={e => setDirSearch(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={dirDept} onValueChange={setDirDept}>
-              <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Department" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {dirDepartments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={dirLocation} onValueChange={setDirLocation}>
-              <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Location" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                {dirLocations.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+         <TabsContent value="directory" className="space-y-4">
+           <div className="flex flex-col sm:flex-row gap-3">
+             <div className="relative flex-1">
+               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+               <Input placeholder="Search by name, title, email, or department..." value={dirSearch} onChange={e => setDirSearch(e.target.value)} className="pl-9" />
+             </div>
+             <Select value={dirDept} onValueChange={setDirDept}>
+               <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Department" /></SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="all">All Departments</SelectItem>
+                 {dirDepartments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+               </SelectContent>
+             </Select>
+             <Select value={dirLocation} onValueChange={setDirLocation}>
+               <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Location" /></SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="all">All Locations</SelectItem>
+                 {dirLocations.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+               </SelectContent>
+             </Select>
+           </div>
+
+           <Card className="border-indigo-100 bg-indigo-50/40 p-4">
+             <div className="space-y-2">
+               <Label className="flex items-center gap-2 text-sm font-medium">
+                 <Sparkles className="w-4 h-4 text-indigo-600" />
+                 Filter by Skills
+               </Label>
+               <SkillsInput skills={dirSkills} onSkillsChange={setDirSkills} />
+             </div>
+           </Card>
 
           <p className="text-sm text-slate-500 flex items-center gap-1">
             <Users className="w-4 h-4" /> {dirFiltered.length} of {employees.length} employees
