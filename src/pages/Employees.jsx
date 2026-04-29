@@ -63,79 +63,61 @@ const LEVEL_COLORS = [
 function OrgNode({ node, level, onSelect, collapsedNodes, toggleCollapse }) {
   const hasChildren = node.children && node.children.length > 0;
   const isCollapsed = collapsedNodes.has(node.id);
-  const gradient = THEME_GRADIENTS[node.profile_theme] || THEME_GRADIENTS.blue;
-  const borderColor = LEVEL_COLORS[Math.min(level, LEVEL_COLORS.length - 1)];
   const initials = node.full_name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 
   const countAll = (n) => (n.children || []).reduce((s, c) => s + 1 + countAll(c), 0);
   const totalReports = countAll(node);
 
+  // Role-based coloring
+  const getRoleColor = () => {
+    const title = (node.job_title || "").toLowerCase();
+    if (title.includes("president") || title.includes("ceo") || title.includes("founder")) {
+      return { bg: "bg-slate-600", text: "text-white", avatar: "bg-gradient-to-br from-slate-600 to-slate-700" };
+    }
+    if (title.includes("director") || title.includes("vp") || title.includes("vice")) {
+      return { bg: "bg-teal-500", text: "text-white", avatar: "bg-gradient-to-br from-teal-400 to-cyan-500" };
+    }
+    return { bg: "bg-red-500", text: "text-white", avatar: "bg-gradient-to-br from-red-400 to-rose-500" };
+  };
+
+  const colors = getRoleColor();
+
   return (
     <div className="flex flex-col items-center">
       <div
         onClick={() => onSelect(node)}
-        className={`group relative w-60 bg-white rounded-xl border-2 border-slate-200 border-l-4 ${borderColor} shadow-sm hover:shadow-lg hover:border-indigo-300 transition-all duration-200 cursor-pointer`}
+        className={`group relative ${colors.bg} ${colors.text} rounded-3xl px-6 py-4 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer min-w-max`}
       >
-        {level === 0 && <div className={`h-1.5 w-full bg-gradient-to-r ${gradient} rounded-t-lg`} />}
-        <div className="p-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-11 w-11 flex-shrink-0 ring-2 ring-white shadow">
-              <AvatarImage src={node.profile_photo} />
-              <AvatarFallback className={`bg-gradient-to-br ${gradient} text-white font-bold text-sm`}>
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900 text-sm leading-tight truncate">{node.full_name}</p>
-              <p className="text-xs text-slate-500 truncate mt-0.5">{node.job_title || "—"}</p>
-              {node.department && (
-                <Badge variant="outline" className="mt-1.5 text-xs py-0 px-1.5 h-4 text-indigo-600 border-indigo-200 bg-indigo-50">
-                  {node.department}
-                </Badge>
-              )}
-            </div>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-16 w-16 flex-shrink-0 ring-4 ring-white shadow-lg">
+            <AvatarImage src={node.profile_photo} />
+            <AvatarFallback className={`${colors.avatar} font-bold text-lg`}>
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-bold text-sm">{node.full_name}</p>
+            <p className="text-xs opacity-90">{node.job_title || "Team Member"}</p>
           </div>
-          {node.email && (
-            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs text-slate-500 truncate">
-              <Mail className="w-3 h-3 text-slate-400 flex-shrink-0" />
-              <span className="truncate">{node.email}</span>
-            </div>
-          )}
-          {hasChildren && (
-            <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {node.children.length} direct · {totalReports} total
-              </span>
-              <Button
-                variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-indigo-50"
-                onClick={(e) => { e.stopPropagation(); toggleCollapse(node.id); }}
-              >
-                {isCollapsed
-                  ? <ChevronRight className="w-3.5 h-3.5 text-indigo-500" />
-                  : <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />}
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
-      {hasChildren && !isCollapsed && <div className="w-px h-8 bg-indigo-200" />}
+      {hasChildren && !isCollapsed && <div className="w-0.5 h-6 bg-teal-400" />}
 
       {hasChildren && !isCollapsed && (
-        <div className="flex gap-5 relative">
+        <div className="flex gap-8 relative">
           {node.children.length > 1 && (
             <div
-              className="absolute top-0 h-px bg-indigo-200"
+              className="absolute -top-6 h-0.5 bg-teal-400"
               style={{
-                left: `calc(50% - ${(node.children.length - 1) * 0.5 * (240 + 20)}px + ${240 / 2}px)`,
-                width: `${(node.children.length - 1) * (240 + 20)}px`,
+                left: `calc(50% - ${(node.children.length - 1) * 0.5 * (200 + 32)}px + ${100}px)`,
+                width: `${(node.children.length - 1) * (200 + 32)}px`,
               }}
             />
           )}
           {node.children.map(child => (
             <div key={child.id} className="flex flex-col items-center">
-              <div className="w-px h-8 bg-indigo-200" />
+              <div className="w-0.5 h-6 bg-teal-400" />
               <OrgNode node={child} level={level + 1} onSelect={onSelect} collapsedNodes={collapsedNodes} toggleCollapse={toggleCollapse} />
             </div>
           ))}
