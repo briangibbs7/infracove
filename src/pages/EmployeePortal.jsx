@@ -778,58 +778,31 @@ export default function EmployeePortal() {
                  </Card>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                  {dirFilteredEmployees.map((employee) => (
                    <Card key={employee.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedEmployeeForProfile(employee)}>
-                     <CardContent className="p-5">
-                       <div className="flex items-start gap-3">
-                         <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                     <CardContent className="p-3">
+                       <div className="flex flex-col items-center text-center">
+                         <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 mb-2">
                            {employee.profile_photo ? (
                              <img src={employee.profile_photo} alt={employee.full_name} className="w-full h-full object-cover" />
                            ) : (
                              <span>{employee.full_name?.charAt(0)}</span>
                            )}
                          </div>
-                         <div className="flex-1">
-                           <h3 className="font-semibold text-slate-900">{employee.full_name}</h3>
-                           <p className="text-sm text-muted-foreground">{employee.job_title}</p>
-                           {employee.skills?.length > 0 && (
-                             <div className="mt-2 mb-2 flex flex-wrap gap-1">
-                               {employee.skills.slice(0, 3).map((skill, idx) => (
-                                 <Badge key={idx} variant="secondary" className="text-xs">{skill}</Badge>
-                               ))}
-                               {employee.skills.length > 3 && (
-                                 <Badge variant="outline" className="text-xs">+{employee.skills.length - 3}</Badge>
-                               )}
-                             </div>
-                           )}
-                           <div className="mt-2 space-y-1">
-                             <div className="flex items-center gap-2 text-sm text-slate-600">
-                               <Mail className="w-3 h-3" />
-                               <a href={`mailto:${employee.email}`} className="hover:text-indigo-600">
-                                 {employee.email}
-                               </a>
-                             </div>
-                             {employee.phone && (
-                               <div className="flex items-center gap-2 text-sm text-slate-600">
-                                 <Phone className="w-3 h-3" />
-                                 <a href={`tel:${employee.phone}`} className="hover:text-indigo-600">
-                                   {employee.phone}
-                                 </a>
-                               </div>
-                             )}
-                             <div className="flex items-center gap-2 text-sm text-slate-600">
-                               <Briefcase className="w-3 h-3" />
-                               <span>{employee.department}</span>
-                             </div>
-                             {employee.location && (
-                               <div className="flex items-center gap-2 text-sm text-slate-600">
-                                 <MapPin className="w-3 h-3" />
-                                 <span>{employee.location}</span>
-                               </div>
+                         <h3 className="font-semibold text-slate-900 text-sm">{employee.full_name}</h3>
+                         <p className="text-xs text-muted-foreground line-clamp-1">{employee.job_title}</p>
+                         {employee.department && <p className="text-xs text-slate-500">{employee.department}</p>}
+                         {employee.skills?.length > 0 && (
+                           <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                             {employee.skills.slice(0, 2).map((skill, idx) => (
+                               <Badge key={idx} variant="secondary" className="text-xs">{skill}</Badge>
+                             ))}
+                             {employee.skills.length > 2 && (
+                               <Badge variant="outline" className="text-xs">+{employee.skills.length - 2}</Badge>
                              )}
                            </div>
-                         </div>
+                         )}
                        </div>
                      </CardContent>
                    </Card>
