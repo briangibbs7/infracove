@@ -87,7 +87,7 @@ export default function EnhancedProfileModal({ employee, onClose }) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => onOpenChange(false)}
+            onClick={onClose}
             className="absolute right-4 top-4"
           >
             <X className="w-4 h-4" />
