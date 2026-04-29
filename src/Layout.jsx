@@ -53,32 +53,45 @@ import ChatButton from "@/components/chat/ChatButton";
 const navigation = [
   { name: "Dashboard", href: "Dashboard", icon: LayoutDashboard, color: "slate" },
   { name: "My Portal", href: "EmployeePortal", icon: User, color: "red" },
-  { name: "Announcements", href: "Announcements", icon: Building2, color: "blue" },
   {
     name: "People",
     icon: Users,
     color: "pink",
     children: [
+      { name: "Employees", href: "Employees", icon: Users },
+      { name: "Departments", href: "Departments", icon: Building2 },
       { name: "Hiring", href: "Hiring", icon: Briefcase },
       { name: "Email Templates", href: "EmailTemplates", icon: FileText },
-      { name: "Employees", href: "Employees", icon: Users },
-
-      { name: "Time Off", href: "TimeOff", icon: FileText },
-      { name: "Team Calendar", href: "TeamCalendar", icon: Calendar },
-      { name: "Performance", href: "Performance", icon: TrendingUp },
-      { name: "Training", href: "Training", icon: TrendingUp },
-      { name: "Mentorship", href: "MentorshipProgram", icon: Users },
-      { name: "Internships", href: "InternshipProgram", icon: Users },
-      { name: "Career Paths", href: "CareerPathing", icon: TrendingUp },
-      { name: "Contracts", href: "HRContracts", icon: ShieldCheck },
       { name: "Onboarding", href: "Onboarding", icon: UserCircle },
       { name: "Offboarding", href: "Offboarding", icon: UserCircle },
+      { name: "Time Off", href: "TimeOff", icon: Calendar },
+      { name: "Team Calendar", href: "TeamCalendar", icon: Calendar },
+      { name: "HR Contracts", href: "HRContracts", icon: ShieldCheck },
+    ],
+  },
+  {
+    name: "Talent",
+    icon: TrendingUp,
+    color: "purple",
+    children: [
+      { name: "Performance", href: "Performance", icon: TrendingUp },
+      { name: "Training", href: "Training", icon: BookOpen },
+      { name: "Career Paths", href: "CareerPathing", icon: Target },
+      { name: "Mentorship", href: "MentorshipProgram", icon: Users },
+      { name: "Internships", href: "InternshipProgram", icon: Users },
       { name: "Company Skills", href: "CompanySkills", icon: Target },
-      { name: "Recognition", href: "Recognition", icon: Award },
       { name: "Surveys", href: "Surveys", icon: FileText },
-      { name: "Departments", href: "Departments", icon: Building2 },
+    ],
+  },
+  {
+    name: "Culture",
+    icon: Award,
+    color: "orange",
+    children: [
+      { name: "Announcements", href: "Announcements", icon: Building2 },
+      { name: "Recognition", href: "Recognition", icon: Award },
       { name: "AI Assistant", href: "HRAIAssistant", icon: Sparkles },
-      { name: "HR Analytics", href: "HRAnalytics", icon: TrendingUp },
+      { name: "HR Analytics", href: "Analytics", icon: TrendingUp },
     ],
   },
   { name: "Benefits", href: "Benefits", icon: Heart, color: "green" },
@@ -149,11 +162,13 @@ export default function Layout({ children, currentPageName }) {
     // Employee Portal is for all employees
     if (item.href === "EmployeePortal") return true;
     
-    // Dashboard and Announcements are for everyone
-    if (item.href === "Dashboard" || item.href === "Announcements") return true;
+    // Dashboard is for everyone
+    if (item.href === "Dashboard") return true;
+    
+    // HR groups
+    if (["People", "Talent", "Culture"].includes(item.name) && currentEmployee?.department === "HR") return true;
     
     // Department-specific access
-    if (item.name === "People" && currentEmployee?.department === "HR") return true;
     if (item.name === "Finance" && currentEmployee?.department === "Finance") return true;
     if (item.name === "Legal" && currentEmployee?.department === "Legal") return true;
     if (item.name === "IT" && currentEmployee?.department === "IT") return true;
@@ -162,7 +177,7 @@ export default function Layout({ children, currentPageName }) {
     if (item.href === "Documents" || item.href === "Benefits") return true;
     
     // Hide department sections if not in that department
-    if (["People", "Finance", "Legal", "IT", "Admin"].includes(item.name)) return false;
+    if (["People", "Talent", "Culture", "Finance", "Legal", "IT", "Admin"].includes(item.name)) return false;
     
     return true;
   });
@@ -186,6 +201,8 @@ export default function Layout({ children, currentPageName }) {
     const colors = {
       pink: isActive ? "bg-pink-50 text-pink-700 border-l-4 border-pink-600" : "bg-pink-50 border-l-4 border-pink-400",
       blue: isActive ? "bg-blue-50 text-blue-700 border-l-4 border-blue-600" : "bg-blue-50 border-l-4 border-blue-400",
+      purple: isActive ? "bg-purple-50 text-purple-700 border-l-4 border-purple-600" : "bg-purple-50 border-l-4 border-purple-400",
+      orange: isActive ? "bg-orange-50 text-orange-700 border-l-4 border-orange-600" : "bg-orange-50 border-l-4 border-orange-400",
     };
     return colors[color] || colors.pink;
   };
@@ -194,6 +211,8 @@ export default function Layout({ children, currentPageName }) {
     const colors = {
       pink: isActive ? "text-pink-700" : "text-pink-600",
       blue: isActive ? "text-blue-700" : "text-blue-600",
+      purple: isActive ? "text-purple-700" : "text-purple-600",
+      orange: isActive ? "text-orange-700" : "text-orange-600",
     };
     return colors[color] || colors.pink;
   };
