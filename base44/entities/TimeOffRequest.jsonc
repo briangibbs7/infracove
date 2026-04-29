@@ -2,6 +2,10 @@
   "name": "TimeOffRequest",
   "type": "object",
   "properties": {
+    "bamboohr_id": {
+      "type": "string",
+      "description": "BambooHR request ID for deduplication"
+    },
     "employee_id": {
       "type": "string"
     },
